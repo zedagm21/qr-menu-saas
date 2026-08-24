@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+}
+
+enum Language {
+  EN
+  AM
+}
+
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum MenuStyle {
+  CLASSIC
+  MODERN
+  ELEGANT
+  MINIMAL
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  AUTO
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         Role        @default(OWNER)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Restaurant {
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  description     String?
+  logoUrl         String?
+  coverImageUrl   String?
+  phone           String?
+  email           String?
+  address         String?
+  city            String?
+  country         String           @default("Ethiopia")
+  defaultLanguage Language         @default(EN)
+  currency        String           @default("ETB")
+  status          MenuStatus       @default(DRAFT)
+  users           User[]
+  categories      Category[]
+  menuItems       MenuItem[]
+  qrCodes         QRCode[]
+  theme           RestaurantTheme?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("restaurants")
+}
+
+model Category {
+  id           String                @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  displayOrder Int                   @default(0)
+  isActive     Boolean               @default(true)
+  translations CategoryTranslation[]
+  menuItems    MenuItem[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@map("categories")
+}
+
+model CategoryTranslation {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  language    Language
+  name        String
+  description String?
+
+  @@unique([categoryId, language])
+  @@map("category_translations")
+}
+
+model MenuItem {
+  id           String                @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  price        Decimal               @db.Decimal(10, 2)
+  currency     String                @default("ETB")
+  imageUrl     String?
+  isAvailable  Boolean               @default(true)
+  displayOrder Int                   @default(0)
+  isFeatured   Boolean               @default(false)
+  isSpicy      Boolean               @default(false)
+  translations MenuItemTranslation[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@map("menu_items")
+}
+
+model MenuItemTranslation {
+  id          String   @id @default(cuid())
+  menuItemId  String
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  language    Language
+  name        String
+  description String?
+  ingredients String?
+  allergens   String?
+
+  @@unique([menuItemId, language])
+  @@map("menu_item_translations")
+}
+
+model QRCode {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String     @default("Main QR")
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("qr_codes")
+}
+
+model RestaurantTheme {
+  id           String     @id @default(cuid())
+  restaurantId String     @unique
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  primaryColor String     @default("#D97706")
+  accentColor  String     @default("#F59E0B")
+  fontFamily   String     @default("Inter")
+  menuStyle    MenuStyle  @default(CLASSIC)
+  darkMode     ThemeMode  @default(LIGHT)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("restaurant_themes")
+}

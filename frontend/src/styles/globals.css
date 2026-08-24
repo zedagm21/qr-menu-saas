@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Theme Variables ────────────────────────────────────────────────────── */
+:root {
+  --color-brand-50: #fdf8f0;
+  --color-brand-100: #faefd6;
+  --color-brand-200: #f5daad;
+  --color-brand-300: #efbe7a;
+  --color-brand-400: #e89a44;
+  --color-brand-500: #D97706;
+  --color-brand-600: #c46904;
+  --color-brand-700: #a35604;
+  --color-brand-800: #824409;
+  --color-brand-900: #6b380c;
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-500: #F59E0B;
+  --color-accent-600: #d97706;
+
+  --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans Ethiopic', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #fafafa;
+  color: #1a1a1a;
+}
+
+/* ─── Amharic text support ───────────────────────────────────────────────────── */
+:lang(am),
+.font-ethiopic {
+  font-family: 'Noto Sans Ethiopic', sans-serif;
+}
+
+/* ─── Scrollbar styling ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* ─── Focus styles ────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* ─── Hide scrollbar utility ─────────────────────────────────────────────────── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Skeleton shimmer (warmer, brand-aware palette) ─────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f5f3f0 0%, #ede9e3 40%, #f5f3f0 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 40%, #1f1f1f 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* ─── Dark mode base ─────────────────────────────────────────────────────────── */
+.dark body {
+  background-color: #0c0c0c;
+  color: #f5f5f5;
+}
+
+/* ─── Glassmorphism utilities ────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.glass-dark {
+  background: rgba(15, 15, 15, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Card hover lift ────────────────────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.dark .card-hover:hover {
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.card-hover:active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* ─── Button glow utility (removed to retain calm aesthetic) ────────────────────────────────────────────────────── */
+
+
+/* ─── Page transition ────────────────────────────────────────────────────────── */
+.page-enter {
+  animation: slideUp 0.25s ease-out both;
+}
+
+/* ─── Input / Form base ──────────────────────────────────────────────────────── */
+input,
+textarea,
+select {
+  font-size: 1rem;
+}
+
+/* ─── Menu card hover transitions ────────────────────────────────────────────── */
+.menu-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ─── fade-in-up (page entrance) ─────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger delays */
+.delay-0 {
+  animation-delay: 0ms;
+}
+
+.delay-75 {
+  animation-delay: 75ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-225 {
+  animation-delay: 225ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-375 {
+  animation-delay: 375ms;
+}
+
+.delay-450 {
+  animation-delay: 450ms;
+}
+
+/* ─── Removed shake, gradient border, and stat-glow utilities for a cleaner UI ─────────────────────────────────────────── */
