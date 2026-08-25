@@ -178,7 +178,8 @@ const ItemFormPanel: React.FC<{
     onCancel: () => void;
     onOpenQuickCategory?: () => void;
     isSaving: boolean;
-}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, onOpenQuickCategory, isSaving }) => {
+    newCategoryId?: string | null;
+}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, onOpenQuickCategory, isSaving, newCategoryId }) => {
     const { t, i18n } = useTranslation();
     const [tab, setTab] = useState<'en' | 'am'>('en');
     const [dragOver, setDragOver] = useState(false);
@@ -204,6 +205,12 @@ const ItemFormPanel: React.FC<{
             set('categoryId', categories[categories.length - 1].id);
         }
     }, [categories]);
+
+    React.useEffect(() => {
+        if (newCategoryId) {
+            set('categoryId', newCategoryId);
+        }
+    }, [newCategoryId]);
 
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.imageUrl ?? null);
@@ -720,6 +727,7 @@ export default function MenuItemsPage() {
     const [filterCat, setFilterCat] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [quickCatOpen, setQuickCatOpen] = useState(false);
+    const [newCategoryId, setNewCategoryId] = useState<string | null>(null);
     const debouncedSearch = useDebounce(searchQuery, 300);
 
     const cats = Array.isArray(categories) ? categories : [];
@@ -729,8 +737,11 @@ export default function MenuItemsPage() {
     const availableCount = items.filter(i => i.isAvailable).length;
 
     const handleCategoryCreated = (newCat: any) => {
-        if (newCat?.id && !editing) {
-            setEditing('new');
+        if (newCat?.id) {
+            setNewCategoryId(newCat.id);
+            if (!editing) {
+                setEditing('new');
+            }
         }
     };
 
@@ -1035,6 +1046,7 @@ export default function MenuItemsPage() {
                         onCancel={() => setEditing(null)}
                         onOpenQuickCategory={() => setQuickCatOpen(true)}
                         isSaving={creating || updating}
+                        newCategoryId={newCategoryId}
                     />
                 </Modal>
             )}
