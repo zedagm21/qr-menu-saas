@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
+import toast from 'react-hot-toast';
 import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Flame, Search, UploadCloud,
@@ -14,7 +15,7 @@ import {
     useDeleteMenuItem,
     useUploadMenuItemImage,
 } from '../../hooks/useMenuItems';
-import { useCategories } from '../../hooks/useCategories';
+import { useCategories, useCreateCategory } from '../../hooks/useCategories';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
 import { compressImage } from '../../lib/imageCompression';
@@ -23,6 +24,136 @@ import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+
+// ─── Quick Category Modal (Inline Category Creator) ───────────────────────────
+const QuickCategoryModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onCreated: (newCat: any) => void;
+}> = ({ isOpen, onClose, onCreated }) => {
+    const { t } = useTranslation();
+    const { mutate: createCat, isPending } = useCreateCategory();
+    const [tab, setTab] = useState<'en' | 'am'>('en');
+    const [nameEn, setNameEn] = useState('');
+    const [descEn, setDescEn] = useState('');
+    const [nameAm, setNameAm] = useState('');
+    const [descAm, setDescAm] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!nameEn.trim() && !nameAm.trim()) {
+            setError(t('menu_items.name_required', { defaultValue: 'Please enter a category name' }));
+            return;
+        }
+
+        const translations: any[] = [];
+        if (nameEn.trim()) translations.push({ language: 'EN', name: nameEn.trim(), description: descEn.trim() || undefined });
+        if (nameAm.trim()) translations.push({ language: 'AM', name: nameAm.trim(), description: descAm.trim() || undefined });
+
+        createCat({ translations, isActive: true }, {
+            onSuccess: (createdCat: any) => {
+                setNameEn('');
+                setDescEn('');
+                setNameAm('');
+                setDescAm('');
+                setError(null);
+                onCreated(createdCat);
+                onClose();
+            }
+        });
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={t('categories.add_title', { defaultValue: 'Create New Category' })} size="sm">
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+                {/* Language tab switcher */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200/80 dark:border-neutral-700">
+                        {(['en', 'am'] as const).map(lang => (
+                            <button
+                                key={lang}
+                                type="button"
+                                onClick={() => setTab(lang)}
+                                className={cn(
+                                    'px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200 flex items-center gap-1.5',
+                                    tab === lang
+                                        ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700'
+                                        : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+                                )}
+                            >
+                                <span>{lang === 'en' ? '🇬🇧 English' : '🇪🇹 አማርኛ'}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-3.5">
+                    <div>
+                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
+                            {tab === 'en' ? 'Category Name' : 'የምድብ ስም'} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={tab === 'en' ? nameEn : nameAm}
+                            onChange={e => {
+                                if (tab === 'en') setNameEn(e.target.value);
+                                else setNameAm(e.target.value);
+                                if (error) setError(null);
+                            }}
+                            placeholder={tab === 'en' ? 'e.g. Traditional Dishes, Hot Drinks' : 'ለምሳሌ: ባህላዊ ምግቦች፣ ትኩስ መጠጦች'}
+                            className={cn(
+                                'w-full h-11 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs',
+                                error && !nameEn.trim() && !nameAm.trim() && 'border-red-500 focus:ring-red-500/30',
+                                tab === 'am' && 'font-ethiopic'
+                            )}
+                            autoFocus
+                        />
+                        {error && !nameEn.trim() && !nameAm.trim() && (
+                            <p className="text-[12px] font-bold text-red-500 mt-1 animate-fade-in flex items-center gap-1">
+                                <span>⚠️</span> {error}
+                            </p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
+                            {tab === 'en' ? 'Description (Optional)' : 'መግለጫ (አማራጭ)'}
+                        </label>
+                        <input
+                            type="text"
+                            value={tab === 'en' ? descEn : descAm}
+                            onChange={e => {
+                                if (tab === 'en') setDescEn(e.target.value);
+                                else setDescAm(e.target.value);
+                            }}
+                            placeholder={tab === 'en' ? 'Brief category summary...' : 'አጭር የምድብ ማብራሪያ...'}
+                            className={cn(
+                                'w-full h-11 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs',
+                                tab === 'am' && 'font-ethiopic'
+                            )}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                    <Button variant="outline" type="button" onClick={onClose} className="h-10 px-4 rounded-xl font-bold">
+                        {t('actions.cancel')}
+                    </Button>
+                    <Button
+                        variant="primary"
+                        type="submit"
+                        isLoading={isPending}
+                        className="h-10 px-6 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold"
+                        icon={<Check className="w-4 h-4 stroke-[2.5]" />}
+                    >
+                        {t('actions.save')}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ItemForm {
@@ -45,8 +176,9 @@ const ItemFormPanel: React.FC<{
     defaultCurrency?: string;
     onSave: (d: ItemForm, file: File | null) => void;
     onCancel: () => void;
+    onOpenQuickCategory?: () => void;
     isSaving: boolean;
-}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, isSaving }) => {
+}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, onOpenQuickCategory, isSaving }) => {
     const { t, i18n } = useTranslation();
     const [tab, setTab] = useState<'en' | 'am'>('en');
     const [dragOver, setDragOver] = useState(false);
@@ -66,6 +198,13 @@ const ItemFormPanel: React.FC<{
         isFeatured: initial?.isFeatured ?? false,
         isSpicy: initial?.isSpicy ?? false,
     });
+
+    React.useEffect(() => {
+        if ((!form.categoryId || !categories.some(c => c.id === form.categoryId)) && categories.length > 0) {
+            set('categoryId', categories[categories.length - 1].id);
+        }
+    }, [categories]);
+
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.imageUrl ?? null);
 
@@ -167,12 +306,11 @@ const ItemFormPanel: React.FC<{
                     {/* Price with Currency Selector */}
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {t('menu_items.price')} <span className="text-red-500">*</span>
+                            {t('menu_items.price')}
                         </label>
                         <div className="relative">
                             <input
                                 type="number"
-                                inputMode="decimal"
                                 min="0"
                                 step="0.01"
                                 value={form.price}
@@ -197,20 +335,45 @@ const ItemFormPanel: React.FC<{
 
                     {/* Category Selector */}
                     <div>
-                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {t('menu_items.category_label')} <span className="text-red-500">*</span>
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300">
+                                {t('menu_items.category_label')} <span className="text-red-500">*</span>
+                            </label>
+                            {onOpenQuickCategory && (
+                                <button
+                                    type="button"
+                                    onClick={onOpenQuickCategory}
+                                    className="text-[11px] font-extrabold text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] hover:underline flex items-center gap-0.5 cursor-pointer"
+                                >
+                                    <Plus className="w-3 h-3 stroke-[3]" />
+                                    <span>{t('menu_items.add_new_category', { defaultValue: '+ Add New Category' })}</span>
+                                </button>
+                            )}
+                        </div>
                         <div className="relative">
                             <select
                                 value={form.categoryId}
-                                onChange={e => set('categoryId', e.target.value)}
+                                onChange={e => {
+                                    if (e.target.value === '__add_new__') {
+                                        if (onOpenQuickCategory) onOpenQuickCategory();
+                                    } else {
+                                        set('categoryId', e.target.value);
+                                    }
+                                }}
                                 className="w-full h-11 px-4 pr-10 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs cursor-pointer appearance-none"
                             >
+                                {categories.length === 0 ? (
+                                    <option value="">{t('menu_items.select_or_create_category', { defaultValue: '-- Select or Create Category --' })}</option>
+                                ) : null}
                                 {categories.map(c => (
                                     <option key={c.id} value={c.id}>
                                         {getTranslation(c.translations, i18n.language)}
                                     </option>
                                 ))}
+                                <option disabled className="text-neutral-400">──────────</option>
+                                <option value="__add_new__" className="font-bold text-[color:var(--color-brand-600)]">
+                                    ➕ {t('menu_items.add_new_category', { defaultValue: '+ Add New Category' })}
+                                </option>
                             </select>
                             <Tag className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                         </div>
@@ -556,6 +719,7 @@ export default function MenuItemsPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [filterCat, setFilterCat] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [quickCatOpen, setQuickCatOpen] = useState(false);
     const debouncedSearch = useDebounce(searchQuery, 300);
 
     const cats = Array.isArray(categories) ? categories : [];
@@ -563,6 +727,12 @@ export default function MenuItemsPage() {
     const editingItem = items.find(i => i.id === editing);
 
     const availableCount = items.filter(i => i.isAvailable).length;
+
+    const handleCategoryCreated = (newCat: any) => {
+        if (newCat?.id && !editing) {
+            setEditing('new');
+        }
+    };
 
     const filtered = items
         .filter(i => filterCat === 'all' || i.categoryId === filterCat)
@@ -644,7 +814,7 @@ export default function MenuItemsPage() {
                         </div>
                     </div>
 
-                    {cats.length > 0 && (
+                    {cats.length > 0 ? (
                         <Button
                             variant="primary"
                             className="hidden sm:flex h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold"
@@ -652,6 +822,15 @@ export default function MenuItemsPage() {
                             onClick={() => setEditing('new')}
                         >
                             {t('menu_items.add_food_item', { defaultValue: 'Add Food Item' })}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="primary"
+                            className="h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold shadow-sm"
+                            icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                            onClick={() => setQuickCatOpen(true)}
+                        >
+                            {t('menu_items.create_first_category', { defaultValue: 'Create First Category' })}
                         </Button>
                     )}
                 </div>
@@ -782,9 +961,18 @@ export default function MenuItemsPage() {
                             )}
 
                             {items.length === 0 && cats.length === 0 && (
-                                <div className="flex items-center gap-2 text-[13px] font-medium text-neutral-700 dark:text-neutral-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-2.5">
-                                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span>Please create at least one category first in the Categories section.</span>
+                                <div className="flex flex-col items-center gap-4 animate-fade-in">
+                                    <p className="text-[14px] text-neutral-600 dark:text-neutral-400 max-w-md text-center leading-relaxed">
+                                        {t('menu_items.no_category_hint', { defaultValue: 'Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.' })}
+                                    </p>
+                                    <Button
+                                        variant="primary"
+                                        className="h-11 px-7 text-[14px] rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold shadow-sm hover:scale-105 transition-all"
+                                        icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                                        onClick={() => setQuickCatOpen(true)}
+                                    >
+                                        {t('menu_items.create_first_category', { defaultValue: 'Create First Category' })}
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -819,10 +1007,10 @@ export default function MenuItemsPage() {
                 </div>
 
                 {/* Mobile FAB */}
-                {!editing && cats.length > 0 && items.length > 0 && (
+                {!editing && (
                     <div className="fixed bottom-20 right-5 sm:hidden z-40">
                         <button
-                            onClick={() => setEditing('new')}
+                            onClick={() => cats.length === 0 ? setQuickCatOpen(true) : setEditing('new')}
                             className="w-14 h-14 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                         >
                             <Plus className="w-6 h-6 stroke-[2.5]" />
@@ -845,10 +1033,18 @@ export default function MenuItemsPage() {
                         defaultCurrency={restaurant?.currency}
                         onSave={handleSave}
                         onCancel={() => setEditing(null)}
+                        onOpenQuickCategory={() => setQuickCatOpen(true)}
                         isSaving={creating || updating}
                     />
                 </Modal>
             )}
+
+            {/* Inline Quick Category Creation Modal */}
+            <QuickCategoryModal
+                isOpen={quickCatOpen}
+                onClose={() => setQuickCatOpen(false)}
+                onCreated={handleCategoryCreated}
+            />
         </>
     );
 }
