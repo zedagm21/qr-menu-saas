@@ -265,5 +265,3 @@ cd qr-menu-saas
 
 ---
 
-## 📄 License
-This project is licensed under the **ISC License**.
