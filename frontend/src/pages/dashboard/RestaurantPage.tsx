@@ -95,6 +95,8 @@ const SectionCard: React.FC<{
     </div>
 );
 
+import { compressImage } from '../../lib/imageCompression';
+
 // ─── Upload Zone ──────────────────────────────────────────────────────────────
 interface UploadZoneProps {
     aspect: string;       // Tailwind aspect ratio class
@@ -108,6 +110,7 @@ interface UploadZoneProps {
     hint: string;
     emptyIcon: React.ReactNode;
     uploaded: boolean;
+    progress?: number | null;
     tChangeImage: string;
     tDropToUpload: string;
     tToUpload: string;
@@ -116,7 +119,7 @@ interface UploadZoneProps {
 
 const UploadZone: React.FC<UploadZoneProps> = ({
     aspect, dragOver, onDragOver, onDragLeave, onDrop, onChange,
-    imageUrl, label, hint, emptyIcon, uploaded,
+    imageUrl, label, hint, emptyIcon, uploaded, progress,
     tChangeImage, tDropToUpload, tToUpload, tClickDragDrop
 }) => (
     <div className="flex flex-col">
@@ -138,6 +141,19 @@ const UploadZone: React.FC<UploadZoneProps> = ({
             onDragLeave={onDragLeave}
             onDrop={e => { e.preventDefault(); onDragLeave(); }}
         >
+            {/* Progress overlay */}
+            {progress !== null && progress !== undefined && (
+                <div className="absolute inset-0 z-30 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white animate-fade-in">
+                    <div className="w-full max-w-[180px] bg-white/20 rounded-full h-2 overflow-hidden mb-2">
+                        <div
+                            className="bg-[color:var(--color-brand-400)] h-full rounded-full transition-all duration-200"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <span className="text-[12px] font-bold tracking-wider">{progress < 100 ? `Uploading ${progress}%` : 'Processing...'}</span>
+                </div>
+            )}
+
             {imageUrl ? (
                 <>
                     <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
@@ -197,6 +213,8 @@ const RestaurantPage: React.FC = () => {
     const [coverDragOver, setCoverDragOver] = useState(false);
     const [logoUploaded, setLogoUploaded] = useState(false);
     const [coverUploaded, setCoverUploaded] = useState(false);
+    const [logoProgress, setLogoProgress] = useState<number | null>(null);
+    const [coverProgress, setCoverProgress] = useState<number | null>(null);
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -227,24 +245,36 @@ const RestaurantPage: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-            await restaurantApi.uploadLogo(file);
+            setLogoProgress(0);
+            const compressed = await compressImage(file, { maxDimension: 1200, quality: 0.85 });
+            await restaurantApi.uploadLogo(compressed, (percent) => setLogoProgress(percent));
             await qc.invalidateQueries({ queryKey: ['restaurant'] });
             toast.success(t('toast.uploaded'));
             setLogoUploaded(true);
             logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
-        } catch { toast.error(t('toast.error')); }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || t('toast.error'));
+        } finally {
+            setLogoProgress(null);
+        }
     };
 
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-            await restaurantApi.uploadCover(file);
+            setCoverProgress(0);
+            const compressed = await compressImage(file, { maxDimension: 2000, quality: 0.82 });
+            await restaurantApi.uploadCover(compressed, (percent) => setCoverProgress(percent));
             await qc.invalidateQueries({ queryKey: ['restaurant'] });
             toast.success(t('toast.uploaded'));
             setCoverUploaded(true);
             coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
-        } catch { toast.error(t('toast.error')); }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || t('toast.error'));
+        } finally {
+            setCoverProgress(null);
+        }
     };
 
     if (isLoading) return (
@@ -308,9 +338,10 @@ const RestaurantPage: React.FC = () => {
                                 onChange={handleLogoUpload}
                                 imageUrl={restaurant?.logoUrl}
                                 label={t('restaurant.logo')}
-                                hint="PNG, JPG · max 2MB"
+                                hint="PNG, JPG, WebP · compressed automatically"
                                 emptyIcon={<Store className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />}
                                 uploaded={logoUploaded}
+                                progress={logoProgress}
                                 tChangeImage={t("restaurant.change_image")}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
@@ -325,10 +356,11 @@ const RestaurantPage: React.FC = () => {
                                 onChange={handleCoverUpload}
                                 imageUrl={restaurant?.coverImageUrl}
                                 label={t('restaurant.cover')}
-                                hint="Recommended 1200×400px · max 5MB"
+                                hint="Recommended 1200×400px · compressed automatically"
                                 emptyIcon={<ImagePlus className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />}
-                                tChangeImage={t("restaurant.change_image")}
                                 uploaded={coverUploaded}
+                                progress={coverProgress}
+                                tChangeImage={t("restaurant.change_image")}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}

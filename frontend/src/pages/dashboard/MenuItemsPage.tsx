@@ -10,11 +10,14 @@ import {
     useMenuItems,
     useCreateMenuItem,
     useUpdateMenuItem,
+    useToggleItemAvailability,
     useDeleteMenuItem,
     useUploadMenuItemImage,
 } from '../../hooks/useMenuItems';
 import { useCategories } from '../../hooks/useCategories';
+import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
+import { compressImage } from '../../lib/imageCompression';
 import type { MenuItem, Category } from '../../types';
 import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
@@ -39,10 +42,11 @@ const inputCls =
 const ItemFormPanel: React.FC<{
     initial?: MenuItem;
     categories: Category[];
+    defaultCurrency?: string;
     onSave: (d: ItemForm, file: File | null) => void;
     onCancel: () => void;
     isSaving: boolean;
-}> = ({ initial, categories, onSave, onCancel, isSaving }) => {
+}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, isSaving }) => {
     const { t, i18n } = useTranslation();
     const [tab, setTab] = useState<'en' | 'am'>('en');
     const [dragOver, setDragOver] = useState(false);
@@ -56,7 +60,7 @@ const ItemFormPanel: React.FC<{
         ingredientsAm: getTranslation(initial?.translations ?? [], 'AM', 'ingredients') ?? '',
         allergensAm: getTranslation(initial?.translations ?? [], 'AM', 'allergens') ?? '',
         price: initial?.price?.toString() ?? '',
-        currency: initial?.currency ?? 'ETB',
+        currency: initial?.currency ?? defaultCurrency,
         categoryId: initial?.categoryId ?? (categories[0]?.id ?? ''),
         isAvailable: initial?.isAvailable ?? true,
         isFeatured: initial?.isFeatured ?? false,
@@ -185,6 +189,7 @@ const ItemFormPanel: React.FC<{
                                     <option value="ETB">ETB</option>
                                     <option value="USD">USD</option>
                                     <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
                                 </select>
                             </div>
                         </div>
@@ -538,10 +543,12 @@ const MenuItemCard: React.FC<{
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function MenuItemsPage() {
     const { t, i18n } = useTranslation();
+    const { data: restaurant } = useRestaurant();
     const { data: menuItems, isLoading } = useMenuItems();
     const { data: categories } = useCategories();
     const { mutate: create, isPending: creating } = useCreateMenuItem();
     const { mutate: update, isPending: updating } = useUpdateMenuItem();
+    const { mutate: toggleAvailability } = useToggleItemAvailability();
     const { mutate: remove } = useDeleteMenuItem();
     const { mutate: uploadImage } = useUploadMenuItemImage();
 
@@ -568,7 +575,7 @@ export default function MenuItemsPage() {
             return name.includes(q) || desc.includes(q) || ingr.includes(q);
         });
 
-    const handleSave = (form: ItemForm, file: File | null) => {
+    const handleSave = async (form: ItemForm, file: File | null) => {
         const translations: any[] = [];
         if (form.nameEn) translations.push({ language: 'EN', name: form.nameEn, description: form.descEn, ingredients: form.ingredientsEn, allergens: form.allergensEn });
         if (form.nameAm) translations.push({ language: 'AM', name: form.nameAm, description: form.descAm, ingredients: form.ingredientsAm, allergens: form.allergensAm });
@@ -583,17 +590,19 @@ export default function MenuItemsPage() {
             isSpicy: form.isSpicy,
         };
 
+        const compressedFile = file ? await compressImage(file, { maxDimension: 1400, quality: 0.85 }) : null;
+
         if (editing === 'new') {
             create(payload as any, {
                 onSuccess: (res: any) => {
-                    if (file) uploadImage({ id: res.id, file });
+                    if (compressedFile) uploadImage({ id: res.id, file: compressedFile });
                     setEditing(null);
                 },
             });
         } else if (editing) {
             update({ id: editing, data: payload as any }, {
                 onSuccess: () => {
-                    if (file) uploadImage({ id: editing, file });
+                    if (compressedFile) uploadImage({ id: editing, file: compressedFile });
                     setEditing(null);
                 },
             });
@@ -800,7 +809,7 @@ export default function MenuItemsPage() {
                                         cats={cats}
                                         onEdit={() => setEditing(item.id)}
                                         onDelete={() => setDeletingId(item.id)}
-                                        onToggleAvailability={() => update({ id: item.id, data: { isAvailable: !item.isAvailable } })}
+                                        onToggleAvailability={() => toggleAvailability({ id: item.id, isAvailable: !item.isAvailable })}
                                         style={{ animationDelay: `${idx * 20 + 150}ms` }}
                                     />
                                 )
@@ -833,6 +842,7 @@ export default function MenuItemsPage() {
                     <ItemFormPanel
                         initial={editing === 'new' ? undefined : editingItem}
                         categories={cats}
+                        defaultCurrency={restaurant?.currency}
                         onSave={handleSave}
                         onCancel={() => setEditing(null)}
                         isSaving={creating || updating}

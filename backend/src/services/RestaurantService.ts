@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { imageStorage } from './ImageStorageService';
 import { ImageProcessor } from './ImageProcessor';
+import { publicMenuService } from './PublicMenuService';
 import type { UpdateRestaurantInput, UpdateThemeInput } from '../validators/restaurant';
 
 export class RestaurantService {
@@ -19,11 +20,13 @@ export class RestaurantService {
     }
 
     async updateRestaurant(restaurantId: string, data: UpdateRestaurantInput) {
-        return prisma.restaurant.update({
+        const updated = await prisma.restaurant.update({
             where: { id: restaurantId },
             data,
             include: { theme: true },
         });
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return updated;
     }
 
     async updateLogo(restaurantId: string, file: Express.Multer.File, oldUrl?: string | null) {
@@ -52,6 +55,7 @@ export class RestaurantService {
                 });
             }
 
+            publicMenuService.invalidateCache(restaurantId).catch(() => {});
             return updated;
         } catch (dbError) {
             // Rollback: delete the newly created file if DB update fails
@@ -86,6 +90,7 @@ export class RestaurantService {
                 });
             }
 
+            publicMenuService.invalidateCache(restaurantId).catch(() => {});
             return updated;
         } catch (dbError) {
             // Rollback: delete the newly created file if DB update fails
@@ -95,11 +100,13 @@ export class RestaurantService {
     }
 
     async updateTheme(restaurantId: string, data: UpdateThemeInput) {
-        return prisma.restaurantTheme.upsert({
+        const theme = await prisma.restaurantTheme.upsert({
             where: { restaurantId },
             update: data,
             create: { restaurantId, ...data },
         });
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return theme;
     }
 
     async getStats(restaurantId: string) {

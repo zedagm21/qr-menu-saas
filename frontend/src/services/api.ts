@@ -1,10 +1,32 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const api = axios.create({
     baseURL: '/api',
     withCredentials: true, // Always send HttpOnly cookies
     headers: { 'Content-Type': 'application/json' },
 });
+
+// ─── Global Response Interceptor for Auth Expiry ─────────────────────────────
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            const path = window.location.pathname;
+            // Only redirect and notify if user is currently inside dashboard routes
+            if (path.startsWith('/dashboard')) {
+                toast.error('Session expired. Please log in again.', { id: 'session-expired' });
+                // Clean redirect to login
+                setTimeout(() => {
+                    if (window.location.pathname.startsWith('/dashboard')) {
+                        window.location.href = '/login';
+                    }
+                }, 800);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
@@ -25,15 +47,29 @@ export const restaurantApi = {
     updateTheme: (data: object) => api.put('/restaurant/theme', data).then(r => r.data),
     getStats: () => api.get('/restaurant/stats').then(r => r.data),
     publish: () => api.post('/restaurant/publish').then(r => r.data),
-    uploadLogo: (file: File) => {
+    uploadLogo: (file: File, onProgress?: (percent: number) => void) => {
         const fd = new FormData();
         fd.append('image', file);
-        return api.post('/restaurant/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+        return api.post('/restaurant/logo', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+                if (e.total && onProgress) {
+                    onProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            },
+        }).then(r => r.data);
     },
-    uploadCover: (file: File) => {
+    uploadCover: (file: File, onProgress?: (percent: number) => void) => {
         const fd = new FormData();
         fd.append('image', file);
-        return api.post('/restaurant/cover', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+        return api.post('/restaurant/cover', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+                if (e.total && onProgress) {
+                    onProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            },
+        }).then(r => r.data);
     },
 };
 
@@ -55,10 +91,17 @@ export const menuItemApi = {
     create: (data: object) => api.post('/menu-items', data).then(r => r.data),
     update: (id: string, data: object) => api.put(`/menu-items/${id}`, data).then(r => r.data),
     remove: (id: string) => api.delete(`/menu-items/${id}`).then(r => r.data),
-    uploadImage: (id: string, file: File) => {
+    uploadImage: (id: string, file: File, onProgress?: (percent: number) => void) => {
         const fd = new FormData();
         fd.append('image', file);
-        return api.post(`/menu-items/${id}/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+        return api.post(`/menu-items/${id}/image`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+                if (e.total && onProgress) {
+                    onProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            },
+        }).then(r => r.data);
     },
     reorder: (items: { id: string; displayOrder: number }[]) =>
         api.put('/menu-items/reorder', { items }).then(r => r.data),
