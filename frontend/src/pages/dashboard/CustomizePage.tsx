@@ -345,7 +345,7 @@ const CustomizePage: React.FC = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[12px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t('customize.dark_mode')}</label>
+                                <label className="text-[12px] font-bold text-neutral-500 uppercase tracking-widest block mb-2">{t('customize.theme')}</label>
                                 <select
                                     {...register('darkMode')}
                                     className="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/40 bg-neutral-50 dark:bg-neutral-800/50 focus:bg-white dark:focus:bg-neutral-900 text-neutral-900 dark:text-neutral-100 transition-colors cursor-pointer"

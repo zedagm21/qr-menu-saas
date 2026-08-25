@@ -211,7 +211,8 @@
         "spicy": "Spicy",
         "edit_food_item": "Edit Food Item",
         "uncategorized": "Uncategorized",
-        "category_label": "Category"
+        "category_label": "Category",
+        "price_required": "Price must be greater than 0"
     },
     "qr": {
         "title": "QR Code",
@@ -251,6 +252,7 @@
         "theme_presets": "Theme Presets",
         "current_theme": "Current Theme",
         "font": "Font Family",
+        "theme": "Theme",
         "dark_mode": "Dark Mode",
         "dark_mode_light": "Light Theme",
         "dark_mode_dark": "Dark Theme",

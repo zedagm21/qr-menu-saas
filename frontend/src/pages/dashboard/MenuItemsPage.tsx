@@ -20,6 +20,7 @@ import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ItemForm {
@@ -78,6 +79,7 @@ const ItemFormPanel: React.FC<{
         if (e.target.files?.[0]) {
             handleFile(e.target.files[0]);
         }
+        e.target.value = '';
     };
 
     return (
@@ -167,12 +169,16 @@ const ItemFormPanel: React.FC<{
                         </label>
                         <div className="relative">
                             <input
-                                type="number"
+                                type="text"
                                 inputMode="decimal"
-                                min="0"
-                                step="0.01"
                                 value={form.price}
-                                onChange={e => set('price', e.target.value)}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                        set('price', val);
+                                    }
+                                }}
+                                onWheel={e => e.currentTarget.blur()}
                                 placeholder="0.00"
                                 className="w-full h-11 pl-4 pr-24 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[15px] font-bold text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs"
                             />
@@ -569,13 +575,19 @@ export default function MenuItemsPage() {
         });
 
     const handleSave = (form: ItemForm, file: File | null) => {
+        const parsedPrice = parseFloat(form.price);
+        if (!form.price.trim() || isNaN(parsedPrice) || parsedPrice <= 0) {
+            toast.error(t('menu_items.price_required'));
+            return;
+        }
+
         const translations: any[] = [];
         if (form.nameEn) translations.push({ language: 'EN', name: form.nameEn, description: form.descEn, ingredients: form.ingredientsEn, allergens: form.allergensEn });
         if (form.nameAm) translations.push({ language: 'AM', name: form.nameAm, description: form.descAm, ingredients: form.ingredientsAm, allergens: form.allergensAm });
 
         const payload = {
             translations,
-            price: parseFloat(form.price) || 0,
+            price: parsedPrice,
             currency: form.currency,
             categoryId: form.categoryId,
             isAvailable: form.isAvailable,

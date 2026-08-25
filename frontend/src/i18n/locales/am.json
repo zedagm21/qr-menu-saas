@@ -211,7 +211,8 @@
         "spicy": "የሚያቃጥል",
         "edit_food_item": "ምግብ / መጠጥ አስተካክል",
         "uncategorized": "ያልተመደበ",
-        "category_label": "የምግብ ክፍል"
+        "category_label": "የምግብ ክፍል",
+        "price_required": "ዋጋው ከ 0 በላይ መሆን አለበት"
     },
     "qr": {
         "title": "QR ኮድ",
@@ -251,6 +252,7 @@
         "theme_presets": "ቀናፄ ቀለሞች",
         "current_theme": "አሁን ያለ ዲዛይን",
         "font": "የፊደል ዓይነት",
+        "theme": "ገጽታ",
         "dark_mode": "ጨለማ ሁነታ",
         "dark_mode_light": "ብርሃን ሁነታ",
         "dark_mode_dark": "ጨለማ ሁነታ",

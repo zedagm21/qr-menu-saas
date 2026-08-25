@@ -28,7 +28,7 @@ export const useCreateMenuItem = () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
             toast.success(t('toast.created'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -41,7 +41,7 @@ export const useUpdateMenuItem = () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
             toast.success(t('toast.saved'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -54,7 +54,7 @@ export const useDeleteMenuItem = () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
             toast.success(t('toast.deleted'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -67,6 +67,6 @@ export const useUploadMenuItemImage = () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
             toast.success(t('toast.uploaded'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
