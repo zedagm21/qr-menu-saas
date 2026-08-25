@@ -26,6 +26,16 @@ export interface RestaurantTheme {
     darkMode: ThemeMode;
 }
 
+export interface RestaurantTranslation {
+    id?: string;
+    restaurantId?: string;
+    language: Language;
+    name: string;
+    description: string | null;
+    address: string | null;
+    city: string | null;
+}
+
 export interface Restaurant {
     id: string;
     name: string;
@@ -41,6 +51,7 @@ export interface Restaurant {
     defaultLanguage: Language;
     currency: string;
     status: MenuStatus;
+    translations?: RestaurantTranslation[];
     theme: RestaurantTheme | null;
     createdAt: string;
     updatedAt: string;
@@ -132,6 +143,7 @@ export interface DashboardStats {
     qrActive: boolean;
     status: MenuStatus;
     restaurantName: string;
+    translations?: RestaurantTranslation[];
     defaultLanguage: Language;
     theme: RestaurantTheme | null;
 }
@@ -149,6 +161,8 @@ export interface TranslationInput {
     description?: string;
     ingredients?: string;
     allergens?: string;
+    address?: string;
+    city?: string;
 }
 
 export interface CreateCategoryInput {

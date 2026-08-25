@@ -73,7 +73,8 @@ export const qrApi = {
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 export const publicApi = {
-    getRestaurant: (slug: string) => api.get(`/public/restaurants/${slug}`).then(r => r.data),
+    getRestaurant: (slug: string, lang: string = 'EN') =>
+        api.get(`/public/restaurants/${slug}`, { params: { lang } }).then(r => r.data),
     getMenu: (slug: string, lang: string = 'EN') =>
         api.get(`/public/restaurants/${slug}/menu`, { params: { lang } }).then(r => r.data),
 };

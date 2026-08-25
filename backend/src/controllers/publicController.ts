@@ -3,7 +3,8 @@ import { publicMenuService } from '../services/PublicMenuService';
 
 export const getRestaurantPublic = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const restaurant = await publicMenuService.getRestaurantBySlug(req.params.slug);
+        const lang = (req.query.lang as 'EN' | 'AM') || 'EN';
+        const restaurant = await publicMenuService.getRestaurantBySlug(req.params.slug, lang);
         res.json(restaurant);
     } catch (error) {
         next(error);

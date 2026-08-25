@@ -2,10 +2,10 @@ import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
 
 export class PublicMenuService {
-    async getRestaurantBySlug(slug: string) {
+    async getRestaurantBySlug(slug: string, lang: 'EN' | 'AM' = 'EN') {
         const restaurant = await prisma.restaurant.findUnique({
             where: { slug },
-            include: { theme: true },
+            include: { translations: true, theme: true },
         });
 
         if (!restaurant) {
@@ -16,22 +16,28 @@ export class PublicMenuService {
             throw createError('This menu is currently unavailable', 404);
         }
 
+        // Project to bilingual-aware structure with fallback to EN then scalar fields
+        const translation =
+            restaurant.translations.find((t) => t.language === lang) ||
+            restaurant.translations.find((t) => t.language === 'EN');
+
         // Return only public-safe fields (no internal IDs needed by customers)
         return {
             id: restaurant.id,
-            name: restaurant.name,
+            name: translation?.name || restaurant.name,
             slug: restaurant.slug,
-            description: restaurant.description,
+            description: translation?.description ?? restaurant.description,
             logoUrl: restaurant.logoUrl,
             coverImageUrl: restaurant.coverImageUrl,
             phone: restaurant.phone,
             email: restaurant.email,
-            address: restaurant.address,
-            city: restaurant.city,
+            address: translation?.address ?? restaurant.address,
+            city: translation?.city ?? restaurant.city,
             country: restaurant.country,
             defaultLanguage: restaurant.defaultLanguage,
             currency: restaurant.currency,
             theme: restaurant.theme,
+            translations: restaurant.translations,
         };
     }
 

@@ -12,6 +12,7 @@ async function main() {
     await prisma.menuItem.deleteMany({});
     await prisma.categoryTranslation.deleteMany({});
     await prisma.category.deleteMany({});
+    await prisma.restaurantTranslation.deleteMany({});
     await prisma.restaurantTheme.deleteMany({});
     await prisma.user.deleteMany({});
     await prisma.restaurant.deleteMany({});
@@ -30,6 +31,24 @@ async function main() {
             defaultLanguage: Language.EN,
             currency: 'ETB',
             status: MenuStatus.PUBLISHED,
+            translations: {
+                create: [
+                    {
+                        language: Language.EN,
+                        name: 'Blue Nile Restaurant',
+                        description: 'Traditional Ethiopian cuisine and international dishes prepared with the finest ingredients in the heart of Addis Ababa.',
+                        address: 'Bole Road, near Edna Mall',
+                        city: 'Addis Ababa',
+                    },
+                    {
+                        language: Language.AM,
+                        name: 'ብሉ ናይል ምግብ ቤት',
+                        description: 'ባህላዊ የኢትዮጵያ ምግቦች እና አለም አቀፍ ምግቦች በጥራት የተዘጋጁበት በአዲስ አበባ እምብርት የሚገኝ ልዩ ምግብ ቤት።',
+                        address: 'ቦሌ መንገድ፣ ኤድና ሞል አጠገብ',
+                        city: 'አዲስ አበባ',
+                    },
+                ],
+            },
             theme: {
                 create: {
                     primaryColor: '#C8913A',

@@ -24,6 +24,17 @@ export class AuthService {
                 data: {
                     name: input.restaurantName,
                     slug,
+                    translations: {
+                        create: [
+                            {
+                                language: 'EN',
+                                name: input.restaurantName,
+                                description: null,
+                                address: null,
+                                city: null,
+                            },
+                        ],
+                    },
                     theme: {
                         create: {
                             primaryColor: '#D97706',
@@ -34,6 +45,7 @@ export class AuthService {
                         },
                     },
                 },
+                include: { translations: true, theme: true },
             });
 
             const user = await tx.user.create({

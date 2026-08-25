@@ -12,46 +12,26 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '../../lib/utils';
+import { getTranslation, cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FormData {
-    name: string;
-    description: string;
+    nameEn: string;
+    descEn: string;
+    addressEn: string;
+    cityEn: string;
+    nameAm: string;
+    descAm: string;
+    addressAm: string;
+    cityAm: string;
     phone: string;
     email: string;
-    address: string;
-    city: string;
     country: string;
     defaultLanguage: 'EN' | 'AM';
     currency: string;
     status: 'DRAFT' | 'PUBLISHED';
 }
-
-// ─── Floating Label Field ─────────────────────────────────────────────────────
-interface FloatingFieldProps {
-    label: string;
-    required?: boolean;
-    children: React.ReactNode;
-    colSpan?: boolean;
-}
-
-const FloatingField: React.FC<FloatingFieldProps> = ({ label, required, children, colSpan }) => (
-    <div className={cn('relative group', colSpan && 'md:col-span-2')}>
-        <div className="relative">
-            {children}
-            <label className={cn(
-                'absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-neutral-400 pointer-events-none',
-                'transition-all duration-200 ease-out',
-                'peer-focus:top-2.5 peer-focus:-translate-y-0 peer-focus:text-[10px] peer-focus:font-bold peer-focus:text-[color:var(--color-brand-600)] peer-focus:tracking-wide',
-                'peer-[&:not(:placeholder-shown)]:top-2.5 peer-[&:not(:placeholder-shown)]:-translate-y-0 peer-[&:not(:placeholder-shown)]:text-[10px] peer-[&:not(:placeholder-shown)]:font-bold peer-[&:not(:placeholder-shown)]:text-neutral-500 peer-[&:not(:placeholder-shown)]:tracking-wide',
-            )}>
-                {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-            </label>
-        </div>
-    </div>
-);
 
 // ─── Section Card wrapper ─────────────────────────────────────────────────────
 const SectionCard: React.FC<{
@@ -190,6 +170,8 @@ const RestaurantPage: React.FC = () => {
     const { mutate: update, isPending } = useUpdateRestaurant();
     const qc = useQueryClient();
 
+    const [tab, setTab] = useState<'en' | 'am'>('en');
+
     const { register, handleSubmit, reset, watch } = useForm<FormData>();
     const status = watch('status');
 
@@ -202,26 +184,64 @@ const RestaurantPage: React.FC = () => {
 
     useEffect(() => {
         if (restaurant) {
+            const translations = restaurant.translations ?? [];
             reset({
-                name: restaurant.name ?? '',
-                description: restaurant.description ?? '',
+                nameEn: getTranslation(translations, 'EN', 'name') || restaurant.name || '',
+                descEn: getTranslation(translations, 'EN', 'description') || restaurant.description || '',
+                addressEn: getTranslation(translations, 'EN', 'address') || restaurant.address || '',
+                cityEn: getTranslation(translations, 'EN', 'city') || restaurant.city || '',
+                nameAm: getTranslation(translations, 'AM', 'name') || '',
+                descAm: getTranslation(translations, 'AM', 'description') || '',
+                addressAm: getTranslation(translations, 'AM', 'address') || '',
+                cityAm: getTranslation(translations, 'AM', 'city') || '',
                 phone: restaurant.phone ?? '',
                 email: restaurant.email ?? '',
-                address: restaurant.address ?? '',
-                city: restaurant.city ?? '',
                 country: restaurant.country ?? t('restaurant.ethiopia'),
                 defaultLanguage: restaurant.defaultLanguage ?? 'EN',
                 currency: restaurant.currency ?? 'ETB',
                 status: restaurant.status ?? 'DRAFT',
             });
         }
-    }, [restaurant, reset]);
+    }, [restaurant, reset, t]);
 
     useEffect(() => () => {
         clearTimeout(logoTimer.current); clearTimeout(coverTimer.current);
     }, []);
 
-    const onSubmit = (data: FormData) => update(data);
+    const onSubmit = (data: FormData) => {
+        const translations = [
+            {
+                language: 'EN' as const,
+                name: data.nameEn.trim(),
+                description: data.descEn.trim() || null,
+                address: data.addressEn.trim() || null,
+                city: data.cityEn.trim() || null,
+            },
+            {
+                language: 'AM' as const,
+                name: data.nameAm.trim() || data.nameEn.trim(),
+                description: data.descAm.trim() || null,
+                address: data.addressAm.trim() || null,
+                city: data.cityAm.trim() || null,
+            },
+        ];
+
+        const payload = {
+            name: data.nameEn.trim(),
+            description: data.descEn.trim() || null,
+            address: data.addressEn.trim() || null,
+            city: data.cityEn.trim() || null,
+            phone: data.phone.trim() || null,
+            email: data.email.trim() || null,
+            country: data.country.trim() || 'Ethiopia',
+            defaultLanguage: data.defaultLanguage,
+            currency: data.currency,
+            status: data.status,
+            translations,
+        };
+
+        update(payload);
+    };
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -351,16 +371,99 @@ const RestaurantPage: React.FC = () => {
                         subtitle={t('restaurant.biz_profile_desc', { defaultValue: 'Contact information and location details.' })}
                         delay="150ms"
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-
-                            {/* Restaurant Name — full width, floating label */}
-                            <div className="md:col-span-2 relative">
-                                <input {...register('name')} type="text" placeholder={t("restaurant.ph_name")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
-                                    {t('restaurant.name')} <span className="text-red-500">*</span>
-                                </label>
+                        {/* Language tab switcher */}
+                        <div className="flex items-center justify-between gap-2 pb-2">
+                            <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200/80 dark:border-neutral-700">
+                                {(['en', 'am'] as const).map(l => (
+                                    <button
+                                        key={l}
+                                        type="button"
+                                        onClick={() => setTab(l)}
+                                        className={cn(
+                                            'px-4 py-2 rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center gap-1.5',
+                                            tab === l
+                                                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700'
+                                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+                                        )}
+                                    >
+                                        <span>{l === 'en' ? '🇬🇧 English' : '🇪🇹 አማርኛ'}</span>
+                                    </button>
+                                ))}
                             </div>
+                            <span className="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 hidden sm:inline">
+                                {tab === 'en' ? t('restaurant.english_details', 'English Details') : t('restaurant.amharic_details', 'የአማርኛ ዝርዝሮች')}
+                            </span>
+                        </div>
 
+                        {/* Localized fields */}
+                        {tab === 'en' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 animate-fade-in">
+                                {/* Restaurant Name (EN) */}
+                                <div className="md:col-span-2 relative">
+                                    <input {...register('nameEn')} type="text" placeholder={t("restaurant.ph_name_en")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
+                                        {t('restaurant.name_en')} <span className="text-red-500">*</span>
+                                    </label>
+                                </div>
+
+                                {/* Address (EN) */}
+                                <div className="relative">
+                                    <input {...register('addressEn')} type="text" placeholder={t("restaurant.ph_address_en")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_en')}</label>
+                                </div>
+
+                                {/* City (EN) */}
+                                <div className="relative">
+                                    <input {...register('cityEn')} type="text" placeholder={t("restaurant.ph_city_en")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_en')}</label>
+                                </div>
+
+                                {/* Description (EN) */}
+                                <div className="md:col-span-2 relative">
+                                    <textarea
+                                        {...register('descEn')}
+                                        placeholder={t("restaurant.ph_desc_en")}
+                                        className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200"
+                                    />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_en')}</label>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 font-ethiopic animate-fade-in">
+                                {/* Restaurant Name (AM) */}
+                                <div className="md:col-span-2 relative">
+                                    <input {...register('nameAm')} type="text" placeholder={t("restaurant.ph_name_am")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
+                                        {t('restaurant.name_am')}
+                                    </label>
+                                </div>
+
+                                {/* Address (AM) */}
+                                <div className="relative">
+                                    <input {...register('addressAm')} type="text" placeholder={t("restaurant.ph_address_am")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_am')}</label>
+                                </div>
+
+                                {/* City (AM) */}
+                                <div className="relative">
+                                    <input {...register('cityAm')} type="text" placeholder={t("restaurant.ph_city_am")} className={fieldCls} />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_am')}</label>
+                                </div>
+
+                                {/* Description (AM) */}
+                                <div className="md:col-span-2 relative">
+                                    <textarea
+                                        {...register('descAm')}
+                                        placeholder={t("restaurant.ph_desc_am")}
+                                        className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200 font-ethiopic"
+                                    />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_am')}</label>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Shared contact & country fields */}
+                        <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
                             {/* Phone */}
                             <div className="relative">
                                 <input {...register('phone')} type="tel" inputMode="tel" placeholder={t("restaurant.ph_phone")} className={fieldCls} />
@@ -373,32 +476,10 @@ const RestaurantPage: React.FC = () => {
                                 <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.email')}</label>
                             </div>
 
-                            {/* Address — full width */}
-                            <div className="md:col-span-2 relative">
-                                <input {...register('address')} type="text" placeholder={t("restaurant.ph_address")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address')}</label>
-                            </div>
-
-                            {/* City */}
-                            <div className="relative">
-                                <input {...register('city')} type="text" placeholder={t("restaurant.ph_city")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city')}</label>
-                            </div>
-
                             {/* Country */}
                             <div className="relative">
                                 <input {...register('country')} type="text" placeholder={t("restaurant.ph_country")} className={fieldCls} />
                                 <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.country')}</label>
-                            </div>
-
-                            {/* Description — full width, taller */}
-                            <div className="md:col-span-2 relative">
-                                <textarea
-                                    {...register('description')}
-                                    placeholder={t("restaurant.ph_desc")}
-                                    className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200"
-                                />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.description')}</label>
                             </div>
                         </div>
                     </SectionCard>

@@ -16,11 +16,13 @@ interface PublicRestaurantInfo {
     description?: string | null;
     logoUrl?: string | null;
     coverImageUrl?: string | null;
-    defaultLanguage: 'EN' | 'AM';
-    currency: string;
+    address?: string | null;
     city?: string | null;
     country?: string | null;
+    defaultLanguage: 'EN' | 'AM';
+    currency: string;
     theme?: RestaurantTheme | null;
+    translations?: any[];
 }
 
 interface PublicMenuCategory {
@@ -56,8 +58,8 @@ export default function PublicMenuPage() {
     const toggleDarkMode = () => setIsDark(prev => !prev);
 
     const { data: restaurant, isLoading: restaurantLoading, isError } = useQuery<PublicRestaurantInfo>({
-        queryKey: ['public-restaurant', slug],
-        queryFn: () => publicApi.getRestaurant(slug!),
+        queryKey: ['public-restaurant', slug, lang],
+        queryFn: () => publicApi.getRestaurant(slug!, lang),
         enabled: !!slug,
         staleTime: 60_000,
         retry: false,
@@ -188,8 +190,8 @@ export default function PublicMenuPage() {
                             </span>
                             <span className="flex items-center gap-1.5">
                                 📍 {lang === 'AM'
-                                    ? `${(!restaurant.city || restaurant.city === 'Addis Ababa') ? 'አዲስ አበባ' : restaurant.city}፣ ${(!restaurant.country || restaurant.country === 'Ethiopia') ? 'ኢትዮጵያ' : restaurant.country}`
-                                    : `${restaurant.city || 'Addis Ababa'}, ${restaurant.country || 'Ethiopia'}`}
+                                    ? [restaurant.city, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
+                                    : [restaurant.city, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
                             </span>
                         </div>
                     </div>

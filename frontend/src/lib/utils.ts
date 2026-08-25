@@ -12,9 +12,17 @@ export const formatCurrency = (amount: string | number, currency: string = 'ETB'
 };
 
 export const getTranslation = (
-    translations: Array<{ language: string; name: string; description?: string | null; ingredients?: string | null; allergens?: string | null }>,
+    translations: Array<{
+        language: string;
+        name: string;
+        description?: string | null;
+        ingredients?: string | null;
+        allergens?: string | null;
+        address?: string | null;
+        city?: string | null;
+    }>,
     lang: string,
-    field: 'name' | 'description' | 'ingredients' | 'allergens' = 'name'
+    field: 'name' | 'description' | 'ingredients' | 'allergens' | 'address' | 'city' = 'name'
 ): string => {
     if (!translations || translations.length === 0) return '';
     const langUpper = lang.toUpperCase();
