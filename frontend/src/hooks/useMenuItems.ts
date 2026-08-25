@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { menuItemApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import type { MenuItem } from '../types';
 
 export const useMenuItems = (categoryId?: string) => {
     return useQuery({
@@ -45,6 +46,44 @@ export const useUpdateMenuItem = () => {
     });
 };
 
+export const useToggleItemAvailability = () => {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: ({ id, isAvailable }: { id: string; isAvailable: boolean }) =>
+            menuItemApi.update(id, { isAvailable }),
+
+        // Optimistic update: flip UI immediately
+        onMutate: async ({ id, isAvailable }) => {
+            await qc.cancelQueries({ queryKey: ['menu-items'] });
+
+            const previousItems = qc.getQueryData<MenuItem[]>(['menu-items']);
+
+            if (previousItems) {
+                qc.setQueryData<MenuItem[]>(['menu-items'], (old = []) =>
+                    old.map((item) => (item.id === id ? { ...item, isAvailable } : item))
+                );
+            }
+
+            return { previousItems };
+        },
+
+        // Rollback on network failure
+        onError: (error: any, _variables, context) => {
+            if (context?.previousItems) {
+                qc.setQueryData(['menu-items'], context.previousItems);
+            }
+            toast.error(error?.response?.data?.error || t('toast.error'));
+        },
+
+        // Always sync with server state
+        onSettled: () => {
+            qc.invalidateQueries({ queryKey: ['menu-items'] });
+        },
+    });
+};
+
 export const useDeleteMenuItem = () => {
     const qc = useQueryClient();
     const { t } = useTranslation();
@@ -62,7 +101,8 @@ export const useUploadMenuItemImage = () => {
     const qc = useQueryClient();
     const { t } = useTranslation();
     return useMutation({
-        mutationFn: ({ id, file }: { id: string; file: File }) => menuItemApi.uploadImage(id, file),
+        mutationFn: ({ id, file, onProgress }: { id: string; file: File; onProgress?: (percent: number) => void }) =>
+            menuItemApi.uploadImage(id, file, onProgress),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
             toast.success(t('toast.uploaded'));

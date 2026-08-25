@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { imageStorage } from './ImageStorageService';
 import { ImageProcessor } from './ImageProcessor';
+import { publicMenuService } from './PublicMenuService';
 import type { CreateMenuItemInput, UpdateMenuItemInput } from '../validators/menuItem';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -34,7 +35,7 @@ export class MenuItemService {
             throw createError('Category not found', 404);
         }
 
-        return prisma.menuItem.create({
+        const item = await prisma.menuItem.create({
             data: {
                 restaurantId,
                 categoryId: data.categoryId,
@@ -50,6 +51,9 @@ export class MenuItemService {
             },
             include: { translations: true },
         });
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return item;
     }
 
     async updateMenuItem(restaurantId: string, itemId: string, data: UpdateMenuItemInput) {
@@ -62,7 +66,7 @@ export class MenuItemService {
             }
         }
 
-        return prisma.$transaction(async (tx) => {
+        const updated = await prisma.$transaction(async (tx) => {
             await tx.menuItem.update({
                 where: { id: itemId },
                 data: {
@@ -91,6 +95,9 @@ export class MenuItemService {
                 include: { translations: true },
             });
         });
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return updated;
     }
 
     async deleteMenuItem(restaurantId: string, itemId: string) {
@@ -106,6 +113,7 @@ export class MenuItemService {
             });
         }
 
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
         return deleted;
     }
 
@@ -137,6 +145,7 @@ export class MenuItemService {
                 });
             }
 
+            publicMenuService.invalidateCache(restaurantId).catch(() => {});
             return updated;
         } catch (dbError) {
             // Rollback: delete the newly created file if DB update fails
@@ -163,6 +172,8 @@ export class MenuItemService {
                 })
             )
         );
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
     }
 
     private async assertOwnership(restaurantId: string, itemId: string) {

@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
+import { publicMenuService } from './PublicMenuService';
 import type { CreateCategoryInput, UpdateCategoryInput } from '../validators/category';
 
 export class CategoryService {
@@ -12,7 +13,7 @@ export class CategoryService {
     }
 
     async createCategory(restaurantId: string, data: CreateCategoryInput) {
-        return prisma.category.create({
+        const category = await prisma.category.create({
             data: {
                 restaurantId,
                 displayOrder: data.displayOrder ?? 0,
@@ -23,12 +24,14 @@ export class CategoryService {
             },
             include: { translations: true },
         });
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return category;
     }
 
     async updateCategory(restaurantId: string, categoryId: string, data: UpdateCategoryInput) {
         await this.assertOwnership(restaurantId, categoryId);
 
-        return prisma.$transaction(async (tx) => {
+        const updated = await prisma.$transaction(async (tx) => {
             await tx.category.update({
                 where: { id: categoryId },
                 data: {
@@ -52,6 +55,9 @@ export class CategoryService {
                 include: { translations: true },
             });
         });
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return updated;
     }
 
     async deleteCategory(restaurantId: string, categoryId: string) {
@@ -62,7 +68,9 @@ export class CategoryService {
             throw createError('Cannot delete category with menu items. Move or delete items first.', 400);
         }
 
-        return prisma.category.delete({ where: { id: categoryId } });
+        const deleted = await prisma.category.delete({ where: { id: categoryId } });
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return deleted;
     }
 
     async reorderCategories(restaurantId: string, items: { id: string; displayOrder: number }[]) {
@@ -84,6 +92,7 @@ export class CategoryService {
                 })
             )
         );
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
     }
 
     private async assertOwnership(restaurantId: string, categoryId: string) {

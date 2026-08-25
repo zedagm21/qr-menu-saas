@@ -20,7 +20,7 @@ export const useEnsureQRCode = () => {
             qc.invalidateQueries({ queryKey: ['qr-codes'] });
             toast.success(t('toast.qrGenerated'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -33,6 +33,6 @@ export const useDeleteQRCode = () => {
             qc.invalidateQueries({ queryKey: ['qr-codes'] });
             toast.success(t('toast.deleted'));
         },
-        onError: () => toast.error(t('toast.error')),
+        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
     });
 };

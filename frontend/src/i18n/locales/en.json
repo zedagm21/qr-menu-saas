@@ -230,6 +230,11 @@
         "edit_food_item": "Edit Food Item",
         "uncategorized": "Uncategorized",
         "category_label": "Category",
+        "add_new_category": "+ Add New Category",
+        "create_first_category": "Create First Category",
+        "create_category": "Create Category",
+        "select_or_create_category": "-- Select or Create Category --",
+        "no_category_hint": "Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.",
         "price_required": "Price must be greater than 0"
     },
     "qr": {
@@ -271,6 +276,7 @@
         "current_theme": "Current Theme",
         "font": "Font Family",
         "theme": "Theme",
+        "theme_mode": "Theme",
         "dark_mode": "Dark Mode",
         "dark_mode_light": "Light Theme",
         "dark_mode_dark": "Dark Theme",

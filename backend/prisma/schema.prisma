@@ -108,6 +108,7 @@ model Category {
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
+  @@index([restaurantId, isActive, displayOrder])
   @@map("categories")
 }
 
@@ -140,6 +141,9 @@ model MenuItem {
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
+  @@index([restaurantId, displayOrder])
+  @@index([categoryId, displayOrder])
+  @@index([restaurantId, isAvailable, displayOrder])
   @@map("menu_items")
 }
 
@@ -166,6 +170,7 @@ model QRCode {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@index([restaurantId])
   @@map("qr_codes")
 }
 
