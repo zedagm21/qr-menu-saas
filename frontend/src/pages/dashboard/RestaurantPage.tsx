@@ -232,7 +232,11 @@ const RestaurantPage: React.FC = () => {
             toast.success(t('toast.uploaded'));
             setLogoUploaded(true);
             logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
-        } catch { toast.error(t('toast.error')); }
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || t('toast.error'));
+        } finally {
+            e.target.value = '';
+        }
     };
 
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,7 +248,11 @@ const RestaurantPage: React.FC = () => {
             toast.success(t('toast.uploaded'));
             setCoverUploaded(true);
             coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
-        } catch { toast.error(t('toast.error')); }
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || t('toast.error'));
+        } finally {
+            e.target.value = '';
+        }
     };
 
     if (isLoading) return (

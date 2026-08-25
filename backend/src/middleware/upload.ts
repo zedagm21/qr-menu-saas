@@ -5,7 +5,15 @@ import { createError } from './errorHandler';
 // Use memoryStorage so untrusted uploaded files are never written directly to disk
 const storage = multer.memoryStorage();
 
-const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const allowedMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/pjpeg',
+    'image/png',
+    'image/x-png',
+    'image/webp',
+    'image/x-webp',
+];
 
 const fileFilter = (
     _req: Express.Request,
