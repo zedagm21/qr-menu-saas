@@ -10,7 +10,7 @@ const translationSchema = z.object({
 
 export const createMenuItemSchema = z.object({
     categoryId: z.string().min(1, 'Category is required'),
-    price: z.number().min(0, 'Price must be non-negative'),
+    price: z.number().positive('Price must be greater than 0'),
     currency: z.string().min(2).max(4).optional().default('ETB'),
     isAvailable: z.boolean().optional().default(true),
     isFeatured: z.boolean().optional().default(false),
@@ -21,7 +21,7 @@ export const createMenuItemSchema = z.object({
 
 export const updateMenuItemSchema = z.object({
     categoryId: z.string().optional(),
-    price: z.number().min(0).optional(),
+    price: z.number().positive('Price must be greater than 0').optional(),
     currency: z.string().min(2).max(4).optional(),
     isAvailable: z.boolean().optional(),
     isFeatured: z.boolean().optional(),

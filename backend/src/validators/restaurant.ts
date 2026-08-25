@@ -1,16 +1,25 @@
 import { z } from 'zod';
 
+const translationSchema = z.object({
+    language: z.enum(['EN', 'AM']),
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().optional().or(z.literal('')).nullable(),
+    address: z.string().optional().or(z.literal('')).nullable(),
+    city: z.string().optional().or(z.literal('')).nullable(),
+});
+
 export const updateRestaurantSchema = z.object({
     name: z.string().min(2).optional(),
-    description: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.string().email().optional(),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    country: z.string().optional(),
+    description: z.string().optional().or(z.literal('')).nullable(),
+    phone: z.string().optional().or(z.literal('')).nullable(),
+    email: z.string().email('Invalid email').optional().or(z.literal('')).nullable(),
+    address: z.string().optional().or(z.literal('')).nullable(),
+    city: z.string().optional().or(z.literal('')).nullable(),
+    country: z.string().optional().or(z.literal('')),
     defaultLanguage: z.enum(['EN', 'AM']).optional(),
     currency: z.string().min(2).max(4).optional(),
     status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
+    translations: z.array(translationSchema).optional(),
 });
 
 export const updateThemeSchema = z.object({

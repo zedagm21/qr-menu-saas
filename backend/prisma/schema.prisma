@@ -72,14 +72,29 @@ model Restaurant {
   currency        String           @default("ETB")
   status          MenuStatus       @default(DRAFT)
   users           User[]
+  translations    RestaurantTranslation[]
   categories      Category[]
   menuItems       MenuItem[]
   qrCodes         QRCode[]
   theme           RestaurantTheme?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   @@map("restaurants")
+}
+
+model RestaurantTranslation {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  language     Language
+  name         String
+  description  String?
+  address      String?
+  city         String?
+
+  @@unique([restaurantId, language])
+  @@map("restaurant_translations")
 }
 
 model Category {

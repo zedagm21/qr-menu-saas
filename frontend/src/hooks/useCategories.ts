@@ -20,7 +20,7 @@ export const useCreateCategory = () => {
             qc.invalidateQueries({ queryKey: ['categories'] });
             toast.success(t('toast.created'));
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -33,7 +33,7 @@ export const useUpdateCategory = () => {
             qc.invalidateQueries({ queryKey: ['categories'] });
             toast.success(t('toast.saved'));
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -46,7 +46,7 @@ export const useDeleteCategory = () => {
             qc.invalidateQueries({ queryKey: ['categories'] });
             toast.success(t('toast.deleted'));
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -56,6 +56,6 @@ export const useReorderCategories = () => {
     return useMutation({
         mutationFn: (items: { id: string; displayOrder: number }[]) => categoryApi.reorder(items),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };

@@ -9,7 +9,7 @@ export class RestaurantService {
     async getRestaurant(restaurantId: string) {
         const restaurant = await prisma.restaurant.findUnique({
             where: { id: restaurantId },
-            include: { theme: true },
+            include: { translations: true, theme: true },
         });
 
         if (!restaurant) {
@@ -20,10 +20,45 @@ export class RestaurantService {
     }
 
     async updateRestaurant(restaurantId: string, data: UpdateRestaurantInput) {
-        const updated = await prisma.restaurant.update({
-            where: { id: restaurantId },
-            data,
-            include: { theme: true },
+        const { translations, ...scalarData } = data;
+
+        const updated = await prisma.$transaction(async (tx) => {
+            await tx.restaurant.update({
+                where: { id: restaurantId },
+                data: scalarData,
+            });
+
+            if (translations && translations.length > 0) {
+                for (const translation of translations) {
+                    await tx.restaurantTranslation.upsert({
+                        where: {
+                            restaurantId_language: {
+                                restaurantId,
+                                language: translation.language,
+                            },
+                        },
+                        update: {
+                            name: translation.name,
+                            description: translation.description,
+                            address: translation.address,
+                            city: translation.city,
+                        },
+                        create: {
+                            restaurantId,
+                            language: translation.language,
+                            name: translation.name,
+                            description: translation.description,
+                            address: translation.address,
+                            city: translation.city,
+                        },
+                    });
+                }
+            }
+
+            return tx.restaurant.findUnique({
+                where: { id: restaurantId },
+                include: { translations: true, theme: true },
+            });
         });
         publicMenuService.invalidateCache(restaurantId).catch(() => {});
         return updated;
@@ -45,7 +80,7 @@ export class RestaurantService {
             const updated = await prisma.restaurant.update({
                 where: { id: restaurantId },
                 data: { logoUrl: newUrl },
-                include: { theme: true },
+                include: { translations: true, theme: true },
             });
 
             // 4. Safely clean up old image if it existed and was different
@@ -80,7 +115,7 @@ export class RestaurantService {
             const updated = await prisma.restaurant.update({
                 where: { id: restaurantId },
                 data: { coverImageUrl: newUrl },
-                include: { theme: true },
+                include: { translations: true, theme: true },
             });
 
             // 4. Safely clean up old image if it existed and was different
@@ -116,7 +151,7 @@ export class RestaurantService {
             prisma.qRCode.findFirst({ where: { restaurantId, isActive: true } }),
             prisma.restaurant.findUnique({
                 where: { id: restaurantId },
-                select: { status: true, name: true, theme: true, defaultLanguage: true },
+                include: { translations: true, theme: true },
             }),
         ]);
 
@@ -126,6 +161,7 @@ export class RestaurantService {
             qrActive: !!qrCode,
             status: restaurant?.status,
             restaurantName: restaurant?.name,
+            translations: restaurant?.translations,
             defaultLanguage: restaurant?.defaultLanguage,
             theme: restaurant?.theme,
         };

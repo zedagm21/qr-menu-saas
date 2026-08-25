@@ -20,7 +20,7 @@ export const useUpdateRestaurant = () => {
             qc.invalidateQueries({ queryKey: ['restaurant'] });
             toast.success(t('toast.saved'));
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
@@ -35,7 +35,7 @@ export const useUpdateTheme = () => {
             qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.saved'));
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || t('toast.error')),
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
 
