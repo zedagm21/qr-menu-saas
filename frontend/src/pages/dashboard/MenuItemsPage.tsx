@@ -43,6 +43,7 @@ import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
 import { compressImage } from '../../lib/imageCompression';
 import type { MenuItem, Category } from '../../types';
+import { CategoryForm, CategoryFormData } from '../../components/dashboard/CategoryForm';
 import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -56,31 +57,14 @@ const QuickCategoryModal: React.FC<{
 }> = ({ isOpen, onClose, onCreated }) => {
     const { t } = useTranslation();
     const { mutate: createCat, isPending } = useCreateCategory();
-    const [tab, setTab] = useState<'en' | 'am'>('en');
-    const [nameEn, setNameEn] = useState('');
-    const [descEn, setDescEn] = useState('');
-    const [nameAm, setNameAm] = useState('');
-    const [descAm, setDescAm] = useState('');
-    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!nameEn.trim() && !nameAm.trim()) {
-            setError(t('menu_items.name_required', { defaultValue: 'Please enter a category name' }));
-            return;
-        }
-
-        const translations: any[] = [];
-        if (nameEn.trim()) translations.push({ language: 'EN', name: nameEn.trim(), description: descEn.trim() || undefined });
-        if (nameAm.trim()) translations.push({ language: 'AM', name: nameAm.trim(), description: descAm.trim() || undefined });
-
-        createCat({ translations, isActive: true }, {
+    const handleSave = (form: CategoryFormData) => {
+        const translations = [
+            { language: 'EN' as const, name: form.nameEn, description: form.descEn || undefined },
+            { language: 'AM' as const, name: form.nameAm || form.nameEn, description: form.descAm || undefined },
+        ];
+        createCat({ translations, isActive: form.isActive }, {
             onSuccess: (createdCat: any) => {
-                setNameEn('');
-                setDescEn('');
-                setNameAm('');
-                setDescAm('');
-                setError(null);
                 onCreated(createdCat);
                 onClose();
             }
@@ -88,92 +72,15 @@ const QuickCategoryModal: React.FC<{
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={t('categories.add_title', { defaultValue: 'Create New Category' })} size="sm">
-            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
-                {/* Language tab switcher */}
-                <div className="flex items-center justify-between gap-2">
-                    <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200/80 dark:border-neutral-700">
-                        {(['en', 'am'] as const).map(lang => (
-                            <button
-                                key={lang}
-                                type="button"
-                                onClick={() => setTab(lang)}
-                                className={cn(
-                                    'px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200 flex items-center gap-1.5',
-                                    tab === lang
-                                        ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700'
-                                        : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
-                                )}
-                            >
-                                <span>{lang === 'en' ? '🇬🇧 English' : '🇪🇹 አማርኛ'}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="space-y-3.5">
-                    <div>
-                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Category Name' : 'የምድብ ስም'} <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={tab === 'en' ? nameEn : nameAm}
-                            onChange={e => {
-                                if (tab === 'en') setNameEn(e.target.value);
-                                else setNameAm(e.target.value);
-                                if (error) setError(null);
-                            }}
-                            placeholder={tab === 'en' ? 'e.g. Traditional Dishes, Hot Drinks' : 'ለምሳሌ: ባህላዊ ምግቦች፣ ትኩስ መጠጦች'}
-                            className={cn(
-                                'w-full h-11 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs',
-                                error && !nameEn.trim() && !nameAm.trim() && 'border-red-500 focus:ring-red-500/30',
-                                tab === 'am' && 'font-ethiopic'
-                            )}
-                            autoFocus
-                        />
-                        {error && !nameEn.trim() && !nameAm.trim() && (
-                            <p className="text-[12px] font-bold text-red-500 mt-1 animate-fade-in flex items-center gap-1">
-                                <span>⚠️</span> {error}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Description (Optional)' : 'መግለጫ (አማራጭ)'}
-                        </label>
-                        <input
-                            type="text"
-                            value={tab === 'en' ? descEn : descAm}
-                            onChange={e => {
-                                if (tab === 'en') setDescEn(e.target.value);
-                                else setDescAm(e.target.value);
-                            }}
-                            placeholder={tab === 'en' ? 'Brief category summary...' : 'አጭር የምድብ ማብራሪያ...'}
-                            className={cn(
-                                'w-full h-11 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs',
-                                tab === 'am' && 'font-ethiopic'
-                            )}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                    <Button variant="outline" type="button" onClick={onClose} className="h-10 px-4 rounded-xl font-bold">
-                        {t('actions.cancel')}
-                    </Button>
-                    <Button
-                        variant="primary"
-                        type="submit"
-                        isLoading={isPending}
-                        className="h-10 px-6 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold"
-                        icon={<Check className="w-4 h-4 stroke-[2.5]" />}
-                    >
-                        {t('actions.save')}
-                    </Button>
-                </div>
-            </form>
+        <Modal isOpen={isOpen} onClose={onClose} title={t('categories.add_title', { defaultValue: 'Create New Category' })} size="md">
+            <div className="p-4 sm:p-6">
+                <CategoryForm
+                    onSave={handleSave}
+                    onCancel={onClose}
+                    isSaving={isPending}
+                    className="shadow-none border-0 p-0 sm:p-0 bg-transparent dark:bg-transparent ring-0"
+                />
+            </div>
         </Modal>
     );
 };

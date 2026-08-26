@@ -11,7 +11,7 @@ export class MenuItemService {
         return prisma.menuItem.findMany({
             where: { restaurantId, ...(categoryId ? { categoryId } : {}) },
             include: { translations: true, category: { include: { translations: true } } },
-            orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }],
+            orderBy: [{ category: { displayOrder: 'asc' } }, { displayOrder: 'asc' }],
         });
     }
 
