@@ -165,7 +165,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({
                     </div>
                 </div>
             )}
-            <input type="file" accept="image/*" onChange={onChange} className="hidden" />
+            <input type="file" accept="image/*,image/heic,image/heif,.heic,.heif" onChange={onChange} className="hidden" />
         </label>
     </div>
 );

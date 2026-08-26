@@ -27,8 +27,11 @@ import toast from 'react-hot-toast';
 import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Flame, Search, UploadCloud,
-    Sparkles, GripVertical, ToggleLeft, ToggleRight
+    Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
+    Smartphone, Loader2
 } from 'lucide-react';
+import { PhoneCameraModal } from '../../components/dashboard/PhoneCameraModal';
+import { isHeicFile } from '../../lib/imageCompression';
 import {
     useMenuItems,
     useCreateMenuItem,
@@ -91,6 +94,7 @@ interface ItemForm {
     nameAm: string; descAm: string; ingredientsAm: string; allergensAm: string;
     price: string; discountPrice: string; currency: string; categoryId: string;
     isAvailable: boolean; isFeatured: boolean; isSpicy: boolean;
+    imageUrl?: string | null;
 }
 
 // ─── Form Field Style ─────────────────────────────────────────────────────────
@@ -126,6 +130,7 @@ const ItemFormPanel: React.FC<{
         discountPrice: initial?.discountPrice ? initial.discountPrice.toString() : '',
         currency: initial?.currency ?? defaultCurrency,
         categoryId: initial?.categoryId ?? (categories[0]?.id ?? ''),
+        imageUrl: initial?.imageUrl ?? null,
         isAvailable: initial?.isAvailable ?? true,
         isFeatured: initial?.isFeatured ?? false,
         isSpicy: initial?.isSpicy ?? false,
@@ -163,13 +168,29 @@ const ItemFormPanel: React.FC<{
 
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.imageUrl ?? null);
+    const [isPhoneCameraModalOpen, setIsPhoneCameraModalOpen] = useState(false);
+    const [isConvertingPhoto, setIsConvertingPhoto] = useState(false);
+
+    const cameraInputRef = React.useRef<HTMLInputElement>(null);
+    const galleryInputRef = React.useRef<HTMLInputElement>(null);
+    const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     const set = (k: keyof ItemForm, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
 
-    const handleFile = (file: File) => {
-        if (file.type.startsWith('image/')) {
+    const handleFile = async (file: File) => {
+        try {
+            if (isHeicFile(file)) {
+                setIsConvertingPhoto(true);
+            }
+            const compressed = await compressImage(file, { maxDimension: 1400, quality: 0.85 });
+            setImageFile(compressed);
+            setPreviewUrl(URL.createObjectURL(compressed));
+        } catch (err) {
+            console.error('Error handling file:', err);
             setImageFile(file);
             setPreviewUrl(URL.createObjectURL(file));
+        } finally {
+            setIsConvertingPhoto(false);
         }
     };
 
@@ -178,6 +199,14 @@ const ItemFormPanel: React.FC<{
             handleFile(e.target.files[0]);
         }
         e.target.value = '';
+    };
+
+    const handleCameraClick = () => {
+        if (isMobile) {
+            cameraInputRef.current?.click();
+        } else {
+            setIsPhoneCameraModalOpen(true);
+        }
     };
 
     return (
@@ -407,33 +436,53 @@ const ItemFormPanel: React.FC<{
                         <div className="w-2 h-2 rounded-full bg-[color:var(--color-brand-500)]" />
                         <h3 className="text-[12px] font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">{t("menu_items.food_photo")}</h3>
                     </div>
-                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">PNG, JPG, WebP · Max 5MB</span>
+                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">PNG, JPG, WebP, HEIC · Max 5MB</span>
                 </div>
 
+                {isConvertingPhoto && (
+                    <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] text-xs font-bold animate-pulse">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{t('menu_items.converting_heic', { defaultValue: 'Optimizing & converting HEIC photo...' })}</span>
+                    </div>
+                )}
+
                 {previewUrl ? (
-                    <div className="relative w-full h-[160px] rounded-2xl overflow-hidden border border-neutral-300 dark:border-neutral-700 shadow-sm group">
+                    <div className="relative w-full h-[180px] rounded-2xl overflow-hidden border border-neutral-300 dark:border-neutral-700 shadow-sm group">
                         <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-neutral-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3 backdrop-blur-xs">
-                            <label className="bg-white text-neutral-900 px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all">
-                                <UploadCloud className="w-4 h-4 text-[color:var(--color-brand-600)]" /> Change Photo
-                                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                            </label>
+                        <div className="absolute inset-0 bg-neutral-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2.5 backdrop-blur-xs p-4 flex-wrap">
                             <button
                                 type="button"
-                                onClick={() => { setImageFile(null); setPreviewUrl(null); }}
-                                className="bg-red-600 text-white px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 shadow-lg hover:bg-red-700 active:scale-95 transition-all"
+                                onClick={handleCameraClick}
+                                className="bg-white text-neutral-900 px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all"
                             >
-                                <Trash2 className="w-4 h-4" /> Remove
+                                <Camera className="w-3.5 h-3.5 text-[color:var(--color-brand-600)]" />
+                                <span>{isMobile ? t('menu_items.take_photo', { defaultValue: 'Camera' }) : t('menu_items.phone_camera', { defaultValue: 'Phone Camera' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="bg-white text-neutral-900 px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all"
+                            >
+                                <UploadCloud className="w-3.5 h-3.5 text-[color:var(--color-brand-600)]" />
+                                <span>{t('menu_items.change_photo', { defaultValue: 'Gallery' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setImageFile(null); setPreviewUrl(null); set('imageUrl', ''); }}
+                                className="bg-red-600 text-white px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 shadow-lg hover:bg-red-700 active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>{t('actions.remove', { defaultValue: 'Remove' })}</span>
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <label
+                    <div
                         className={cn(
-                            'relative flex flex-col items-center justify-center w-full h-[140px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 group overflow-hidden',
+                            'relative flex flex-col items-center justify-center w-full p-5 rounded-2xl border-2 border-dashed transition-all duration-200 group overflow-hidden',
                             dragOver
                                 ? 'border-[color:var(--color-brand-500)] bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 shadow-md'
-                                : 'bg-neutral-50 dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 hover:border-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10'
+                                : 'bg-neutral-50 dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 hover:border-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-50)]/30 dark:hover:bg-[color:var(--color-brand-500)]/10'
                         )}
                         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                         onDragLeave={() => setDragOver(false)}
@@ -449,10 +498,59 @@ const ItemFormPanel: React.FC<{
                         <span className="text-[13px] font-bold text-neutral-800 dark:text-neutral-300 group-hover:text-[color:var(--color-brand-700)] dark:group-hover:text-[color:var(--color-brand-400)] transition-colors">
                             {t('menu_items.drop_food_image')}
                         </span>
-                        <span className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-0.5 font-medium">Recommended: 800x600px square or landscape</span>
-                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    </label>
+                        <span className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium mb-3">
+                            {t('menu_items.recommended_size', { defaultValue: 'Recommended: 800x600px square or landscape' })}
+                        </span>
+
+                        {/* Direct Action Buttons */}
+                        <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                            <button
+                                type="button"
+                                onClick={handleCameraClick}
+                                className="px-3.5 py-2 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white text-[12px] font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{isMobile ? t('menu_items.take_photo', { defaultValue: 'Take Live Photo' }) : t('menu_items.take_photo_phone', { defaultValue: '📸 Take Photo with Phone' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="px-3.5 py-2 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 text-[12px] font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
+                            >
+                                <UploadCloud className="w-3.5 h-3.5 text-neutral-500" />
+                                <span>{t('menu_items.browse_gallery', { defaultValue: 'Browse Files / Gallery' })}</span>
+                            </button>
+                        </div>
+                    </div>
                 )}
+
+                {/* Hidden File Inputs */}
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*,image/heic,image/heif,.heic,.heif"
+                    capture="environment"
+                    onChange={handleImageChange}
+                    className="hidden"
+                />
+                <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*,image/heic,image/heif,.heic,.heif"
+                    onChange={handleImageChange}
+                    className="hidden"
+                />
+
+                {/* Phone-to-Desktop QR Companion Modal */}
+                <PhoneCameraModal
+                    isOpen={isPhoneCameraModalOpen}
+                    onClose={() => setIsPhoneCameraModalOpen(false)}
+                    onPhotoReceived={(url) => {
+                        setPreviewUrl(url);
+                        set('imageUrl', url);
+                    }}
+                    itemName={form.nameEn || form.nameAm}
+                />
             </div>
 
             {/* ── Section 4: Attribute Toggles ── */}
@@ -902,7 +1000,7 @@ export default function MenuItemsPage() {
         if (form.nameEn) translations.push({ language: 'EN', name: form.nameEn, description: form.descEn, ingredients: form.ingredientsEn, allergens: form.allergensEn });
         if (form.nameAm) translations.push({ language: 'AM', name: form.nameAm, description: form.descAm, ingredients: form.ingredientsAm, allergens: form.allergensAm });
 
-        const payload = {
+        const payload: any = {
             translations,
             price: parsedPrice,
             discountPrice: parsedDiscountPrice,
@@ -912,6 +1010,11 @@ export default function MenuItemsPage() {
             isFeatured: form.isFeatured,
             isSpicy: form.isSpicy,
         };
+
+        // If a photo was received via Phone Camera companion (already stored) or cleared
+        if (!file && form.imageUrl !== undefined) {
+            payload.imageUrl = form.imageUrl || null;
+        }
 
         const compressedFile = file ? await compressImage(file, { maxDimension: 1400, quality: 0.85 }) : null;
 
