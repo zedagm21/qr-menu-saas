@@ -40,22 +40,13 @@ export default function PublicMenuPage() {
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
-    const [isDark, setIsDark] = useState(() => {
-        return localStorage.getItem('public-theme') === 'dark' ||
-            (!localStorage.getItem('public-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const [isDark, setIsDark] = useState<boolean>(() => {
+        const stored = localStorage.getItem('public-theme');
+        if (stored === 'dark') return true;
+        if (stored === 'light') return false;
+        // Default for visitor is device Auto
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
-
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('public-theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('public-theme', 'light');
-        }
-    }, [isDark]);
-
-    const toggleDarkMode = () => setIsDark(prev => !prev);
 
     const { data: restaurant, isLoading: restaurantLoading, isError } = useQuery<PublicRestaurantInfo>({
         queryKey: ['public-restaurant', slug, lang],
@@ -72,6 +63,56 @@ export default function PublicMenuPage() {
         staleTime: 30_000,
         retry: false,
     });
+
+    // When restaurant theme data loads, if visitor has NOT explicitly saved a theme in localStorage:
+    // check if restaurant configured a forced theme (DARK / LIGHT), else stay with device Auto
+    useEffect(() => {
+        const stored = localStorage.getItem('public-theme');
+        if (!stored && restaurant?.theme?.darkMode) {
+            if (restaurant.theme.darkMode === 'DARK') {
+                setIsDark(true);
+            } else if (restaurant.theme.darkMode === 'LIGHT') {
+                setIsDark(false);
+            } else {
+                // AUTO: follow device
+                setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+            }
+        }
+    }, [restaurant?.theme?.darkMode]);
+
+    // Apply dark class and color-scheme to document root
+    useEffect(() => {
+        const root = document.documentElement;
+        if (isDark) {
+            root.classList.add('dark');
+            root.style.colorScheme = 'dark';
+        } else {
+            root.classList.remove('dark');
+            root.style.colorScheme = 'light';
+        }
+    }, [isDark]);
+
+    // Listen to device system theme changes if visitor hasn't set an explicit localStorage override
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemChange = (e: MediaQueryListEvent) => {
+            const stored = localStorage.getItem('public-theme');
+            if (!stored) {
+                setIsDark(e.matches);
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleSystemChange);
+        return () => mediaQuery.removeEventListener('change', handleSystemChange);
+    }, []);
+
+    const toggleDarkMode = () => {
+        setIsDark(prev => {
+            const next = !prev;
+            localStorage.setItem('public-theme', next ? 'dark' : 'light');
+            return next;
+        });
+    };
 
     useEffect(() => {
         if (restaurant?.theme) {

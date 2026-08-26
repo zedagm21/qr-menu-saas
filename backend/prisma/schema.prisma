@@ -183,7 +183,7 @@ model RestaurantTheme {
   accentColor  String     @default("#F59E0B")
   fontFamily   String     @default("Inter")
   menuStyle    MenuStyle  @default(CLASSIC)
-  darkMode     ThemeMode  @default(LIGHT)
+  darkMode     ThemeMode  @default(AUTO)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
