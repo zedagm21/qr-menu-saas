@@ -313,7 +313,7 @@ const CategoriesPage: React.FC = () => {
                                             {/* Visibility toggle */}
                                             <button
                                                 onClick={() => update({ id: cat.id, data: { isActive: !cat.isActive } })}
-                                                title={cat.isActive ? 'Hide Category' : 'Show Category'}
+                                                title={cat.isActive ? t('categories.hide_category') : t('categories.show_category')}
                                                 className={cn(
                                                     'w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-90',
                                                     cat.isActive

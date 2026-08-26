@@ -13,7 +13,6 @@ i18n
             am: { translation: am },
         },
         fallbackLng: 'en',
-        lng: 'en',
         interpolation: {
             escapeValue: false,
         },
@@ -23,6 +22,19 @@ i18n
             lookupLocalStorage: 'ui-language',
         },
     });
+
+// Sync document language attribute on init & language change
+const syncDocumentLang = (lng: string) => {
+    if (typeof document !== 'undefined') {
+        document.documentElement.lang = lng;
+        document.documentElement.dir = 'ltr'; // Amharic is LTR
+    }
+};
+
+syncDocumentLang(i18n.language || 'en');
+i18n.on('languageChanged', (lng) => {
+    syncDocumentLang(lng);
+});
 
 export default i18n;
 

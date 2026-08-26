@@ -1,10 +1,12 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 
 export const DashboardLayout: React.FC = () => {
+    const { t } = useTranslation();
     const { isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) {
@@ -15,7 +17,7 @@ export const DashboardLayout: React.FC = () => {
                     <div className="w-11 h-11 border-4 border-[color:var(--color-brand-500)] border-t-transparent rounded-full animate-spin" />
                     {/* Pulse loading text */}
                     <p className="text-[13px] text-neutral-400 font-semibold tracking-wide uppercase animate-pulse">
-                        Loading workspace…
+                        {t('dashboard.loading_workspace')}
                     </p>
                 </div>
             </div>

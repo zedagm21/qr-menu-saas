@@ -5,8 +5,10 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', 'Noto Sans Ethiopic', 'sans-serif'],
-                ethiopic: ['Noto Sans Ethiopic', 'sans-serif'],
+                sans: ['Inter', 'Noto Sans Ethiopic', 'Nyala', 'sans-serif'],
+                serif: ['Playfair Display', 'Georgia', 'Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'serif'],
+                ethiopic: ['Noto Sans Ethiopic', 'Nyala', 'sans-serif'],
+                ethiopicSerif: ['Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'Nyala', 'serif'],
             },
             colors: {
                 brand: {

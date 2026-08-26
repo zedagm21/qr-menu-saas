@@ -121,7 +121,7 @@ const MorePage: React.FC = () => {
                     className="text-center px-4 py-8 animate-fade-in-up"
                     style={{ animationDelay: `${(links.length * 50) + 300}ms` }}
                 >
-                    <p className="text-[12px] font-medium text-neutral-400 dark:text-neutral-500">Logged in as {user?.email}</p>
+                    <p className="text-[12px] font-medium text-neutral-400 dark:text-neutral-500">{t('dashboard.logged_in_as')} {user?.email}</p>
                 </div>
             </div>
         </div>

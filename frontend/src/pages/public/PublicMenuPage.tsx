@@ -1,42 +1,28 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
-import { Search, X, Globe, Star, Flame, UtensilsCrossed } from 'lucide-react';
+import {
+    Search,
+    X,
+    Flame,
+    UtensilsCrossed,
+    Star
+} from 'lucide-react';
 import { publicApi } from '../../services/api';
+import { formatCurrency, applyRestaurantTheme, getTranslation, cn } from '../../lib/utils';
 import { ThemeProvider } from '../../contexts/ThemeContext';
-import { getTranslation, formatCurrency, applyRestaurantTheme, cn } from '../../lib/utils';
-import type { MenuItem, RestaurantTheme } from '../../types';
 import { FoodDetail } from '../../components/public/FoodDetail';
-
-interface PublicRestaurantInfo {
-    id: string;
-    name: string;
-    description?: string | null;
-    logoUrl?: string | null;
-    coverImageUrl?: string | null;
-    address?: string | null;
-    city?: string | null;
-    country?: string | null;
-    defaultLanguage: 'EN' | 'AM';
-    currency: string;
-    theme?: RestaurantTheme | null;
-    translations?: any[];
-}
-
-interface PublicMenuCategory {
-    id: string;
-    name: string;
-    description: string | null;
-    displayOrder: number;
-    menuItems: MenuItem[];
-}
+import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
 
 export default function PublicMenuPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { slug } = useParams<{ slug: string }>();
-    const [lang, setLang] = useState<'EN' | 'AM'>('EN');
+    const [lang, setLang] = useState<'EN' | 'AM'>(() => {
+        const current = i18n.language?.toUpperCase();
+        return current === 'AM' ? 'AM' : 'EN';
+    });
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -57,7 +43,14 @@ export default function PublicMenuPage() {
 
     const toggleDarkMode = () => setIsDark(prev => !prev);
 
-    const { data: restaurant, isLoading: restaurantLoading, isError } = useQuery<PublicRestaurantInfo>({
+    const handleLanguageToggle = () => {
+        const nextLang = lang === 'EN' ? 'AM' : 'EN';
+        setLang(nextLang);
+        i18n.changeLanguage(nextLang.toLowerCase());
+        localStorage.setItem('ui-language', nextLang.toLowerCase());
+    };
+
+    const { data: restaurant, isLoading: restaurantLoading, isError } = useQuery<Restaurant>({
         queryKey: ['public-restaurant', slug, lang],
         queryFn: () => publicApi.getRestaurant(slug!, lang),
         enabled: !!slug,
@@ -65,7 +58,7 @@ export default function PublicMenuPage() {
         retry: false,
     });
 
-    const { data: categories = [], isLoading: menuLoading } = useQuery<PublicMenuCategory[]>({
+    const { data: categories = [], isLoading: menuLoading } = useQuery<PublicCategory[]>({
         queryKey: ['public-menu', slug, lang],
         queryFn: () => publicApi.getMenu(slug!, lang),
         enabled: !!slug && !!restaurant,
@@ -80,14 +73,18 @@ export default function PublicMenuPage() {
     }, [restaurant]);
 
     useEffect(() => {
-        if (restaurant?.defaultLanguage) setLang(restaurant.defaultLanguage);
-    }, [restaurant?.defaultLanguage]);
+        if (restaurant?.defaultLanguage && !localStorage.getItem('ui-language')) {
+            const initialLang = restaurant.defaultLanguage === 'AM' ? 'AM' : 'EN';
+            setLang(initialLang);
+            i18n.changeLanguage(initialLang.toLowerCase());
+        }
+    }, [restaurant?.defaultLanguage, i18n]);
 
     const filteredCategories = useMemo(() => {
         return categories
             .map(cat => ({
                 ...cat,
-                menuItems: cat.menuItems.filter(item => {
+                menuItems: cat.menuItems.filter((item: PublicMenuItem) => {
                     if (!item.isAvailable) return false;
                     if (!search) return true;
                     const name = ((item as any).name ?? '').toLowerCase();
@@ -97,7 +94,7 @@ export default function PublicMenuPage() {
             }))
             .filter(cat => activeCategory ? cat.id === activeCategory : true)
             .filter(cat => cat.menuItems.length > 0 || !search);
-    }, [categories, lang, search, activeCategory]);
+    }, [categories, search, activeCategory]);
 
     const menuStyle = restaurant?.theme?.menuStyle || 'MODERN';
 
@@ -113,17 +110,21 @@ export default function PublicMenuPage() {
                 <span className="text-3xl">🍽️</span>
             </div>
             <h1 className="text-xl font-bold text-neutral-900 dark:text-[#F5F5F5] tracking-tight">{t("public.menu_not_found")}</h1>
-            <p className="text-neutral-500 dark:text-[#A3A3A3] mt-2 font-medium">This restaurant's menu is currently unavailable.</p>
+            <p className="text-neutral-500 dark:text-[#A3A3A3] mt-2 font-medium">{t("public.menu_unavailable_desc")}</p>
         </div>
     );
 
     const fontFamily = restaurant.theme?.fontFamily ?? 'Inter';
+    const isSerif = fontFamily === 'Playfair Display' || fontFamily === 'Georgia';
+    const fontStack = isSerif
+        ? `'${fontFamily}', 'Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'Nyala', serif`
+        : `'${fontFamily}', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', sans-serif`;
 
     return (
         <ThemeProvider theme={restaurant.theme}>
             <Helmet>
-                <title>{restaurant.name} — Menu</title>
-                <style>{`body { font-family: '${fontFamily}', 'Noto Sans Ethiopic', sans-serif; }`}</style>
+                <title>{restaurant.name} — {t("public.menu_label")}</title>
+                <style>{`body { font-family: ${fontStack}; }`}</style>
             </Helmet>
 
             <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111111] transition-colors" dir="ltr">
@@ -145,7 +146,8 @@ export default function PublicMenuPage() {
                     {/* Right side: Language + Theme Toggle */}
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setLang(l => l === 'EN' ? 'AM' : 'EN')}
+                            onClick={handleLanguageToggle}
+                            aria-label={t("public.language_switch")}
                             className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white/80 text-xs font-bold"
                         >
                             {lang === 'EN' ? 'አማ' : 'EN'}
@@ -186,7 +188,7 @@ export default function PublicMenuPage() {
                         <div className="flex items-center justify-center gap-4 text-white/70 text-xs sm:text-sm mt-3">
                             <span className="flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                {lang === 'EN' ? 'Open now' : 'አሁን ክፍት ነው'}
+                                {t("public.open_now")}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 📍 {lang === 'AM'
@@ -205,11 +207,18 @@ export default function PublicMenuPage() {
                             <input
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder={lang === 'AM' ? 'ምናሌ ይፈልጉ...' : 'Search menu...'}
-                                className="w-full h-10 pl-10 pr-10 rounded-xl bg-neutral-100/80 dark:bg-[#111111] border-none text-[14px] font-medium focus:ring-1 focus:ring-[color:var(--color-brand-500)] text-neutral-900 dark:text-[#F5F5F5] placeholder:text-neutral-400 dark:placeholder:text-[#A3A3A3] transition-all"
+                                placeholder={t("public.search_placeholder")}
+                                className={cn(
+                                    "w-full h-10 pl-10 pr-10 rounded-xl bg-neutral-100/80 dark:bg-[#111111] border-none text-[14px] font-medium focus:ring-1 focus:ring-[color:var(--color-brand-500)] text-neutral-900 dark:text-[#F5F5F5] placeholder:text-neutral-400 dark:placeholder:text-[#A3A3A3] transition-all",
+                                    lang === 'AM' && 'font-ethiopic'
+                                )}
                             />
                             {search && (
-                                <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-[#F5F5F5] bg-white dark:bg-[#222222] rounded-lg shadow-sm border border-neutral-200 dark:border-[#2A2A2A]">
+                                <button
+                                    onClick={() => setSearch('')}
+                                    aria-label={t("public.clear_search")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-[#F5F5F5] bg-white dark:bg-[#222222] rounded-lg shadow-sm border border-neutral-200 dark:border-[#2A2A2A]"
+                                >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
@@ -223,10 +232,11 @@ export default function PublicMenuPage() {
                                         "px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 border",
                                         !activeCategory
                                             ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-sm"
-                                            : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]"
+                                            : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]",
+                                        lang === 'AM' && 'font-ethiopic'
                                     )}
                                 >
-                                    {lang === 'AM' ? 'ሁሉም' : 'All'}
+                                    {t("public.all_items")}
                                 </button>
                                 {categories.map(cat => (
                                     <button
@@ -236,7 +246,8 @@ export default function PublicMenuPage() {
                                             "px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 border",
                                             activeCategory === cat.id
                                                 ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-sm"
-                                                : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]"
+                                                : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]",
+                                            lang === 'AM' && 'font-ethiopic'
                                         )}
                                     >
                                         {cat.name}
@@ -271,7 +282,7 @@ export default function PublicMenuPage() {
                                         menuStyle === 'ELEGANT' && "grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6",
                                         menuStyle === 'MINIMAL' && "grid-cols-1 gap-3 sm:gap-4"
                                     )}>
-                                        {cat.menuItems.map((item, idx) => (
+                                        {cat.menuItems.map((item: PublicMenuItem, idx: number) => (
                                             <div
                                                 key={item.id}
                                                 className="animate-fade-in-up h-full"
@@ -292,10 +303,13 @@ export default function PublicMenuPage() {
                             {filteredCategories.length === 0 && (
                                 <div className="text-center py-20 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-black/5 dark:border-[#2A2A2A] shadow-sm">
                                     <p className="text-3xl mb-2">🍽️</p>
-                                    <p className="text-neutral-900 dark:text-[#F5F5F5] font-bold text-base mb-1">{t("public.no_items_found")}</p>
-                                    <p className="text-neutral-500 dark:text-[#A3A3A3] text-[13px]">Couldn't match your search criteria.</p>
-                                    <button onClick={() => setSearch('')} className="mt-4 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-[#222222] hover:bg-neutral-200 dark:hover:bg-[#2A2A2A] text-neutral-700 dark:text-[#F5F5F5] font-bold text-xs transition-colors">
-                                        Clear search
+                                    <p className={cn("text-neutral-900 dark:text-[#F5F5F5] font-bold text-base mb-1", lang === 'AM' && 'font-ethiopic')}>{t("public.no_items_found")}</p>
+                                    <p className={cn("text-neutral-500 dark:text-[#A3A3A3] text-[13px]", lang === 'AM' && 'font-ethiopic')}>{t("public.no_search_results_desc")}</p>
+                                    <button
+                                        onClick={() => setSearch('')}
+                                        className={cn("mt-4 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-[#222222] hover:bg-neutral-200 dark:hover:bg-[#2A2A2A] text-neutral-700 dark:text-[#F5F5F5] font-bold text-xs transition-colors", lang === 'AM' && 'font-ethiopic')}
+                                    >
+                                        {t("public.clear_search")}
                                     </button>
                                 </div>
                             )}
@@ -304,8 +318,8 @@ export default function PublicMenuPage() {
                 </main>
 
                 <footer className="py-8 text-center bg-white dark:bg-[#0C0C0C] border-t border-black/5 dark:border-[#2A2A2A] mt-auto">
-                    <p className="text-[11px] font-bold tracking-widest uppercase text-neutral-400 dark:text-[#A3A3A3]">
-                        Powered by QR Menu
+                    <p className={cn("text-[11px] font-bold tracking-widest uppercase text-neutral-400 dark:text-[#A3A3A3]", lang === 'AM' && 'font-ethiopic normal-case')}>
+                        {t("public.powered_by")}
                     </p>
                 </footer>
 
@@ -360,8 +374,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 {/* Text Section (Right, Remaining Width) */}
                 <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        {item.isFeatured && <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0">{isAm ? 'ተመራጭ' : 'Best'}</span>}
-                        {item.isSpicy && <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-sm shrink-0 flex items-center justify-center"><Flame className="w-2.5 h-2.5" /></span>}
+                        {item.isFeatured && <span className={cn("bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0", isAm && 'font-ethiopic')}>{t('public.featured')}</span>}
+                        {item.isSpicy && <span title={t('public.spicy')} className="bg-red-500 text-white px-1.5 py-0.5 rounded-sm shrink-0 flex items-center justify-center"><Flame className="w-2.5 h-2.5" /></span>}
                     </div>
 
                     <h3 className={cn("text-base sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
@@ -379,8 +393,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {price}
                         </p>
                         {!item.isAvailable && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider">
-                                {isAm ? 'አይገኝም' : 'Sold out'}
+                            <span className={cn("text-[10px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                {t('public.sold_out')}
                             </span>
                         )}
                     </div>
@@ -408,12 +422,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                         <div className="absolute top-3 left-3 flex flex-wrap gap-2 pr-12 z-10">
                             {item.isFeatured && (
-                                <div className="bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
-                                    <Star className="w-3 h-3 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Best'}
+                                <div className={cn("bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                    <Star className="w-3 h-3 fill-white text-white" /> {t('public.featured')}
                                 </div>
                             )}
                             {item.isSpicy && (
-                                <div className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
+                                <div title={t('public.spicy')} className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
                                     <Flame className="w-3 h-3 fill-white text-white" />
                                 </div>
                             )}
@@ -440,8 +454,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {price}
                         </p>
                         {!item.isAvailable && (
-                            <span className="text-[10px] font-bold px-2 py-1 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-3">
-                                {isAm ? 'አይገኝም' : 'Sold out'}
+                            <span className={cn("text-[10px] font-bold px-2 py-1 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-3", isAm && 'font-ethiopic')}>
+                                {t('public.sold_out')}
                             </span>
                         )}
                     </div>
@@ -468,8 +482,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
 
-                        {item.isFeatured && <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">{isAm ? 'ተመራጭ' : 'Best'}</div>}
-                        {item.isSpicy && <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg"><Flame className="w-2.5 h-2.5 fill-white text-white" /></div>}
+                        {item.isFeatured && <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{t('public.featured')}</div>}
+                        {item.isSpicy && <div title={t('public.spicy')} className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg"><Flame className="w-2.5 h-2.5 fill-white text-white" /></div>}
                     </div>
                 ) : (
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-amber-100/50 dark:bg-amber-900/30 flex items-center justify-center shadow-inner border border-amber-900/5 dark:border-amber-100/5">
@@ -484,11 +498,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     {desc && <p className={cn("text-xs text-neutral-600 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>{desc}</p>}
                     <div className="mt-auto w-full pt-1.5 flex flex-col items-center">
                         <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{price}</p>
-                        {!item.isAvailable && <span className="text-[9px] font-bold px-2 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5">{isAm ? 'አይገኝም' : 'Sold out'}</span>}
+                        {!item.isAvailable && <span className={cn("text-[9px] font-bold px-2 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>{t('public.sold_out')}</span>}
                     </div>
                 </div>
             </button>
-        )
+        );
     }
 
     /* ── MODERN STYLE (DEFAULT) ── */
@@ -511,12 +525,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                     {/* Badges container */}
                     {item.isFeatured && (
-                        <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
-                            {isAm ? 'ተመራጭ' : 'Best'}
+                        <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                            {t('public.featured')}
                         </div>
                     )}
                     {item.isSpicy && (
-                        <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg">
+                        <div title={t('public.spicy')} className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg">
                             <Flame className="w-2.5 h-2.5 fill-white text-white" />
                         </div>
                     )}
@@ -544,8 +558,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </p>
 
                     {!item.isAvailable && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5">
-                            {isAm ? 'አይገኝም' : 'Sold out'}
+                        <span className={cn("text-[9px] font-bold px-2 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>
+                            {t('public.sold_out')}
                         </span>
                     )}
                 </div>

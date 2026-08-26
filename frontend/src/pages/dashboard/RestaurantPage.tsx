@@ -336,7 +336,7 @@ const RestaurantPage: React.FC = () => {
                                 onChange={handleLogoUpload}
                                 imageUrl={restaurant?.logoUrl}
                                 label={t('restaurant.logo')}
-                                hint="PNG, JPG · max 2MB"
+                                hint={t('restaurant.logoHint')}
                                 emptyIcon={<Store className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />}
                                 uploaded={logoUploaded}
                                 tChangeImage={t("restaurant.change_image")}
@@ -353,7 +353,7 @@ const RestaurantPage: React.FC = () => {
                                 onChange={handleCoverUpload}
                                 imageUrl={restaurant?.coverImageUrl}
                                 label={t('restaurant.cover')}
-                                hint="Recommended 1200×400px · max 5MB"
+                                hint={t('restaurant.coverHint')}
                                 emptyIcon={<ImagePlus className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />}
                                 tChangeImage={t("restaurant.change_image")}
                                 uploaded={coverUploaded}

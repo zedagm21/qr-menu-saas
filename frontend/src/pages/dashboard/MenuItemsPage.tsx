@@ -108,7 +108,7 @@ const ItemFormPanel: React.FC<{
                 </div>
 
                 <span className="text-[12px] font-bold text-neutral-500 dark:text-neutral-400">
-                    {tab === 'en' ? 'English details' : 'የአማርኛ ዝርዝሮች'}
+                    {tab === 'en' ? t('restaurant.english_details') : t('restaurant.amharic_details')}
                 </span>
             </div>
 
@@ -117,32 +117,32 @@ const ItemFormPanel: React.FC<{
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[color:var(--color-brand-500)]" />
                     <h3 className="text-[12px] font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
-                        {tab === 'en' ? 'Basic Information' : 'መሰረታዊ መረጃ'}
+                        {t('menu_items.basic_info')}
                     </h3>
                 </div>
 
                 <div className="space-y-3.5">
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Food / Drink Name' : 'የምግብ ወይም መጠጥ ስም'} <span className="text-red-500">*</span>
+                            {tab === 'en' ? t('menu_items.name_en') : t('menu_items.name_am')} <span className="text-red-500">*</span>
                         </label>
                         <input
                             value={tab === 'en' ? form.nameEn : form.nameAm}
                             onChange={e => set(tab === 'en' ? 'nameEn' : 'nameAm', e.target.value)}
-                            placeholder={tab === 'en' ? 'e.g. Doro Wat, Burger, Cappuccino' : 'ለምሳሌ: ዶሮ ወጥ፣ በርገር'}
+                            placeholder={tab === 'en' ? t('menu_items.ph_en_name') : t('menu_items.ph_am_name')}
                             className={cn(inputCls, tab === 'am' && 'font-ethiopic')}
                         />
                     </div>
 
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Description (Optional)' : 'መግለጫ (አማራጭ)'}
+                            {tab === 'en' ? t('menu_items.desc_en') : t('menu_items.desc_am')}
                         </label>
                         <textarea
                             value={tab === 'en' ? form.descEn : form.descAm}
                             onChange={e => set(tab === 'en' ? 'descEn' : 'descAm', e.target.value)}
                             rows={3}
-                            placeholder={tab === 'en' ? 'Brief description of ingredients, preparation, or flavor...' : 'ጣፋጭ የዶሮ ወጥ ከእንቁላል እና አይብ ጋር...'}
+                            placeholder={tab === 'en' ? t('menu_items.ph_en_desc') : t('menu_items.ph_am_desc')}
                             className={cn(
                                 'w-full p-3.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-neutral-100 text-[14px] font-medium',
                                 'placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30',
@@ -226,7 +226,7 @@ const ItemFormPanel: React.FC<{
                         <div className="w-2 h-2 rounded-full bg-[color:var(--color-brand-500)]" />
                         <h3 className="text-[12px] font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">{t("menu_items.food_photo")}</h3>
                     </div>
-                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">PNG, JPG, WebP · Max 5MB</span>
+                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">{t('menu_items.photo_hint')}</span>
                 </div>
 
                 {previewUrl ? (
@@ -234,7 +234,7 @@ const ItemFormPanel: React.FC<{
                         <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-neutral-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3 backdrop-blur-xs">
                             <label className="bg-white text-neutral-900 px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all">
-                                <UploadCloud className="w-4 h-4 text-[color:var(--color-brand-600)]" /> Change Photo
+                                <UploadCloud className="w-4 h-4 text-[color:var(--color-brand-600)]" /> {t('menu_items.change_photo')}
                                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                             </label>
                             <button
@@ -242,7 +242,7 @@ const ItemFormPanel: React.FC<{
                                 onClick={() => { setImageFile(null); setPreviewUrl(null); }}
                                 className="bg-red-600 text-white px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 shadow-lg hover:bg-red-700 active:scale-95 transition-all"
                             >
-                                <Trash2 className="w-4 h-4" /> Remove
+                                <Trash2 className="w-4 h-4" /> {t('menu_items.remove_photo')}
                             </button>
                         </div>
                     </div>
@@ -268,7 +268,7 @@ const ItemFormPanel: React.FC<{
                         <span className="text-[13px] font-bold text-neutral-800 dark:text-neutral-300 group-hover:text-[color:var(--color-brand-700)] dark:group-hover:text-[color:var(--color-brand-400)] transition-colors">
                             {t('menu_items.drop_food_image')}
                         </span>
-                        <span className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-0.5 font-medium">Recommended: 800x600px square or landscape</span>
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-0.5 font-medium">{t('menu_items.photo_recommend')}</span>
                         <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     </label>
                 )}
@@ -302,7 +302,7 @@ const ItemFormPanel: React.FC<{
                             {form.isAvailable ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[2.5]" />}
                         </div>
                         <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                            {form.isAvailable ? 'Available' : 'Sold Out'}
+                            {form.isAvailable ? t('menu_items.available') : t('menu_items.sold_out')}
                         </span>
                     </button>
 
@@ -326,7 +326,7 @@ const ItemFormPanel: React.FC<{
                             <Star className={cn('w-4 h-4', form.isFeatured ? 'fill-amber-950' : '')} />
                         </div>
                         <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                            Featured
+                            {t('menu_items.featured')}
                         </span>
                     </button>
 
@@ -350,7 +350,7 @@ const ItemFormPanel: React.FC<{
                             <Flame className={cn('w-4 h-4', form.isSpicy && 'fill-white')} />
                         </div>
                         <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                            Spicy
+                            {t('menu_items.spicy')}
                         </span>
                     </button>
                 </div>
@@ -366,24 +366,24 @@ const ItemFormPanel: React.FC<{
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Key Ingredients' : 'ዋና ግብዓቶች'}
+                            {tab === 'en' ? t('menu_items.key_ingredients') : t('menu_items.key_ingredients')}
                         </label>
                         <input
                             value={tab === 'en' ? form.ingredientsEn : form.ingredientsAm}
                             onChange={e => set(tab === 'en' ? 'ingredientsEn' : 'ingredientsAm', e.target.value)}
-                            placeholder={tab === 'en' ? 'e.g. Beef, Garlic, Berbere' : 'ለምሳሌ: የበሬ ሥጋ፣ ነጭ ሽንኩርት'}
+                            placeholder={tab === 'en' ? t('menu_items.ph_en_ingredients') : t('menu_items.ph_am_ingredients')}
                             className={cn(inputCls, tab === 'am' && 'font-ethiopic')}
                         />
                     </div>
 
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {tab === 'en' ? 'Allergen Warning' : 'አለርጂዎች'}
+                            {tab === 'en' ? t('menu_items.allergen_warning') : t('menu_items.allergen_warning')}
                         </label>
                         <input
                             value={tab === 'en' ? form.allergensEn : form.allergensAm}
                             onChange={e => set(tab === 'en' ? 'allergensEn' : 'allergensAm', e.target.value)}
-                            placeholder={tab === 'en' ? 'e.g. Contains Gluten, Dairy, Peanuts' : 'ለምሳሌ: ወተት፣ ኦቾሎኒ'}
+                            placeholder={tab === 'en' ? t('menu_items.ph_en_allergens') : t('menu_items.ph_am_allergens')}
                             className={cn(inputCls, tab === 'am' && 'font-ethiopic')}
                         />
                     </div>
@@ -505,7 +505,7 @@ const MenuItemCard: React.FC<{
                 <button
                     type="button"
                     onClick={onToggleAvailability}
-                    title={item.isAvailable ? 'Mark as Sold Out' : 'Mark as Available'}
+                    title={item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}
                     className={cn(
                         'w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
                         item.isAvailable
@@ -614,7 +614,7 @@ export default function MenuItemsPage() {
 
     return (
         <>
-            <Helmet><title>Menu Items — QR Menu</title></Helmet>
+            <Helmet><title>{t('menu_items.title')} — QR Menu</title></Helmet>
 
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 pb-28 lg:pb-12 transition-colors duration-200">
 
@@ -623,7 +623,7 @@ export default function MenuItemsPage() {
                     <div>
                         <div className="flex items-center gap-2 mb-1.5">
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/20">
-                                {t('menu_items.catalog_management', { defaultValue: 'Catalog Management' })}
+                                {t('menu_items.catalog_management')}
                             </span>
                         </div>
                         <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('menu_items.food_and_drinks')}</h1>
@@ -654,7 +654,7 @@ export default function MenuItemsPage() {
                             icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
                             onClick={() => setEditing('new')}
                         >
-                            {t('menu_items.add_food_item', { defaultValue: 'Add Food Item' })}
+                            {t('menu_items.add_food_item')}
                         </Button>
                     )}
                 </div>
@@ -673,7 +673,8 @@ export default function MenuItemsPage() {
                                 'w-full h-12 pl-11 pr-10 rounded-2xl text-[14px] font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
                                 'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200 dark:border-neutral-800 shadow-sm',
                                 'focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)] focus:border-[color:var(--color-brand-500)]/0 focus:shadow-md cursor-text',
-                                'transition-all duration-200'
+                                'transition-all duration-200',
+                                i18n.language === 'am' && 'font-ethiopic'
                             )}
                         />
                         {searchQuery && (
@@ -696,7 +697,8 @@ export default function MenuItemsPage() {
                                     'px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-2 shrink-0 cursor-pointer',
                                     filterCat === 'all'
                                         ? 'bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/30 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] shadow-sm'
-                                        : 'bg-white/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50'
+                                        : 'bg-white/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50',
+                                    i18n.language === 'am' && 'font-ethiopic'
                                 )}
                             >
                                 <span>{t("menu_items.all_items")}</span>
@@ -719,7 +721,8 @@ export default function MenuItemsPage() {
                                             'px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-2 shrink-0 cursor-pointer',
                                             filterCat === c.id
                                                 ? 'bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/30 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] shadow-sm'
-                                                : 'bg-white/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50'
+                                                : 'bg-white/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50',
+                                            i18n.language === 'am' && 'font-ethiopic'
                                         )}
                                     >
                                         <span>{getTranslation(c.translations, i18n.language)}</span>
@@ -764,13 +767,13 @@ export default function MenuItemsPage() {
                             </div>
 
                             <h3 className="text-[20px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight mb-1.5">
-                                {items.length === 0 ? 'No food items added yet' : 'No matching results'}
+                                {items.length === 0 ? t('menu_items.empty') : t('menu_items.no_matching_results')}
                             </h3>
 
                             <p className="text-[14px] text-neutral-600 dark:text-neutral-400 max-w-sm mb-6 leading-relaxed">
                                 {items.length === 0
-                                    ? 'Start building your digital menu by adding your dishes, drinks, and combos.'
-                                    : `We couldn't find any dishes matching "${debouncedSearch}". Try searching by another keyword or category.`}
+                                    ? t('menu_items.empty_hint')
+                                    : t('menu_items.no_matching_desc')}
                             </p>
 
                             {items.length === 0 && cats.length > 0 && (
@@ -780,14 +783,14 @@ export default function MenuItemsPage() {
                                     icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
                                     onClick={() => setEditing('new')}
                                 >
-                                    Add First Item
+                                    {t('menu_items.add_first_item')}
                                 </Button>
                             )}
 
                             {items.length === 0 && cats.length === 0 && (
                                 <div className="flex items-center gap-2 text-[13px] font-medium text-neutral-700 dark:text-neutral-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-2.5">
                                     <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span>Please create at least one category first in the Categories section.</span>
+                                    <span>{t('menu_items.no_category_warning')}</span>
                                 </div>
                             )}
                         </div>
@@ -839,7 +842,7 @@ export default function MenuItemsPage() {
                 <Modal
                     isOpen={!!editing}
                     onClose={() => setEditing(null)}
-                    title={editing === 'new' ? t('menu_items.add_food_item', { defaultValue: 'Add Food Item' }) : t('menu_items.edit_food_item', { defaultValue: 'Edit Food Item' })}
+                    title={editing === 'new' ? t('menu_items.add_food_item') : t('menu_items.edit_food_item')}
                     size="lg"
                 >
                     <ItemFormPanel

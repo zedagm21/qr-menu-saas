@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,11 +9,10 @@ import { QrCode, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 
-const schema = z.object({
-    email: z.string().email('Invalid email'),
-    password: z.string().min(1, 'Password required'),
-});
-type FormData = z.infer<typeof schema>;
+interface FormData {
+    email: string;
+    password: string;
+}
 
 const LoginPage: React.FC = () => {
     const { t } = useTranslation();
@@ -21,6 +20,11 @@ const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [apiError, setApiError] = useState('');
+
+    const schema = useMemo(() => z.object({
+        email: z.string().email(t('auth.validation.invalid_email')),
+        password: z.string().min(1, t('auth.validation.password_required')),
+    }), [t]);
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema),

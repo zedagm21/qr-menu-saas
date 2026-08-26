@@ -17,12 +17,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     value,
     onChange,
     onRemove,
-    label = 'Upload Image',
-    hint = 'JPEG, PNG, WebP — max 5MB',
+    label,
+    hint,
     className,
     aspectRatio = 'square',
 }) => {
     const { t } = useTranslation();
+    const displayLabel = label || t('menu_items.upload_image');
+    const displayHint = hint || t('menu_items.image_hint');
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -78,8 +80,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                             {isDragging ? <Upload className="w-8 h-8 sm:w-6 sm:h-6 text-amber-500" /> : <ImageIcon className="w-8 h-8 sm:w-6 sm:h-6" />}
                         </div>
                         <div className="text-center px-6">
-                            <p className="text-sm font-bold text-neutral-700">{label}</p>
-                            <p className="text-xs font-medium text-neutral-400 mt-1 sm:mt-0.5">{hint}</p>
+                            <p className="text-sm font-bold text-neutral-700">{displayLabel}</p>
+                            <p className="text-xs font-medium text-neutral-400 mt-1 sm:mt-0.5">{displayHint}</p>
                         </div>
                     </div>
                 )}

@@ -311,7 +311,9 @@ const CustomizePage: React.FC = () => {
                                                 >
                                                     {isSelected && <div className="w-4 h-4 bg-white rounded-full shadow-sm" />}
                                                 </button>
-                                                <span className="text-[10px] font-bold text-neutral-500 max-w-[48px] text-center leading-tight">{p.label}</span>
+                                                <span className="text-[10px] font-bold text-neutral-500 max-w-[48px] text-center leading-tight">
+                                                    {t(`customize.presets.${p.label.toLowerCase().replace(' ', '_')}`, { defaultValue: p.label })}
+                                                </span>
                                             </div>
                                         );
                                     })}
@@ -406,7 +408,9 @@ const CustomizePage: React.FC = () => {
                             style={{
                                 '--color-primary': watched.primaryColor,
                                 '--color-accent': watched.accentColor,
-                                fontFamily: watched.fontFamily,
+                                fontFamily: (watched.fontFamily === 'Playfair Display' || watched.fontFamily === 'Georgia')
+                                    ? `'${watched.fontFamily}', 'Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'Nyala', serif`
+                                    : `'${watched.fontFamily}', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', sans-serif`,
                                 backgroundColor: bgColor,
                                 color: textColor,
                                 transition: 'background-color 0.5s, color 0.5s',

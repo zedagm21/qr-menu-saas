@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,13 +9,12 @@ import { QrCode, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 
-const schema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    restaurantName: z.string().min(2, 'Restaurant name must be at least 2 characters'),
-});
-type FormData = z.infer<typeof schema>;
+interface FormData {
+    name: string;
+    email: string;
+    password: string;
+    restaurantName: string;
+}
 
 const RegisterPage: React.FC = () => {
     const { t } = useTranslation();
@@ -23,6 +22,13 @@ const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [apiError, setApiError] = useState('');
+
+    const schema = useMemo(() => z.object({
+        name: z.string().min(2, t('auth.validation.name_min')),
+        email: z.string().email(t('auth.validation.invalid_email')),
+        password: z.string().min(8, t('auth.validation.password_min')),
+        restaurantName: z.string().min(2, t('auth.validation.restaurant_name_min')),
+    }), [t]);
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -62,9 +68,9 @@ const RegisterPage: React.FC = () => {
                         )}
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             {[
-                                { field: 'name' as const, label: t('auth.name'), type: 'text', autoComplete: 'name', placeholder: 'Your name' },
-                                { field: 'restaurantName' as const, label: t('auth.restaurantName'), type: 'text', autoComplete: 'organization', placeholder: 'Blue Nile Restaurant' },
-                                { field: 'email' as const, label: t('auth.email'), type: 'email', autoComplete: 'email', placeholder: 'you@restaurant.com' },
+                                { field: 'name' as const, label: t('auth.name'), type: 'text', autoComplete: 'name', placeholder: t('auth.ph_name') },
+                                { field: 'restaurantName' as const, label: t('auth.restaurantName'), type: 'text', autoComplete: 'organization', placeholder: t('auth.ph_restaurant_name') },
+                                { field: 'email' as const, label: t('auth.email'), type: 'email', autoComplete: 'email', placeholder: t('auth.ph_email') },
                             ].map(({ field, label, type, autoComplete, placeholder }) => (
                                 <div key={field}>
                                     <label className="block text-sm font-medium text-neutral-700 mb-1.5">{label}</label>

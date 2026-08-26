@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800&family=Noto+Serif+Ethiopic:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -39,7 +39,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', 'Noto Sans Ethiopic', sans-serif;
+  font-family: 'Inter', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #fafafa;
@@ -49,7 +49,11 @@ body {
 /* ─── Amharic text support ───────────────────────────────────────────────────── */
 :lang(am),
 .font-ethiopic {
-  font-family: 'Noto Sans Ethiopic', sans-serif;
+  font-family: 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', sans-serif;
+}
+
+.font-ethiopic-serif {
+  font-family: 'Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'Nyala', serif;
 }
 
 /* ─── Scrollbar styling ──────────────────────────────────────────────────────── */

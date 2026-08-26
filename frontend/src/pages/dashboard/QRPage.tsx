@@ -48,7 +48,7 @@ const QRPage: React.FC = () => {
         // Find the canvas rendered by QRCodeCanvas and export it as PNG
         const canvas = document.querySelector<HTMLCanvasElement>('#qr-canvas canvas') ?? document.querySelector<HTMLCanvasElement>('#qr-canvas');
         if (!canvas) {
-            toast.error('QR canvas not found');
+            toast.error(t('toast.qrCanvasError'));
             return;
         }
         const link = document.createElement('a');
@@ -81,10 +81,10 @@ const QRPage: React.FC = () => {
                             <div className="text-5xl animate-bounce mb-6 flex items-center justify-center">📷</div>
                             <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-50 mb-2">{t("qr.generate_title")}</h2>
                             <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-8 max-w-sm mx-auto leading-relaxed">
-                                Create a dynamic QR code that always points to your live menu.
+                                {t('qr.generate_desc')}
                             </p>
                             <Button variant="primary" className="h-12 w-full sm:w-auto px-8 rounded-xl bg-[color:var(--color-brand-500)] text-white" onClick={() => ensure()} isLoading={isPending} icon={<QrCode className="w-5 h-5" />} size="lg">
-                                Generate QR Code
+                                {t('qr.generate')}
                             </Button>
                         </div>
                     ) : (
@@ -109,7 +109,7 @@ const QRPage: React.FC = () => {
                                 </div>
 
                                 <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 text-center">
-                                    {t('qr.scan_to_view')} <span className="font-bold text-neutral-900 dark:text-neutral-50">{restaurant?.name}</span>
+                                    {t('qr.scan_view')} <span className="font-bold text-neutral-900 dark:text-neutral-50">{restaurant?.name}</span>
                                 </p>
                             </div>
 
