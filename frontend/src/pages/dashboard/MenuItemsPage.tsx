@@ -89,7 +89,7 @@ const QuickCategoryModal: React.FC<{
 interface ItemForm {
     nameEn: string; descEn: string; ingredientsEn: string; allergensEn: string;
     nameAm: string; descAm: string; ingredientsAm: string; allergensAm: string;
-    price: string; currency: string; categoryId: string;
+    price: string; discountPrice: string; currency: string; categoryId: string;
     isAvailable: boolean; isFeatured: boolean; isSpicy: boolean;
 }
 
@@ -123,12 +123,31 @@ const ItemFormPanel: React.FC<{
         ingredientsAm: getTranslation(initial?.translations ?? [], 'AM', 'ingredients') ?? '',
         allergensAm: getTranslation(initial?.translations ?? [], 'AM', 'allergens') ?? '',
         price: initial?.price?.toString() ?? '',
+        discountPrice: initial?.discountPrice ? initial.discountPrice.toString() : '',
         currency: initial?.currency ?? defaultCurrency,
         categoryId: initial?.categoryId ?? (categories[0]?.id ?? ''),
         isAvailable: initial?.isAvailable ?? true,
         isFeatured: initial?.isFeatured ?? false,
         isSpicy: initial?.isSpicy ?? false,
     });
+
+    const [hasDiscountToggle, setHasDiscountToggle] = useState<boolean>(Boolean(initial?.discountPrice));
+
+    const toggleDiscount = () => {
+        if (hasDiscountToggle) {
+            setHasDiscountToggle(false);
+            set('discountPrice', '');
+        } else {
+            setHasDiscountToggle(true);
+        }
+    };
+
+    const regularPriceNum = parseFloat(form.price);
+    const discountPriceNum = parseFloat(form.discountPrice);
+    const hasValidDiscount = !isNaN(regularPriceNum) && regularPriceNum > 0 && !isNaN(discountPriceNum) && discountPriceNum > 0 && discountPriceNum < regularPriceNum;
+    const discountPercentage = hasValidDiscount ? Math.round(((regularPriceNum - discountPriceNum) / regularPriceNum) * 100) : 0;
+    const savingsAmount = hasValidDiscount ? (regularPriceNum - discountPriceNum).toFixed(2) : '0';
+    const discountError = form.discountPrice.trim() !== '' && !isNaN(regularPriceNum) && (!isNaN(discountPriceNum) && (discountPriceNum <= 0 || discountPriceNum >= regularPriceNum));
 
     React.useEffect(() => {
         if ((!form.categoryId || !categories.some(c => c.id === form.categoryId)) && categories.length > 0) {
@@ -244,7 +263,7 @@ const ItemFormPanel: React.FC<{
                     {/* Price with Currency Selector */}
                     <div>
                         <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                            {t('menu_items.price')}
+                            {t('menu_items.price')} <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                             <input
@@ -278,21 +297,9 @@ const ItemFormPanel: React.FC<{
 
                     {/* Category Selector */}
                     <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300">
-                                {t('menu_items.category_label')} <span className="text-red-500">*</span>
-                            </label>
-                            {onOpenQuickCategory && (
-                                <button
-                                    type="button"
-                                    onClick={onOpenQuickCategory}
-                                    className="text-[11px] font-extrabold text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] hover:underline flex items-center gap-0.5 cursor-pointer"
-                                >
-                                    <Plus className="w-3 h-3 stroke-[3]" />
-                                    <span>{t('menu_items.add_new_category', { defaultValue: '+ Add New Category' })}</span>
-                                </button>
-                            )}
-                        </div>
+                        <label className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
+                            {t('menu_items.category_label')} <span className="text-red-500">*</span>
+                        </label>
                         <div className="relative">
                             <select
                                 value={form.categoryId}
@@ -321,6 +328,75 @@ const ItemFormPanel: React.FC<{
                             <Tag className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                         </div>
                     </div>
+                </div>
+
+                {/* Discount / Promotional Price Toggle & Input */}
+                <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={toggleDiscount}
+                                className={cn(
+                                    "w-10 h-6 rounded-full transition-colors duration-200 relative p-0.5 focus:outline-none cursor-pointer",
+                                    hasDiscountToggle ? "bg-emerald-500 shadow-sm" : "bg-neutral-300 dark:bg-neutral-700"
+                                )}
+                            >
+                                <div
+                                    className={cn(
+                                        "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                                        hasDiscountToggle ? "translate-x-4" : "translate-x-0"
+                                    )}
+                                />
+                            </button>
+                            <label onClick={toggleDiscount} className="text-[13px] font-bold text-neutral-800 dark:text-neutral-200 cursor-pointer select-none flex items-center gap-1.5">
+                                <span>🏷️</span>
+                                <span>{t('menu_items.has_discount', { defaultValue: 'Apply Special Offer / Discount' })}</span>
+                            </label>
+                        </div>
+                        {hasDiscountToggle && hasValidDiscount && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 animate-fade-in">
+                                <span>🎉</span> {discountPercentage}% {t('menu_items.discount_off', { defaultValue: 'OFF' })} ({savingsAmount} {form.currency} {t('menu_items.save_amount', { defaultValue: 'saved' })})
+                            </span>
+                        )}
+                    </div>
+
+                    {hasDiscountToggle && (
+                        <div className="space-y-1.5 animate-fade-in pl-1">
+                            <label className="text-[12px] font-bold text-neutral-600 dark:text-neutral-400 block">
+                                {t('menu_items.discount_price', { defaultValue: 'Discounted Selling Price' })} <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={form.discountPrice}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            set('discountPrice', val);
+                                        }
+                                    }}
+                                    onWheel={e => e.currentTarget.blur()}
+                                    placeholder={t('menu_items.discount_price_placeholder', { defaultValue: 'e.g. 150' })}
+                                    autoFocus
+                                    className={cn(
+                                        "w-full h-11 pl-4 pr-16 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs",
+                                        discountError && "border-red-500 focus:ring-red-500/30",
+                                        hasValidDiscount && "border-emerald-500 dark:border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-500/5"
+                                    )}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-neutral-400 dark:text-neutral-500 pointer-events-none">
+                                    {form.currency}
+                                </div>
+                            </div>
+                            {discountError && (
+                                <p className="text-[12px] font-bold text-red-500 mt-1 flex items-center gap-1">
+                                    <span>⚠️</span> {t('menu_items.discount_error', { defaultValue: 'Discount price must be less than regular price' })}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -618,14 +694,29 @@ const MenuItemCardBase: React.FC<{
                     </div>
 
                     {/* Category & Price */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
                             <Tag className="w-3 h-3" />
                             <span className="text-[11px] font-extrabold truncate max-w-[120px]">{catName}</span>
                         </div>
-                        <div className="text-[15px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
-                            {formatCurrency(item.price, item.currency)}
-                        </div>
+
+                        {item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price) ? (
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-[15px] sm:text-[16px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                    {formatCurrency(item.discountPrice, item.currency)}
+                                </span>
+                                <span className="text-[12px] font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                    {formatCurrency(item.price, item.currency)}
+                                </span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    -{Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)}%
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="text-[15px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
+                                {formatCurrency(item.price, item.currency)}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -797,6 +888,16 @@ export default function MenuItemsPage() {
             toast.error(t('menu_items.price_required'));
             return;
         }
+
+        let parsedDiscountPrice: number | null = null;
+        if (form.discountPrice.trim()) {
+            parsedDiscountPrice = parseFloat(form.discountPrice);
+            if (isNaN(parsedDiscountPrice) || parsedDiscountPrice <= 0 || parsedDiscountPrice >= parsedPrice) {
+                toast.error(t('menu_items.discount_error', { defaultValue: 'Discount price must be less than regular price' }));
+                return;
+            }
+        }
+
         const translations: any[] = [];
         if (form.nameEn) translations.push({ language: 'EN', name: form.nameEn, description: form.descEn, ingredients: form.ingredientsEn, allergens: form.allergensEn });
         if (form.nameAm) translations.push({ language: 'AM', name: form.nameAm, description: form.descAm, ingredients: form.ingredientsAm, allergens: form.allergensAm });
@@ -804,6 +905,7 @@ export default function MenuItemsPage() {
         const payload = {
             translations,
             price: parsedPrice,
+            discountPrice: parsedDiscountPrice,
             currency: form.currency,
             categoryId: form.categoryId,
             isAvailable: form.isAvailable,

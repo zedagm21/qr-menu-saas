@@ -375,9 +375,13 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
     const { t } = useTranslation();
     const name = item.translations?.length ? getTranslation(item.translations, lang) : item.name ?? '';
     const desc = item.translations?.length ? getTranslation(item.translations, lang, 'description') : item.description ?? '';
-    const price = formatCurrency(item.price, item.currency);
     const isAm = lang === 'AM';
     const hasImage = !!item.imageUrl;
+
+    const hasDiscount = item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price);
+    const regularPriceFormatted = formatCurrency(item.price, item.currency);
+    const discountPriceFormatted = hasDiscount ? formatCurrency(item.discountPrice, item.currency) : '';
+    const discountPercent = hasDiscount ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100) : 0;
 
     /* ── MINIMAL STYLE ── */
     if (menuStyle === 'MINIMAL') {
@@ -417,6 +421,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 <Star className="w-2.5 h-2.5 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Featured'}
                             </span>
                         )}
+                        {hasDiscount && (
+                            <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm">
+                                <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </span>
+                        )}
                         {item.isSpicy && <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-sm shrink-0 flex items-center justify-center"><Flame className="w-2.5 h-2.5" /></span>}
                     </div>
 
@@ -431,9 +440,23 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     )}
 
                     <div className="mt-auto flex items-center justify-between pt-1">
-                        <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] leading-none">
-                            {price}
-                        </p>
+                        {hasDiscount ? (
+                            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
+                                <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                                    {discountPriceFormatted}
+                                </span>
+                                <span className="text-xs sm:text-sm font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
+                                    {regularPriceFormatted}
+                                </span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                </span>
+                            </div>
+                        ) : (
+                            <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] leading-none">
+                                {regularPriceFormatted}
+                            </p>
+                        )}
                         {!item.isAvailable && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider">
                                 {isAm ? 'አይገኝም' : 'Sold out'}
@@ -470,6 +493,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                     <Star className="w-3 h-3 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Featured'}
                                 </div>
                             )}
+                            {hasDiscount && (
+                                <div className="bg-emerald-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
+                                    <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                </div>
+                            )}
                             {item.isSpicy && (
                                 <div className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
                                     <Flame className="w-3 h-3 fill-white text-white" />
@@ -478,8 +506,13 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full aspect-[3/2] bg-neutral-50 dark:bg-[#111111] shrink-0 border-b border-neutral-100 dark:border-[#2A2A2A] flex items-center justify-center">
+                    <div className="w-full aspect-[3/2] bg-neutral-50 dark:bg-[#111111] shrink-0 border-b border-neutral-100 dark:border-[#2A2A2A] flex items-center justify-center relative">
                         <UtensilsCrossed className="w-8 h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                        {hasDiscount && (
+                            <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
+                                <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -494,9 +527,23 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     )}
 
                     <div className="mt-auto pt-2 flex items-center justify-between border-t border-black/5 dark:border-[#2A2A2A]">
-                        <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] pt-3", elegantFontClass)}>
-                            {price}
-                        </p>
+                        {hasDiscount ? (
+                            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap pt-3">
+                                <span className={cn("text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400", elegantFontClass)}>
+                                    {discountPriceFormatted}
+                                </span>
+                                <span className="text-xs sm:text-sm font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
+                                    {regularPriceFormatted}
+                                </span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                </span>
+                            </div>
+                        ) : (
+                            <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] pt-3", elegantFontClass)}>
+                                {regularPriceFormatted}
+                            </p>
+                        )}
                         {!item.isAvailable && (
                             <span className="text-[10px] font-bold px-2 py-1 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-3">
                                 {isAm ? 'አይገኝም' : 'Sold out'}
@@ -530,6 +577,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
 
                         {item.isFeatured && <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">{isAm ? 'ተመራጭ' : 'Featured'}</div>}
+                        {hasDiscount && <div className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}</div>}
                         {item.isSpicy && <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg"><Flame className="w-2.5 h-2.5 fill-white text-white" /></div>}
                     </div>
                 ) : (
@@ -544,7 +592,21 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </h3>
                     {desc && <p className={cn("text-xs text-neutral-600 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>{desc}</p>}
                     <div className="mt-auto w-full pt-1.5 flex flex-col items-center">
-                        <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{price}</p>
+                        {hasDiscount ? (
+                            <div className="flex items-baseline gap-1.5 flex-wrap justify-center mt-1">
+                                <span className={cn("text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400", classicFontClass)}>
+                                    {discountPriceFormatted}
+                                </span>
+                                <span className="text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
+                                    {regularPriceFormatted}
+                                </span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                </span>
+                            </div>
+                        ) : (
+                            <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{regularPriceFormatted}</p>
+                        )}
                         {!item.isAvailable && <span className="text-[9px] font-bold px-2 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5">{isAm ? 'አይገኝም' : 'Sold out'}</span>}
                     </div>
                 </div>
@@ -579,6 +641,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {isAm ? 'ተመራጭ' : 'Featured'}
                         </div>
                     )}
+                    {hasDiscount && (
+                        <div className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
+                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                        </div>
+                    )}
                     {item.isSpicy && (
                         <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg">
                             <Flame className="w-2.5 h-2.5 fill-white text-white" />
@@ -586,8 +653,13 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     )}
                 </div>
             ) : (
-                <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center">
+                <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center relative">
                     <UtensilsCrossed className="w-8 h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                    {hasDiscount && (
+                        <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
+                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -603,9 +675,23 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 )}
 
                 <div className="mt-auto w-full pt-1 flex flex-col items-center">
-                    <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] text-center mt-1">
-                        {price}
-                    </p>
+                    {hasDiscount ? (
+                        <div className="flex items-baseline gap-1.5 flex-wrap justify-center mt-1">
+                            <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                                {discountPriceFormatted}
+                            </span>
+                            <span className="text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                {regularPriceFormatted}
+                            </span>
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </span>
+                        </div>
+                    ) : (
+                        <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] text-center mt-1">
+                            {regularPriceFormatted}
+                        </p>
+                    )}
 
                     {!item.isAvailable && (
                         <span className="text-[9px] font-bold px-2 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5">

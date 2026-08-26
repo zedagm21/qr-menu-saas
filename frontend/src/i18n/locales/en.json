@@ -240,7 +240,15 @@
         "no_category_hint": "Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.",
         "price_required": "Price must be greater than 0",
         "move_up": "Move Up",
-        "move_down": "Move Down"
+        "move_down": "Move Down",
+        "discount": "Discount",
+        "discount_price": "Discounted Price",
+        "has_discount": "Special Offer / Discount",
+        "discount_badge": "Discount",
+        "discount_off": "OFF",
+        "discount_error": "Discount price must be less than regular price",
+        "original_price": "Original Price",
+        "save_amount": "Save"
     },
     "qr": {
         "title": "QR Code",

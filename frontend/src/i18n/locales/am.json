@@ -240,7 +240,15 @@
         "no_category_hint": "የምግብ ዓይነቶችን ለመጨመር መጀመሪያ ምድብ (ለምሳሌ፡ ባህላዊ ምግቦች፣ መጠጦች) ይፍጠሩ።",
         "price_required": "ዋጋው ከ 0 በላይ መሆን አለበት",
         "move_up": "ወደ ላይ ውሰድ",
-        "move_down": "ወደ ታች ውሰድ"
+        "move_down": "ወደ ታች ውሰድ",
+        "discount": "ቅናሽ",
+        "discount_price": "የቅናሽ ዋጋ",
+        "has_discount": "ልዩ ቅናሽ አለው",
+        "discount_badge": "ቅናሽ",
+        "discount_off": "ቅናሽ",
+        "discount_error": "የቅናሽ ዋጋው ከመደበኛ ዋጋው ማነስ አለበት",
+        "original_price": "የቀድሞ ዋጋ",
+        "save_amount": "የተቆጠበ"
     },
     "qr": {
         "title": "QR ኮድ",

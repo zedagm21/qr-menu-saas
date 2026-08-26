@@ -118,6 +118,7 @@ export class PublicMenuService {
                         name: itemTranslation?.name ?? 'Unnamed',
                         description: itemTranslation?.description ?? null,
                         price: item.price.toString(),
+                        discountPrice: item.discountPrice ? item.discountPrice.toString() : null,
                         currency: item.currency,
                         imageUrl: item.imageUrl,
                         isAvailable: item.isAvailable, // Always returned — customers see "unavailable" label

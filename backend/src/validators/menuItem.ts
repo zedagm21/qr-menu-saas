@@ -11,23 +11,41 @@ const translationSchema = z.object({
 export const createMenuItemSchema = z.object({
     categoryId: z.string().min(1, 'Category is required'),
     price: z.number().positive('Price must be greater than 0'),
+    discountPrice: z.number().positive('Discount price must be greater than 0').optional().nullable(),
     currency: z.string().min(2).max(4).optional().default('ETB'),
     isAvailable: z.boolean().optional().default(true),
     isFeatured: z.boolean().optional().default(false),
     isSpicy: z.boolean().optional().default(false),
     displayOrder: z.number().int().min(0).optional(),
     translations: z.array(translationSchema).min(1, 'At least one translation required'),
+}).refine((data) => {
+    if (data.discountPrice !== undefined && data.discountPrice !== null) {
+        return data.discountPrice < data.price;
+    }
+    return true;
+}, {
+    message: 'Discount price must be less than the regular price',
+    path: ['discountPrice'],
 });
 
 export const updateMenuItemSchema = z.object({
     categoryId: z.string().optional(),
     price: z.number().positive('Price must be greater than 0').optional(),
+    discountPrice: z.number().positive('Discount price must be greater than 0').optional().nullable(),
     currency: z.string().min(2).max(4).optional(),
     isAvailable: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     isSpicy: z.boolean().optional(),
     displayOrder: z.number().int().min(0).optional(),
     translations: z.array(translationSchema).optional(),
+}).refine((data) => {
+    if (data.discountPrice !== undefined && data.discountPrice !== null && data.price !== undefined) {
+        return data.discountPrice < data.price;
+    }
+    return true;
+}, {
+    message: 'Discount price must be less than the regular price',
+    path: ['discountPrice'],
 });
 
 export const reorderMenuItemsSchema = z.object({

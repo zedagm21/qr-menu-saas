@@ -25,6 +25,8 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
     const ingredients = item.ingredients ?? '';
     const allergens = item.allergens ?? '';
     const hasImage = !!item.imageUrl;
+    const hasDiscount = item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price);
+    const discountPercent = hasDiscount ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100) : 0;
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#111111] overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
@@ -50,10 +52,15 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-                        <div className="absolute bottom-5 left-5 flex gap-2 z-10">
+                        <div className="absolute bottom-5 left-5 flex flex-wrap gap-2 z-10">
                             {item.isFeatured && (
                                 <span className="bg-amber-500/90 backdrop-blur-md text-white text-[12px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-amber-500/20 uppercase tracking-widest">
                                     <Star className="w-4 h-4 fill-white" /> {isAm ? 'ተመራጭ' : 'Featured'}
+                                </span>
+                            )}
+                            {hasDiscount && (
+                                <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[12px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 uppercase tracking-widest">
+                                    <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             )}
                             {item.isSpicy && (
@@ -71,12 +78,40 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
                 <div className="max-w-2xl mx-auto w-full px-5 pt-8">
                     {/* Header: Title & Price */}
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
-                        <h1 className={cn("text-[32px] sm:text-[36px] font-black text-neutral-950 dark:text-[#F5F5F5] leading-none tracking-tight", isAm && 'font-bold font-ethiopic')}>
-                            {name}
-                        </h1>
-                        <span className="text-[28px] font-black shrink-0 text-[color:var(--color-brand-500)] leading-none mt-1">
-                            {formatCurrency(item.price, item.currency)}
-                        </span>
+                        <div>
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                {hasDiscount && !hasImage && (
+                                    <span className="bg-emerald-600 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                        🏷️ {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                    </span>
+                                )}
+                                {item.isFeatured && !hasImage && (
+                                    <span className="bg-amber-500 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                        ⭐ {isAm ? 'ተመራጭ' : 'Featured'}
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className={cn("text-[32px] sm:text-[36px] font-black text-neutral-950 dark:text-[#F5F5F5] leading-none tracking-tight", isAm && 'font-bold font-ethiopic')}>
+                                {name}
+                            </h1>
+                        </div>
+
+                        <div className="flex flex-col sm:items-end shrink-0 mt-1">
+                            {hasDiscount ? (
+                                <>
+                                    <span className="text-[28px] sm:text-[32px] font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                                        {formatCurrency(item.discountPrice, item.currency)}
+                                    </span>
+                                    <span className="text-[16px] font-bold line-through text-neutral-400 dark:text-[#A3A3A3] mt-1">
+                                        {formatCurrency(item.price, item.currency)}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-[28px] font-black text-[color:var(--color-brand-500)] leading-none">
+                                    {formatCurrency(item.price, item.currency)}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Description */}

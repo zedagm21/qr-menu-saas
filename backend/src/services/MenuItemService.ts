@@ -40,6 +40,7 @@ export class MenuItemService {
                 restaurantId,
                 categoryId: data.categoryId,
                 price: new Decimal(data.price),
+                discountPrice: data.discountPrice !== undefined && data.discountPrice !== null ? new Decimal(data.discountPrice) : null,
                 currency: data.currency ?? 'ETB',
                 isAvailable: data.isAvailable ?? true,
                 isFeatured: data.isFeatured ?? false,
@@ -72,6 +73,7 @@ export class MenuItemService {
                 data: {
                     ...(data.categoryId && { categoryId: data.categoryId }),
                     ...(data.price !== undefined && { price: new Decimal(data.price) }),
+                    ...(data.discountPrice !== undefined && { discountPrice: data.discountPrice !== null ? new Decimal(data.discountPrice) : null }),
                     ...(data.currency && { currency: data.currency }),
                     ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
                     ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
