@@ -111,7 +111,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                     <button
                         onClick={onClose}
                         aria-label={t('public.close', { defaultValue: 'Close' })}
-                        className="absolute right-4 top-4 sm:top-6 w-9 h-9 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] hover:text-neutral-900 dark:hover:text-[#F5F5F5] hover:bg-neutral-200 dark:hover:bg-[#2E2E2E] transition-colors cursor-pointer"
+                        className="absolute right-3.5 top-3.5 sm:top-5 w-11 h-11 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] hover:text-neutral-900 dark:hover:text-[#F5F5F5] hover:bg-neutral-200 dark:hover:bg-[#2E2E2E] transition-colors cursor-pointer"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -234,19 +234,19 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={() => setShowWifiPassword(!showWifiPassword)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-[#222222] text-neutral-500 hover:text-neutral-800 dark:hover:text-[#F5F5F5] border border-neutral-200 dark:border-[#333333] transition-colors cursor-pointer"
+                                                className="min-w-[40px] min-h-[40px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center rounded-lg bg-white dark:bg-[#222222] text-neutral-500 hover:text-neutral-800 dark:hover:text-[#F5F5F5] border border-neutral-200 dark:border-[#333333] transition-colors cursor-pointer"
                                                 aria-label={showWifiPassword ? t('restaurant.hide_password') : t('restaurant.show_password')}
                                             >
-                                                {showWifiPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                {showWifiPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleCopyPassword}
-                                                className="h-8 px-2.5 flex items-center gap-1 rounded-lg bg-[color:var(--color-brand-500)] text-white text-xs font-bold hover:brightness-110 transition-all shadow-xs cursor-pointer"
+                                                className="min-h-[40px] sm:min-h-[36px] px-3 flex items-center gap-1.5 rounded-lg bg-[color:var(--color-brand-500)] text-white text-xs font-bold hover:brightness-110 transition-all shadow-xs cursor-pointer"
                                                 aria-label={t('public.copy_password', { defaultValue: 'Copy Password' })}
                                             >
-                                                {copiedWifi ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                                                <span className="text-[11px]">{copiedWifi ? t('public.copied') : t('public.copy')}</span>
+                                                {copiedWifi ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                                <span className="text-[12px]">{copiedWifi ? t('public.copied') : t('public.copy')}</span>
                                             </button>
                                         </div>
                                     </div>
