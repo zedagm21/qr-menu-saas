@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import i18n from '../i18n';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -7,8 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 
 export const formatCurrency = (amount: string | number, currency: string = 'ETB'): string => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (isNaN(num)) return `0 ${currency}`;
-    return `${num.toLocaleString('en-ET', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency}`;
+    const currCode = currency || 'ETB';
+    const localizedCurrency = (currCode.toUpperCase() === 'ETB')
+        ? i18n.t('currency.code', { defaultValue: 'ETB' })
+        : i18n.t(`currency.${currCode}`, { defaultValue: currCode });
+    if (isNaN(num)) return `0 ${localizedCurrency}`;
+    return `${num.toLocaleString('en-ET', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${localizedCurrency}`;
 };
 
 export const getTranslation = (

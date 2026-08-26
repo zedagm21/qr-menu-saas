@@ -315,7 +315,7 @@ const ItemFormPanel: React.FC<{
                                     onChange={e => set('currency', e.target.value)}
                                     className="h-full px-2.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[12px] font-black text-neutral-800 dark:text-neutral-200 shadow-xs focus:outline-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                                 >
-                                    <option value="ETB">ETB</option>
+                                    <option value="ETB">{t('currency.code', { defaultValue: 'ETB' })}</option>
                                     <option value="USD">USD</option>
                                     <option value="EUR">EUR</option>
                                     <option value="GBP">GBP</option>

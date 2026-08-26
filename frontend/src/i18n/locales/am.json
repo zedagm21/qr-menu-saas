@@ -25,6 +25,13 @@
     "published": "ታትሟል",
     "draft": "ረቂቅ"
   },
+  "currency": {
+    "code": "ብር",
+    "ETB": "ብር",
+    "USD": "USD",
+    "EUR": "EUR",
+    "GBP": "GBP"
+  },
   "toast": {
     "saved": "በተሳካ ሁኔታ ተቀምጧል",
     "created": "በተሳካ ሁኔታ ተፈጥሯል",
@@ -130,6 +137,12 @@
     "country": "አገር",
     "language": "ነባሪ ቋንቋ",
     "currency": "የገንዘብ ዓይነት",
+    "currencies": {
+      "ETB": "ETB — የኢትዮጵያ ብር (ብር)",
+      "USD": "USD — የአሜሪካ ዶላር",
+      "EUR": "EUR — ዩሮ",
+      "GBP": "GBP — የእንግሊዝ ፓውንድ"
+    },
     "logo": "የምግብ ቤት አርማ",
     "cover": "የሽፋን ምስል",
     "save": "ለውጦቹን አስቀምጥ",

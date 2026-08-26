@@ -25,6 +25,13 @@
     "published": "Published",
     "draft": "Draft"
   },
+  "currency": {
+    "code": "ETB",
+    "ETB": "ETB",
+    "USD": "USD",
+    "EUR": "EUR",
+    "GBP": "GBP"
+  },
   "toast": {
     "saved": "Saved successfully",
     "created": "Created successfully",
@@ -130,6 +137,12 @@
     "country": "Country",
     "language": "Default Language",
     "currency": "Currency",
+    "currencies": {
+      "ETB": "ETB — Ethiopian Birr",
+      "USD": "USD — US Dollar",
+      "EUR": "EUR — Euro",
+      "GBP": "GBP — British Pound"
+    },
     "logo": "Restaurant Logo",
     "cover": "Cover Image",
     "save": "Save Changes",

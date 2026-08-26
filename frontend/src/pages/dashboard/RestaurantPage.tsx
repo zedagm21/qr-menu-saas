@@ -531,10 +531,10 @@ const RestaurantPage: React.FC = () => {
                             <div>
                                 <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-widest mb-2">{t('restaurant.currency')}</label>
                                 <select {...register('currency')} className={selectCls}>
-                                    <option value="ETB">ETB — Ethiopian Birr</option>
-                                    <option value="USD">USD — US Dollar</option>
-                                    <option value="EUR">EUR — Euro</option>
-                                    <option value="GBP">GBP — British Pound</option>
+                                    <option value="ETB">{t('restaurant.currencies.ETB', { defaultValue: 'ETB — Ethiopian Birr' })}</option>
+                                    <option value="USD">{t('restaurant.currencies.USD', { defaultValue: 'USD — US Dollar' })}</option>
+                                    <option value="EUR">{t('restaurant.currencies.EUR', { defaultValue: 'EUR — Euro' })}</option>
+                                    <option value="GBP">{t('restaurant.currencies.GBP', { defaultValue: 'GBP — British Pound' })}</option>
                                 </select>
                             </div>
 
