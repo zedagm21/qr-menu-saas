@@ -132,7 +132,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                             )}
                         </div>
 
-                        <h2 id="restaurant-info-title" className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight">
+                        <h2 id="restaurant-info-title" className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight break-words">
                             {displayName}
                         </h2>
                         <p className="text-xs font-semibold text-[color:var(--color-brand-500)] tracking-wide uppercase mt-0.5">
@@ -146,7 +146,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                     {/* 1. Description */}
                     {displayDesc && (
                         <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626]">
-                            <p className="text-neutral-700 dark:text-[#D4D4D4] leading-relaxed text-[13.5px] whitespace-pre-line">
+                            <p className="text-neutral-700 dark:text-[#D4D4D4] leading-relaxed text-[13.5px] whitespace-pre-line break-words">
                                 {displayDesc}
                             </p>
                         </div>
@@ -169,7 +169,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                         <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#242424] border border-neutral-200/70 dark:border-[#333333] flex items-center justify-center text-[color:var(--color-brand-500)] shrink-0 group-hover:border-[color:var(--color-brand-500)]">
                                             <Phone className="w-4 h-4" />
                                         </div>
-                                        <span className="font-semibold">{restaurant.phone}</span>
+                                        <span className="font-semibold break-all">{restaurant.phone}</span>
                                     </a>
                                 )}
 
@@ -181,7 +181,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                         <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#242424] border border-neutral-200/70 dark:border-[#333333] flex items-center justify-center text-[color:var(--color-brand-500)] shrink-0 group-hover:border-[color:var(--color-brand-500)]">
                                             <Mail className="w-4 h-4" />
                                         </div>
-                                        <span className="truncate">{restaurant.email}</span>
+                                        <span className="truncate break-all">{restaurant.email}</span>
                                     </a>
                                 )}
 
@@ -190,9 +190,9 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                         <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#242424] border border-neutral-200/70 dark:border-[#333333] flex items-center justify-center text-[color:var(--color-brand-500)] shrink-0 mt-0.5">
                                             <MapPin className="w-4 h-4" />
                                         </div>
-                                        <div className="leading-snug">
-                                            {displayAddress && <p className="font-semibold text-neutral-900 dark:text-[#F5F5F5]">{displayAddress}</p>}
-                                            <p className="text-xs text-neutral-500 dark:text-[#999999]">
+                                        <div className="leading-snug flex-1 min-w-0">
+                                            {displayAddress && <p className="font-semibold text-neutral-900 dark:text-[#F5F5F5] break-words">{displayAddress}</p>}
+                                            <p className="text-xs text-neutral-500 dark:text-[#999999] break-words">
                                                 {[displayCity, restaurant.country].filter(Boolean).join(', ')}
                                             </p>
                                         </div>
@@ -212,29 +212,29 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
 
                             <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626] space-y-2.5">
                                 {restaurant.wifiName && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-neutral-500 dark:text-[#999999] font-medium">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs text-neutral-500 dark:text-[#999999] font-medium shrink-0">
                                             {t('public.wifi_name_label', { defaultValue: 'WiFi Name' })}:
                                         </span>
-                                        <span className="font-bold text-neutral-900 dark:text-[#F5F5F5] font-mono text-[13px]">
+                                        <span className="font-bold text-neutral-900 dark:text-[#F5F5F5] font-mono text-[13px] truncate text-right">
                                             {restaurant.wifiName}
                                         </span>
                                     </div>
                                 )}
 
                                 {restaurant.wifiPassword && (
-                                    <div className="flex items-center justify-between pt-2 border-t border-neutral-200/50 dark:border-[#262626]">
-                                        <span className="text-xs text-neutral-500 dark:text-[#999999] font-medium">
+                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200/50 dark:border-[#262626]">
+                                        <span className="text-xs text-neutral-500 dark:text-[#999999] font-medium shrink-0">
                                             {t('public.wifi_password_label', { defaultValue: 'Password' })}:
                                         </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="font-mono font-bold text-neutral-900 dark:text-[#F5F5F5] text-[13px] bg-white dark:bg-[#222222] px-2 py-0.5 rounded-lg border border-neutral-200 dark:border-[#333333]">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="font-mono font-bold text-neutral-900 dark:text-[#F5F5F5] text-[13px] bg-white dark:bg-[#222222] px-2 py-0.5 rounded-lg border border-neutral-200 dark:border-[#333333] truncate max-w-[120px] sm:max-w-[180px]">
                                                 {showWifiPassword ? restaurant.wifiPassword : '••••••••'}
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowWifiPassword(!showWifiPassword)}
-                                                className="min-w-[40px] min-h-[40px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center rounded-lg bg-white dark:bg-[#222222] text-neutral-500 hover:text-neutral-800 dark:hover:text-[#F5F5F5] border border-neutral-200 dark:border-[#333333] transition-colors cursor-pointer"
+                                                className="min-w-[40px] min-h-[40px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center rounded-lg bg-white dark:bg-[#222222] text-neutral-500 hover:text-neutral-800 dark:hover:text-[#F5F5F5] border border-neutral-200 dark:border-[#333333] transition-colors cursor-pointer shrink-0"
                                                 aria-label={showWifiPassword ? t('restaurant.hide_password') : t('restaurant.show_password')}
                                             >
                                                 {showWifiPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -242,7 +242,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={handleCopyPassword}
-                                                className="min-h-[40px] sm:min-h-[36px] px-3 flex items-center gap-1.5 rounded-lg bg-[color:var(--color-brand-500)] text-white text-xs font-bold hover:brightness-110 transition-all shadow-xs cursor-pointer"
+                                                className="min-h-[40px] sm:min-h-[36px] px-3 flex items-center gap-1.5 rounded-lg bg-[color:var(--color-brand-500)] text-white text-xs font-bold hover:brightness-110 transition-all shadow-xs cursor-pointer shrink-0"
                                                 aria-label={t('public.copy_password', { defaultValue: 'Copy Password' })}
                                             >
                                                 {copiedWifi ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -264,7 +264,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                             </h3>
 
                             <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626]">
-                                <p className="text-neutral-700 dark:text-[#D4D4D4] leading-relaxed text-[13px] whitespace-pre-wrap">
+                                <p className="text-neutral-700 dark:text-[#D4D4D4] leading-relaxed text-[13px] whitespace-pre-wrap break-words">
                                     {restaurant.paymentInfo}
                                 </p>
                             </div>
