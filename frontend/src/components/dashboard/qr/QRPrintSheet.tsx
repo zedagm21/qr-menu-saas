@@ -26,7 +26,6 @@ export const QRPrintSheet: React.FC<QRPrintSheetProps> = ({
             height: 36,
             width: 36,
             excavate: true,
-            crossOrigin: 'anonymous' as const,
         }
         : undefined;
 

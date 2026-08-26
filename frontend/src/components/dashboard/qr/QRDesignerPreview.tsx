@@ -91,7 +91,6 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
             height: logoPx,
             width: logoPx,
             excavate: true,
-            crossOrigin: 'anonymous' as const,
         }
         : undefined;
 
@@ -122,7 +121,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
 
                 {isFull && hasCustomLogo && resolvedLogo && (
                     <div className="w-12 h-12 rounded-xl p-1 bg-white shadow-xs border border-neutral-100 mb-2 overflow-hidden">
-                        <img src={resolvedLogo} alt="Logo" className="w-full h-full object-cover rounded-lg" crossOrigin="anonymous" />
+                        <img src={resolvedLogo} alt="Logo" className="w-full h-full object-cover rounded-lg" />
                     </div>
                 )}
 
