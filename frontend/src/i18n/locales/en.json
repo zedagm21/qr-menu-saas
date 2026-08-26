@@ -310,6 +310,8 @@
         "print_sheets": "Print Table Stand",
         "png_downloaded": "High-resolution PNG downloaded!",
         "svg_downloaded": "Vector SVG downloaded!",
+        "pdf_downloaded": "Printable A4 PDF downloaded successfully!",
+        "show_subtitle": "Include Subtitle / Tagline on Stand",
         "live_interactive_preview": "Live Scan & Print Preview",
         "tab_templates": "Frame Style",
         "tab_colors": "Brand Palette",

@@ -11,9 +11,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { Button } from '../../components/ui/Button';
 import { SkeletonCard } from '../../components/ui/Skeleton';
-import { QRDesignerPreview, QRStyleConfig, QRTemplateId, resolveImageUrl } from '../../components/dashboard/qr/QRDesignerPreview';
+import { QRDesignerPreview, QRStyleConfig, QRTemplateId, resolveImageUrl, getFallbackLogo } from '../../components/dashboard/qr/QRDesignerPreview';
 import { QRPrintModal } from '../../components/dashboard/qr/QRPrintModal';
 import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -135,11 +136,12 @@ export default function QRPage() {
 
             // Capture the entire styled designer card in high resolution (3x scale)
             const cardEl = (canvasContainerRef.current.firstElementChild as HTMLElement) || canvasContainerRef.current;
+            const bgColor = config.template === 'luxe' ? '#0a0a0a' : (config.cardBgColor || '#ffffff');
             const canvas = await html2canvas(cardEl, {
                 scale: 3,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: null,
+                backgroundColor: bgColor,
                 logging: false,
             });
 
@@ -156,28 +158,31 @@ export default function QRPage() {
         }
     };
 
-    const handleDownloadSVG = () => {
+    const handleDownloadSVG = async () => {
         try {
-            // Find the SVG rendered inside the hidden/vector preview or convert canvas
-            const canvas = canvasContainerRef.current?.querySelector('canvas');
-            if (!canvas) {
-                toast.error('QR canvas not found');
-                return;
-            }
-            const imgData = canvas.toDataURL('image/png');
-            const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
-                <rect width="100%" height="100%" fill="#ffffff"/>
-                <image href="${imgData}" x="50" y="50" width="700" height="700"/>
-            </svg>`;
-            const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+            const rawLogo = config.customLogoUrl || restaurant?.logoUrl;
+            const resolvedLogo = resolveImageUrl(rawLogo) || (config.includeLogo ? getFallbackLogo(config.restaurantName, config.fgColor) : undefined);
+
+            const svgString = await QRCode.toString(menuUrl, {
+                type: 'svg',
+                errorCorrectionLevel: resolvedLogo ? 'H' : 'Q',
+                margin: 1,
+                color: {
+                    dark: config.fgColor || '#000000',
+                    light: '#FFFFFF',
+                },
+            });
+
+            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${restaurant?.slug ?? 'menu'}-qr-vector.svg`;
+            link.download = `${restaurant?.slug ?? 'menu'}-vector-qr.svg`;
             link.click();
             URL.revokeObjectURL(url);
-            toast.success(t('qr.svg_downloaded', { defaultValue: 'Vector SVG downloaded!' }));
+            toast.success(t('qr.svg_downloaded', { defaultValue: 'True Vector SVG downloaded!' }));
         } catch (e) {
+            console.error('SVG download error:', e);
             toast.error('Failed to download SVG');
         }
     };

@@ -310,6 +310,8 @@
         "print_sheets": "የጠረጴዛ ካርድ አትም",
         "png_downloaded": "ከፍተኛ ጥራት ያለው PNG ወርዷል!",
         "svg_downloaded": "Vector SVG ወርዷል!",
+        "pdf_downloaded": "ለህትመት የተዘጋጀው A4 PDF በሚገባ ወርዷል!",
+        "show_subtitle": "ንዑስ ርዕስ በካርዱ ላይ አሳይ",
         "live_interactive_preview": "የቀጥታ ቅኝት እና የህትመት ቅድመ ዕይታ",
         "tab_templates": "የፍሬም ቅጥ",
         "tab_colors": "የቀለም ምርጫ",

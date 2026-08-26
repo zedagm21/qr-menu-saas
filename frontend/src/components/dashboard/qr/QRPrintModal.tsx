@@ -56,6 +56,14 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false,
+                x: 0,
+                y: 0,
+                scrollX: 0,
+                scrollY: 0,
+                width: 1240,
+                height: 1754,
+                windowWidth: 1240,
+                windowHeight: 1754,
             });
 
             // Create A4 PDF (210 × 297 mm)
@@ -246,9 +254,12 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
             {/* ── Hidden Off-Screen A4 High-Resolution Render Target for 300 DPI PDF Capture ── */}
             <div
                 style={{
-                    position: 'absolute',
-                    top: '-9999px',
-                    left: '-9999px',
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    zIndex: -99999,
+                    opacity: 0,
+                    pointerEvents: 'none',
                     width: '1240px',
                     height: '1754px', // Proportional to A4 (210 × 297 mm)
                     backgroundColor: '#ffffff',
