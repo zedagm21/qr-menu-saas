@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import {
     Save, Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
+    Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info
 } from 'lucide-react';
 import { useRestaurant, useUpdateRestaurant } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
@@ -13,6 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import { useQueryClient } from '@tanstack/react-query';
 import { getTranslation, cn } from '../../lib/utils';
+import type { SocialMediaEntry } from '../../types';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,6 +33,9 @@ interface FormData {
     defaultLanguage: 'EN' | 'AM';
     currency: string;
     status: 'DRAFT' | 'PUBLISHED';
+    wifiName: string;
+    wifiPassword: string;
+    paymentInfo: string;
 }
 
 // ─── Section Card wrapper ─────────────────────────────────────────────────────
@@ -197,6 +202,8 @@ const RestaurantPage: React.FC = () => {
     const [coverUploaded, setCoverUploaded] = useState(false);
     const [logoProgress, setLogoProgress] = useState<number | null>(null);
     const [coverProgress, setCoverProgress] = useState<number | null>(null);
+    const [showWifiPassword, setShowWifiPassword] = useState(false);
+    const [socialLinks, setSocialLinks] = useState<SocialMediaEntry[]>([]);
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -218,13 +225,29 @@ const RestaurantPage: React.FC = () => {
                 defaultLanguage: restaurant.defaultLanguage ?? 'EN',
                 currency: restaurant.currency ?? 'ETB',
                 status: restaurant.status ?? 'DRAFT',
+                wifiName: restaurant.wifiName ?? '',
+                wifiPassword: restaurant.wifiPassword ?? '',
+                paymentInfo: restaurant.paymentInfo ?? '',
             });
+            setSocialLinks(Array.isArray(restaurant.socialMedia) ? (restaurant.socialMedia as SocialMediaEntry[]) : []);
         }
     }, [restaurant, reset, t]);
 
     useEffect(() => () => {
         clearTimeout(logoTimer.current); clearTimeout(coverTimer.current);
     }, []);
+
+    const handleAddSocial = () => {
+        setSocialLinks(prev => [...prev, { platform: 'Instagram', url: '' }]);
+    };
+
+    const handleRemoveSocial = (index: number) => {
+        setSocialLinks(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSocialChange = (index: number, field: 'platform' | 'url', value: string) => {
+        setSocialLinks(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
 
     const onSubmit = (data: FormData) => {
         const translations = [
@@ -255,6 +278,10 @@ const RestaurantPage: React.FC = () => {
             defaultLanguage: data.defaultLanguage,
             currency: data.currency,
             status: data.status,
+            wifiName: data.wifiName?.trim() || null,
+            wifiPassword: data.wifiPassword?.trim() || null,
+            paymentInfo: data.paymentInfo?.trim() || null,
+            socialMedia: socialLinks.filter(l => l.url.trim() !== ''),
             translations,
         };
 
@@ -552,6 +579,141 @@ const RestaurantPage: React.FC = () => {
                                     <option value="DRAFT">⚪ {t('status.draft')}</option>
                                     <option value="PUBLISHED">🟢 {t('status.published')}</option>
                                 </select>
+                            </div>
+                        </div>
+                    </SectionCard>
+
+                    {/* ── 4. Additional Information (WiFi, Payment, Social) ── */}
+                    <SectionCard
+                        icon={<Info className="w-5 h-5" />}
+                        title={t('restaurant.additional_info', { defaultValue: 'Additional Information' })}
+                        subtitle={t('restaurant.additional_info_desc', { defaultValue: 'Configure guest WiFi, payment methods, and social links.' })}
+                        delay="275ms"
+                    >
+                        <div className="space-y-6">
+                            {/* A. WiFi Details */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
+                                    <Wifi className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                    <span>{t('restaurant.wifi_details', { defaultValue: 'Guest WiFi Details' })}</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <input
+                                            {...register('wifiName')}
+                                            type="text"
+                                            placeholder={t('restaurant.wifi_name_ph', { defaultValue: 'e.g. BlueNile_Guest_WiFi' })}
+                                            className={fieldCls}
+                                        />
+                                        <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
+                                            {t('restaurant.wifi_name', { defaultValue: 'WiFi Network Name (SSID)' })}
+                                        </label>
+                                    </div>
+
+                                    <div className="relative">
+                                        <input
+                                            {...register('wifiPassword')}
+                                            type={showWifiPassword ? 'text' : 'password'}
+                                            placeholder={t('restaurant.wifi_password_ph', { defaultValue: 'e.g. NileGuest2026' })}
+                                            className={cn(fieldCls, 'pr-12')}
+                                        />
+                                        <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
+                                            {t('restaurant.wifi_password', { defaultValue: 'WiFi Password' })}
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowWifiPassword(!showWifiPassword)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                                            aria-label={showWifiPassword ? t('restaurant.hide_password') : t('restaurant.show_password')}
+                                        >
+                                            {showWifiPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* B. Payment Information */}
+                            <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
+                                <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
+                                    <CreditCard className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                    <span>{t('restaurant.payment_info', { defaultValue: 'Payment Information & Methods' })}</span>
+                                </div>
+                                <p className="text-[12px] text-neutral-500 dark:text-neutral-400">
+                                    {t('restaurant.payment_info_desc', { defaultValue: 'Describe accepted payment methods (bank accounts, Telebirr, CBE Birr, cards, or cash instructions).' })}
+                                </p>
+                                <textarea
+                                    {...register('paymentInfo')}
+                                    rows={4}
+                                    placeholder={t('restaurant.payment_info_ph', { defaultValue: 'e.g. We accept Telebirr (0911...), CBE Account (1000...), Commercial Bank Cards, and Cash.' })}
+                                    className={cn(
+                                        'w-full p-4 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/60 border border-neutral-200/90 dark:border-neutral-700/80 text-[14px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all resize-y min-h-[100px]'
+                                    )}
+                                />
+                            </div>
+
+                            {/* C. Social Media Dynamic List */}
+                            <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
+                                        <Share2 className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                        <span>{t('restaurant.social_media', { defaultValue: 'Social Media Links' })}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddSocial}
+                                        className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] text-[12px] font-bold hover:bg-[color:var(--color-brand-100)] transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>{t('restaurant.add_social_media', { defaultValue: 'Add Social Media' })}</span>
+                                    </button>
+                                </div>
+                                <p className="text-[12px] text-neutral-500 dark:text-neutral-400">
+                                    {t('restaurant.social_media_desc', { defaultValue: 'Connect your social channels to display clickable links to guests.' })}
+                                </p>
+
+                                {socialLinks.length === 0 ? (
+                                    <div className="py-6 px-4 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 text-center">
+                                        <p className="text-[13px] text-neutral-400">{t('restaurant.no_social_added', { defaultValue: 'No social media accounts linked yet.' })}</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {socialLinks.map((item, idx) => (
+                                            <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-2xl bg-neutral-50/60 dark:bg-neutral-800/40 border border-neutral-200/60 dark:border-neutral-700/50">
+                                                <select
+                                                    value={item.platform}
+                                                    onChange={(e) => handleSocialChange(idx, 'platform', e.target.value)}
+                                                    className="h-11 sm:w-44 px-3 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[13px] font-medium text-neutral-900 dark:text-neutral-100 focus:ring-1 focus:ring-[color:var(--color-brand-500)]"
+                                                >
+                                                    <option value="Facebook">Facebook</option>
+                                                    <option value="Instagram">Instagram</option>
+                                                    <option value="TikTok">TikTok</option>
+                                                    <option value="Telegram">Telegram</option>
+                                                    <option value="YouTube">YouTube</option>
+                                                    <option value="LinkedIn">LinkedIn</option>
+                                                    <option value="Twitter/X">Twitter/X</option>
+                                                    <option value="WhatsApp">WhatsApp</option>
+                                                </select>
+
+                                                <input
+                                                    type="url"
+                                                    value={item.url}
+                                                    onChange={(e) => handleSocialChange(idx, 'url', e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="flex-1 h-11 px-3.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[13px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:ring-1 focus:ring-[color:var(--color-brand-500)]"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveSocial(idx)}
+                                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+                                                    aria-label={t('restaurant.remove_social', { defaultValue: 'Remove link' })}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </SectionCard>

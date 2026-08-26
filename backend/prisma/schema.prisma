@@ -71,6 +71,10 @@ model Restaurant {
   defaultLanguage Language         @default(EN)
   currency        String           @default("ETB")
   status          MenuStatus       @default(DRAFT)
+  wifiName        String?
+  wifiPassword    String?
+  paymentInfo     String?
+  socialMedia     Json?
   users           User[]
   translations    RestaurantTranslation[]
   categories      Category[]

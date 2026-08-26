@@ -36,6 +36,11 @@ export interface RestaurantTranslation {
     city: string | null;
 }
 
+export interface SocialMediaEntry {
+    platform: string;
+    url: string;
+}
+
 export interface Restaurant {
     id: string;
     name: string;
@@ -51,6 +56,10 @@ export interface Restaurant {
     defaultLanguage: Language;
     currency: string;
     status: MenuStatus;
+    wifiName?: string | null;
+    wifiPassword?: string | null;
+    paymentInfo?: string | null;
+    socialMedia?: SocialMediaEntry[] | null;
     translations?: RestaurantTranslation[];
     theme: RestaurantTheme | null;
     createdAt: string;
