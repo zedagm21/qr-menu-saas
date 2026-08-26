@@ -58,6 +58,10 @@ export class PublicMenuService {
             country: restaurant.country,
             defaultLanguage: restaurant.defaultLanguage,
             currency: restaurant.currency,
+            wifiName: restaurant.wifiName,
+            wifiPassword: restaurant.wifiPassword,
+            paymentInfo: restaurant.paymentInfo,
+            socialMedia: restaurant.socialMedia,
             theme: restaurant.theme,
             translations: restaurant.translations,
         };

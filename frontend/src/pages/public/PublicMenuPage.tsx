@@ -16,6 +16,7 @@ import { formatCurrency, applyRestaurantTheme, getTranslation, isFastingItem, cn
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
+import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
 
 export default function PublicMenuPage() {
@@ -29,6 +30,7 @@ export default function PublicMenuPage() {
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [showRestaurantInfo, setShowRestaurantInfo] = useState(false);
     const [filters, setFilters] = useState<FilterState>({
         minPrice: '',
         maxPrice: '',
@@ -227,17 +229,22 @@ export default function PublicMenuPage() {
 
                 {/* ─── Sticky Top Bar ─── */}
                 <div className="sticky top-0 z-50 bg-neutral-900/40 dark:bg-neutral-950/50 backdrop-blur-md border-b border-white/10 dark:border-neutral-800/50 h-14 px-4 flex items-center justify-between">
-                    {/* Left side: Logo + MENU text */}
-                    <div className="flex items-center gap-2">
+                    {/* Left side: Logo + MENU text (Clickable -> Opens Restaurant Info Modal) */}
+                    <button
+                        type="button"
+                        onClick={() => setShowRestaurantInfo(true)}
+                        aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer group"
+                    >
                         {restaurant.logoUrl ? (
-                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-white/20 shadow-sm object-cover" />
+                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-white/30 shadow-sm object-cover group-hover:border-white transition-colors" />
                         ) : (
-                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white/90 font-bold text-sm">
+                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white/90 font-bold text-sm group-hover:bg-white/30 transition-colors">
                                 {restaurant.name?.[0] || '🍽️'}
                             </div>
                         )}
-                        <span className="text-white/90 font-bold text-sm tracking-[0.2em] uppercase">{t("public.menu_label")}</span>
-                    </div>
+                        <span className="text-white/90 group-hover:text-white font-bold text-sm tracking-[0.2em] uppercase transition-colors">{t("public.menu_label")}</span>
+                    </button>
 
                     {/* Right side: Language + Theme Toggle */}
                     <div className="flex items-center gap-2">
@@ -522,6 +529,14 @@ export default function PublicMenuPage() {
                     currentFilters={filters}
                     onApply={(newFilters) => setFilters(newFilters)}
                     currencyCode={t('currency.code', { defaultValue: 'ETB' })}
+                    isAm={lang === 'AM'}
+                />
+
+                {/* ─── Restaurant Info Modal / Bottom-Sheet (About Restaurant) ─── */}
+                <RestaurantInfoModal
+                    isOpen={showRestaurantInfo}
+                    onClose={() => setShowRestaurantInfo(false)}
+                    restaurant={restaurant}
                     isAm={lang === 'AM'}
                 />
             </div>

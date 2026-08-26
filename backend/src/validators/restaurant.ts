@@ -19,6 +19,13 @@ export const updateRestaurantSchema = z.object({
     defaultLanguage: z.enum(['EN', 'AM']).optional(),
     currency: z.string().min(2).max(4).optional(),
     status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
+    wifiName: z.string().optional().or(z.literal('')).nullable(),
+    wifiPassword: z.string().optional().or(z.literal('')).nullable(),
+    paymentInfo: z.string().optional().or(z.literal('')).nullable(),
+    socialMedia: z.array(z.object({
+        platform: z.string().min(1, 'Platform is required'),
+        url: z.string().url('Invalid URL'),
+    })).optional().nullable(),
     translations: z.array(translationSchema).optional(),
 });
 

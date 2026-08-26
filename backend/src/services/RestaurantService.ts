@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { imageStorage } from './ImageStorageService';
@@ -20,12 +21,15 @@ export class RestaurantService {
     }
 
     async updateRestaurant(restaurantId: string, data: UpdateRestaurantInput) {
-        const { translations, ...scalarData } = data;
+        const { translations, socialMedia, ...scalarData } = data;
 
         const updated = await prisma.$transaction(async (tx) => {
             await tx.restaurant.update({
                 where: { id: restaurantId },
-                data: scalarData,
+                data: {
+                    ...scalarData,
+                    socialMedia: socialMedia === null ? Prisma.JsonNull : (socialMedia ?? undefined),
+                },
             });
 
             if (translations && translations.length > 0) {
