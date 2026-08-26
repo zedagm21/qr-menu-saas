@@ -110,3 +110,35 @@ export const useUploadMenuItemImage = () => {
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
     });
 };
+
+export const useReorderMenuItems = () => {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: (items: { id: string; displayOrder: number }[]) => menuItemApi.reorder(items),
+        onMutate: async (items) => {
+            await qc.cancelQueries({ queryKey: ['menu-items'] });
+            const previousItems = qc.getQueryData<MenuItem[]>(['menu-items']);
+            if (previousItems) {
+                const orderMap = new Map(items.map((i) => [i.id, i.displayOrder]));
+                const updated = previousItems.map((item) => {
+                    if (orderMap.has(item.id)) {
+                        return { ...item, displayOrder: orderMap.get(item.id)! };
+                    }
+                    return item;
+                });
+                qc.setQueryData<MenuItem[]>(['menu-items'], updated);
+            }
+            return { previousItems };
+        },
+        onError: (error: any, _variables, context) => {
+            if (context?.previousItems) {
+                qc.setQueryData(['menu-items'], context.previousItems);
+            }
+            toast.error(error?.response?.data?.error || t('toast.error'));
+        },
+        onSettled: () => {
+            qc.invalidateQueries({ queryKey: ['menu-items'] });
+        },
+    });
+};

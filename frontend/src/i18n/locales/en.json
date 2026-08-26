@@ -182,7 +182,9 @@
         "ph_am_desc": "አማካሪ መግለጫ (አማርኛ)",
         "status_active": "✅ Active and Visible",
         "status_hidden": "⚫ Hidden from customers",
-        "hidden": "Hidden"
+        "hidden": "Hidden",
+        "move_up": "Move Up",
+        "move_down": "Move Down"
     },
     "menu_items": {
         "title": "Menu Items",
@@ -223,6 +225,7 @@
         "dietary_extra": "Dietary & Extra Info",
         "drop_food_image": "Drop food image here or click to browse",
         "featured": "Featured",
+        "filter_featured": "⭐ Featured",
         "food_and_drinks": "Food & Drinks",
         "pricing_category": "Pricing & Category",
         "remove": "Remove",
@@ -235,7 +238,9 @@
         "create_category": "Create Category",
         "select_or_create_category": "-- Select or Create Category --",
         "no_category_hint": "Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.",
-        "price_required": "Price must be greater than 0"
+        "price_required": "Price must be greater than 0",
+        "move_up": "Move Up",
+        "move_down": "Move Down"
     },
     "qr": {
         "title": "QR Code",
@@ -373,7 +378,10 @@
         "menu_label": "MENU",
         "no_items_found": "No items found",
         "ingredients": "Ingredients",
-        "allergens": "Allergens"
+        "allergens": "Allergens",
+        "featured_specials": "⭐ Featured Specials",
+        "featured_subtitle": "Handpicked favorites and recommendations",
+        "featured_badge": "Featured"
     },
     "errors": {
         "required": "This field is required",

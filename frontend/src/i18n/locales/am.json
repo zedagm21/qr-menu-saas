@@ -182,7 +182,9 @@
         "ph_am_desc": "የክፍሉ መግለጫ",
         "status_active": "✅ ለደንበኛ ይታያል",
         "status_hidden": "⚫ ለደንበኛ አይታይም",
-        "hidden": "የተደበቀ"
+        "hidden": "የተደበቀ",
+        "move_up": "ወደ ላይ ውሰድ",
+        "move_down": "ወደ ታች ውሰድ"
     },
     "menu_items": {
         "title": "ምግቦችና መጠጦች",
@@ -223,6 +225,7 @@
         "dietary_extra": "ዝርዝር መግለጫዎች",
         "drop_food_image": "ምስል እዚህ ያስገቡ ወይም ይምረጡ",
         "featured": "ተመራጭ",
+        "filter_featured": "⭐ ተመራጭ",
         "food_and_drinks": "ምግብ እና መጠጥ",
         "pricing_category": "ዋጋ እና ክፍል",
         "remove": "አጥፋ",
@@ -235,7 +238,9 @@
         "create_category": "+ ምድብ ፍጠር",
         "select_or_create_category": "-- ምድብ ይምረጡ ወይም ይፍጠሩ --",
         "no_category_hint": "የምግብ ዓይነቶችን ለመጨመር መጀመሪያ ምድብ (ለምሳሌ፡ ባህላዊ ምግቦች፣ መጠጦች) ይፍጠሩ።",
-        "price_required": "ዋጋው ከ 0 በላይ መሆን አለበት"
+        "price_required": "ዋጋው ከ 0 በላይ መሆን አለበት",
+        "move_up": "ወደ ላይ ውሰድ",
+        "move_down": "ወደ ታች ውሰድ"
     },
     "qr": {
         "title": "QR ኮድ",
@@ -373,7 +378,10 @@
         "menu_label": "የምግብ ዝርዝር",
         "no_items_found": "ምንም ምግብ አልተገኘም",
         "ingredients": "ግብዓቶች",
-        "allergens": "አለርጂዎች"
+        "allergens": "አለርጂዎች",
+        "featured_specials": "⭐ ተመራጭ ምግቦች",
+        "featured_subtitle": "ልዩ የተመረጡ ተወዳጅ ምግቦች",
+        "featured_badge": "ተመራጭ"
     },
     "errors": {
         "required": "ይህ መስክ አስፈላጊ ነው",

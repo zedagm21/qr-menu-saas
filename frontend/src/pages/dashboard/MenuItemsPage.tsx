@@ -1,11 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragOverEvent,
+    DragOverlay,
+    DragStartEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import toast from 'react-hot-toast';
 import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Flame, Search, UploadCloud,
-    Sparkles
+    Sparkles, GripVertical, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import {
     useMenuItems,
@@ -13,6 +35,7 @@ import {
     useUpdateMenuItem,
     useToggleItemAvailability,
     useDeleteMenuItem,
+    useReorderMenuItems,
     useUploadMenuItemImage,
 } from '../../hooks/useMenuItems';
 import { useCategories, useCreateCategory } from '../../hooks/useCategories';
@@ -588,32 +611,40 @@ const ItemFormPanel: React.FC<{
     );
 };
 
-// ─── Refined High-Contrast Item Card ──────────────────────────────────────────
-const MenuItemCard: React.FC<{
+// ─── Base Menu Item Card ──────────────────────────────────────────
+const MenuItemCardBase: React.FC<{
     item: MenuItem;
     cats: Category[];
     onEdit: () => void;
     onDelete: () => void;
     onToggleAvailability: () => void;
+    orderIndex?: number;
+    isDragging?: boolean;
+    dragOverlay?: boolean;
+    attributes?: any;
+    listeners?: any;
+    setNodeRef?: any;
     style?: React.CSSProperties;
-}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, style }) => {
+}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
     const catName = getTranslation(cats.find(c => c.id === item.categoryId)?.translations ?? [], i18n.language);
     const name = getTranslation(item.translations, i18n.language);
 
     return (
         <div
+            ref={setNodeRef}
             style={style}
             className={cn(
-                'animate-fade-in-up group relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 overflow-hidden',
+                'group relative flex items-stretch overflow-hidden',
                 'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[22px]',
-                'hover:-translate-y-1 hover:shadow-lg transition-all duration-200'
+                !dragOverlay && 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
+                dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
             )}
         >
             {/* Left status accent strip */}
             <div
                 className={cn(
-                    'absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300',
+                    'w-1.5 flex-shrink-0 transition-colors duration-300',
                     item.isAvailable
                         ? item.isFeatured
                             ? 'bg-gradient-to-b from-amber-400 to-amber-600'
@@ -622,98 +653,127 @@ const MenuItemCard: React.FC<{
                 )}
             />
 
-            {/* Thumbnail */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-sm ml-1">
-                {item.imageUrl ? (
-                    <img
-                        src={item.imageUrl}
-                        alt={name}
-                        className={cn(
-                            'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105',
-                            !item.isAvailable && 'grayscale-[40%]'
-                        )}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[color:var(--color-brand-50)] to-neutral-100 dark:from-[color:var(--color-brand-900)] dark:to-neutral-800">
-                        <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
-                    </div>
+            {/* Drag Handle */}
+            <div 
+                {...attributes} 
+                {...listeners}
+                className={cn(
+                    "flex items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                    (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
                 )}
+            >
+                <GripVertical className="w-5 h-5 sm:w-5 sm:h-5" />
             </div>
 
-            {/* Content Details */}
-            <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
-                {/* Title & Badges */}
-                <div className="flex items-center gap-2 flex-wrap mb-1 sm:mb-1.5">
-                    <h3 className="text-[14px] sm:text-[16px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
-                        {name}
-                    </h3>
-
-                    {item.isFeatured && (
-                        <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
-                            <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
-                        </span>
+            <div className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+                {/* Thumbnail with position badge */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-sm">
+                    {item.imageUrl ? (
+                        <img
+                            src={item.imageUrl}
+                            alt={name}
+                            className={cn(
+                                'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105',
+                                !item.isAvailable && 'grayscale-[40%]'
+                            )}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[color:var(--color-brand-50)] to-neutral-100 dark:from-[color:var(--color-brand-900)] dark:to-neutral-800">
+                            <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
+                        </div>
                     )}
-
-                    {item.isSpicy && (
-                        <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 border border-red-200/80 dark:border-red-500/20">
-                            <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600 dark:text-red-400" /> {t('menu_items.spicy')}
+                    {typeof orderIndex === 'number' && (
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[9px] font-black text-white shadow-xs">
+                            #{orderIndex}
                         </span>
                     )}
                 </div>
 
-                {/* Category & Price */}
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
-                        <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-neutral-500 dark:text-neutral-400 shrink-0" />
-                        <span className="text-[10px] sm:text-[11px] font-bold truncate max-w-[100px] sm:max-w-[130px]">{catName || t('menu_items.uncategorized')}</span>
+                {/* Content Details */}
+                <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
+                    {/* Title & Badges */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1 sm:mb-1.5">
+                        <h3 className="text-[14px] sm:text-[16px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
+                            {name}
+                        </h3>
+
+                        {item.isFeatured && (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
+                                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
+                            </span>
+                        )}
+
+                        {item.isSpicy && (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 border border-red-200/80 dark:border-red-500/20">
+                                <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600 dark:text-red-400" /> {t('menu_items.spicy')}
+                            </span>
+                        )}
                     </div>
 
-                    <div className="text-[14px] sm:text-[15px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight shrink-0">
-                        {formatCurrency(item.price, item.currency)}
+                    {/* Category & Price */}
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
+                            <Tag className="w-3 h-3" />
+                            <span className="text-[11px] font-extrabold truncate max-w-[120px]">{catName}</span>
+                        </div>
+                        <div className="text-[15px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
+                            {formatCurrency(item.price, item.currency)}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                {/* Sliding Toggle Switch */}
-                <button
-                    type="button"
-                    onClick={onToggleAvailability}
-                    title={item.isAvailable ? 'Mark as Sold Out' : 'Mark as Available'}
-                    className={cn(
-                        'w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
-                        item.isAvailable
-                            ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30 border-transparent'
-                            : 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600'
-                    )}
-                >
-                    <div className={cn(
-                        'bg-white w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-sm transition-transform duration-200 ease-out',
-                        item.isAvailable ? 'translate-x-[16px] sm:translate-x-[18px]' : 'translate-x-0'
-                    )} />
-                </button>
-
-                {/* Edit */}
-                <button
-                    onClick={onEdit}
-                    title={t('menu_items.edit')}
-                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-[color:var(--color-brand-600)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 hover:border-[color:var(--color-brand-200)] dark:hover:border-[color:var(--color-brand-500)]/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                >
-                    <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-
-                {/* Delete */}
-                <button
-                    onClick={onDelete}
-                    title={t('menu_items.delete')}
-                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                >
-                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                    <button
+                        onClick={onToggleAvailability}
+                        title={item.isAvailable ? 'Mark Sold Out' : 'Mark Available'}
+                        className={cn(
+                            'w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-90',
+                            item.isAvailable
+                                ? 'text-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+                                : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                        )}
+                    >
+                        {item.isAvailable ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                    </button>
+                    <button
+                        onClick={onEdit}
+                        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-90 transition-all duration-200"
+                    >
+                        <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                    <button
+                        onClick={onDelete}
+                        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:scale-90 transition-all duration-200"
+                    >
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                </div>
             </div>
         </div>
     );
+};
+
+// ─── Sortable Menu Item Card ──────────────────────────────────────────
+const SortableMenuItemCard: React.FC<{
+    item: MenuItem;
+    cats: Category[];
+    onEdit: () => void;
+    onDelete: () => void;
+    onToggleAvailability: () => void;
+    orderIndex?: number;
+}> = (props) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 10 : 1,
+        position: 'relative' as const,
+    };
+
+    return <MenuItemCardBase {...props} isDragging={isDragging} attributes={attributes} listeners={listeners} setNodeRef={setNodeRef} style={style} />;
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -734,13 +794,23 @@ export default function MenuItemsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [quickCatOpen, setQuickCatOpen] = useState(false);
     const [newCategoryId, setNewCategoryId] = useState<string | null>(null);
-    const debouncedSearch = useDebounce(searchQuery, 300);
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [localItems, setLocalItems] = useState<MenuItem[]>([]);
 
     const cats = Array.isArray(categories) ? categories : [];
-    const items: MenuItem[] = Array.isArray(menuItems) ? menuItems : [];
-    const editingItem = items.find(i => i.id === editing);
+    
+    // Keep local items in sync with server query when not actively dragging
+    useEffect(() => {
+        if (Array.isArray(menuItems) && !activeId) {
+            setLocalItems([...menuItems].sort((a, b) => a.displayOrder - b.displayOrder));
+        }
+    }, [menuItems, activeId]);
 
+    const items: MenuItem[] = localItems;
+    const editingItem = items.find(i => i.id === editing);
     const availableCount = items.filter(i => i.isAvailable).length;
+
+    const debouncedSearch = useDebounce(searchQuery, 300);
 
     const handleCategoryCreated = (newCat: any) => {
         if (newCat?.id) {
@@ -761,6 +831,58 @@ export default function MenuItemsPage() {
             const ingr = (getTranslation(i.translations, i18n.language, 'ingredients') ?? '').toLowerCase();
             return name.includes(q) || desc.includes(q) || ingr.includes(q);
         });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const { mutate: reorderMenuItems } = useReorderMenuItems();
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const activeItem = localItems.find(i => i.id === active.id);
+        const overItem = localItems.find(i => i.id === over.id);
+
+        if (!activeItem || !overItem) return;
+
+        // Reorder immediately within the same category for real-time live preview
+        if (activeItem.categoryId === overItem.categoryId) {
+            setLocalItems(prev => {
+                const oldIndex = prev.findIndex(i => i.id === active.id);
+                const newIndex = prev.findIndex(i => i.id === over.id);
+                if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                    return arrayMove(prev, oldIndex, newIndex);
+                }
+                return prev;
+            });
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active } = event;
+        setActiveId(null);
+        if (active) {
+            const activeItem = localItems.find(i => i.id === active.id);
+            if (activeItem) {
+                const categoryItems = localItems.filter(i => i.categoryId === activeItem.categoryId);
+                reorderMenuItems(categoryItems.map((item, index) => ({ id: item.id, displayOrder: index })));
+            }
+        }
+    };
+
+    const handleDragCancel = () => {
+        setActiveId(null);
+        if (Array.isArray(menuItems)) {
+            setLocalItems([...menuItems].sort((a, b) => a.displayOrder - b.displayOrder));
+        }
+    };
 
     const handleSave = async (form: ItemForm, file: File | null) => {
         const parsedPrice = parseFloat(form.price);
@@ -1000,30 +1122,82 @@ export default function MenuItemsPage() {
                         </div>
                     ) : (
                         /* List of items */
-                        <div className="space-y-3">
-                            {filtered.map((item, idx) => (
-                                deletingId === item.id ? (
-                                    <ConfirmDialog
-                                        key={item.id}
-                                        isOpen={true}
-                                        onClose={() => setDeletingId(null)}
-                                        onConfirm={() => { remove(item.id); setDeletingId(null); }}
-                                        title={t('actions.delete')}
-                                        description={t('actions.deleteItemDesc')}
-                                        confirmText={t('actions.delete')}
-                                    />
-                                ) : (
-                                    <MenuItemCard
-                                        key={item.id}
-                                        item={item}
-                                        cats={cats}
-                                        onEdit={() => setEditing(item.id)}
-                                        onDelete={() => setDeletingId(item.id)}
-                                        onToggleAvailability={() => toggleAvailability({ id: item.id, isAvailable: !item.isAvailable })}
-                                        style={{ animationDelay: `${idx * 20 + 150}ms` }}
-                                    />
-                                )
-                            ))}
+                        <div className="space-y-6">
+                            <DndContext 
+                                sensors={sensors} 
+                                collisionDetection={closestCenter} 
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDragEnd={handleDragEnd}
+                                onDragCancel={handleDragCancel}
+                            >
+                                {cats.filter(c => filterCat === 'all' || filterCat === 'featured' || c.id === filterCat).map(cat => {
+                                    const catItems = filtered
+                                        .filter(i => i.categoryId === cat.id);
+                                    
+                                    if (catItems.length === 0) return null;
+
+                                    return (
+                                        <div key={cat.id} className="space-y-3">
+                                            {(filterCat === 'all' || filterCat === 'featured') && (
+                                                <h3 className="text-[16px] font-black text-neutral-900 dark:text-neutral-50 px-2 pt-2">
+                                                    {getTranslation(cat.translations, i18n.language)}
+                                                </h3>
+                                            )}
+                                            <SortableContext items={catItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                                                {catItems.map((item, idx) => {
+                                                    const catIndex = catItems.findIndex(i => i.id === item.id);
+                                                    const orderIndex = catIndex >= 0 ? catIndex + 1 : undefined;
+
+                                                    return deletingId === item.id ? (
+                                                        <ConfirmDialog
+                                                            key={item.id}
+                                                            isOpen={true}
+                                                            onClose={() => setDeletingId(null)}
+                                                            onConfirm={() => { remove(item.id); setDeletingId(null); }}
+                                                            title={t('actions.delete')}
+                                                            description={t('actions.deleteItemDesc')}
+                                                            confirmText={t('actions.delete')}
+                                                        />
+                                                    ) : (
+                                                        <SortableMenuItemCard
+                                                            key={item.id}
+                                                            item={item}
+                                                            cats={cats}
+                                                            onEdit={() => setEditing(item.id)}
+                                                            onDelete={() => setDeletingId(item.id)}
+                                                            onToggleAvailability={() => toggleAvailability({ id: item.id, isAvailable: !item.isAvailable })}
+                                                            orderIndex={orderIndex}
+                                                        />
+                                                    );
+                                                })}
+                                            </SortableContext>
+                                        </div>
+                                    );
+                                })}
+
+                                {typeof document !== 'undefined' && createPortal(
+                                    <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                                        {activeId ? (() => {
+                                            const activeItem = items.find(i => i.id === activeId);
+                                            if (!activeItem) return null;
+                                            return (
+                                                <div className="w-[calc(100vw-2rem)] max-w-4xl opacity-95">
+                                                    <MenuItemCardBase
+                                                        item={activeItem}
+                                                        cats={cats}
+                                                        onEdit={() => {}}
+                                                        onDelete={() => {}}
+                                                        onToggleAvailability={() => {}}
+                                                        dragOverlay
+                                                    />
+                                                </div>
+                                            );
+                                        })() : null}
+                                    </DragOverlay>,
+                                    document.body
+                                )}
+                            </DndContext>
                         </div>
                     )}
                 </div>

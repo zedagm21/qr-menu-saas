@@ -83,6 +83,12 @@ export default function PublicMenuPage() {
         if (restaurant?.defaultLanguage) setLang(restaurant.defaultLanguage);
     }, [restaurant?.defaultLanguage]);
 
+    const featuredItems = useMemo(() => {
+        return categories
+            .flatMap(c => c.menuItems)
+            .filter(item => item.isFeatured && item.isAvailable);
+    }, [categories]);
+
     const filteredCategories = useMemo(() => {
         return categories
             .map(cat => ({
@@ -254,7 +260,50 @@ export default function PublicMenuPage() {
                             <div className="w-8 h-8 border-4 border-[color:var(--color-brand-500)] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : (
-                        <div className="space-y-10">
+                        <div className="space-y-12">
+                            {/* ─── Featured Items Showcase (Top Section) ─── */}
+                            {!search && !activeCategory && featuredItems.length > 0 && (
+                                <section className="scroll-mt-32 pb-2">
+                                    <div className="mb-5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-amber-500/20 pb-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-xs">
+                                                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                                            </div>
+                                            <h2 className={cn("text-xl sm:text-2xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight", lang === 'AM' && 'font-ethiopic font-bold')}>
+                                                {t('public.featured_specials', { defaultValue: '⭐ Featured Specials' })}
+                                            </h2>
+                                        </div>
+                                        <p className={cn("text-xs sm:text-sm text-neutral-500 dark:text-[#A3A3A3] font-medium sm:text-right", lang === 'AM' && 'font-ethiopic')}>
+                                            {t('public.featured_subtitle', { defaultValue: 'Handpicked favorites and recommendations' })}
+                                        </p>
+                                    </div>
+
+                                    {/* Responsive Showcase Grid */}
+                                    <div className={cn(
+                                        "grid",
+                                        (menuStyle === 'MODERN' || menuStyle === 'CLASSIC') && "grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5",
+                                        menuStyle === 'ELEGANT' && "grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6",
+                                        menuStyle === 'MINIMAL' && "grid-cols-1 gap-3 sm:gap-4"
+                                    )}>
+                                        {featuredItems.map((item, idx) => (
+                                            <div
+                                                key={`featured-${item.id}`}
+                                                className="animate-fade-in-up h-full"
+                                                style={{ animationDelay: `${Math.min(idx * 60 + 80, 400)}ms` }}
+                                            >
+                                                <MenuItemCard
+                                                    item={item}
+                                                    lang={lang}
+                                                    onClick={() => setSelectedItem(item)}
+                                                    menuStyle={menuStyle}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* ─── Regular Category Sections ─── */}
                             {filteredCategories.map(cat => (
                                 <div key={cat.id} className="scroll-mt-32">
                                     <div className={cn("mb-4 flex items-baseline gap-3", menuStyle === 'MINIMAL' && "mb-2")}>
@@ -337,7 +386,10 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 onClick={onClick}
                 className={cn(
                     "w-full flex flex-row items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
-                    "border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                    "border shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                    item.isFeatured
+                        ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
+                        : "border-neutral-200/80 dark:border-neutral-800/80",
                     "overflow-hidden min-h-[140px]",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
@@ -360,7 +412,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 {/* Text Section (Right, Remaining Width) */}
                 <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        {item.isFeatured && <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0">{isAm ? 'ተመራጭ' : 'Best'}</span>}
+                        {item.isFeatured && (
+                            <span className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <Star className="w-2.5 h-2.5 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Featured'}
+                            </span>
+                        )}
                         {item.isSpicy && <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-sm shrink-0 flex items-center justify-center"><Flame className="w-2.5 h-2.5" /></span>}
                     </div>
 
@@ -397,7 +453,9 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 onClick={onClick}
                 className={cn(
                     "w-full h-full text-left bg-white/90 dark:bg-neutral-900/90 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl dark:hover:shadow-none group flex flex-col",
-                    "border border-black/5 dark:border-[#2A2A2A]",
+                    item.isFeatured
+                        ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
+                        : "border border-black/5 dark:border-[#2A2A2A]",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
@@ -409,7 +467,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         <div className="absolute top-3 left-3 flex flex-wrap gap-2 pr-12 z-10">
                             {item.isFeatured && (
                                 <div className="bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
-                                    <Star className="w-3 h-3 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Best'}
+                                    <Star className="w-3 h-3 fill-white text-white" /> {isAm ? 'ተመራጭ' : 'Featured'}
                                 </div>
                             )}
                             {item.isSpicy && (
@@ -458,7 +516,10 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 onClick={onClick}
                 className={cn(
                     "w-full h-full bg-amber-50/30 dark:bg-amber-950/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-none hover:shadow-amber-900/10 transition-all duration-300",
-                    "border border-amber-900/5 dark:border-amber-100/5 hover:-translate-y-1 active:scale-[0.98]",
+                    item.isFeatured
+                        ? "border-2 border-amber-500/50 dark:border-amber-500/40 shadow-md"
+                        : "border border-amber-900/5 dark:border-amber-100/5",
+                    "hover:-translate-y-1 active:scale-[0.98]",
                     "flex flex-col items-center justify-start p-4 sm:p-5 group",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
@@ -468,7 +529,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
 
-                        {item.isFeatured && <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">{isAm ? 'ተመራጭ' : 'Best'}</div>}
+                        {item.isFeatured && <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">{isAm ? 'ተመራጭ' : 'Featured'}</div>}
                         {item.isSpicy && <div className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg"><Flame className="w-2.5 h-2.5 fill-white text-white" /></div>}
                     </div>
                 ) : (
@@ -488,7 +549,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </div>
                 </div>
             </button>
-        )
+        );
     }
 
     /* ── MODERN STYLE (DEFAULT) ── */
@@ -497,7 +558,10 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             onClick={onClick}
             className={cn(
                 "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-none hover:shadow-brand-500/10 transition-all duration-300",
-                "border border-black/5 dark:border-[#2A2A2A] hover:-translate-y-1 active:scale-[0.98]",
+                item.isFeatured
+                    ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
+                    : "border border-black/5 dark:border-[#2A2A2A]",
+                "hover:-translate-y-1 active:scale-[0.98]",
                 "flex flex-col items-center justify-start p-5 sm:p-6 group",
                 !item.isAvailable && "opacity-60 grayscale-[50%]"
             )}
@@ -512,7 +576,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     {/* Badges container */}
                     {item.isFeatured && (
                         <div className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
-                            {isAm ? 'ተመራጭ' : 'Best'}
+                            {isAm ? 'ተመራጭ' : 'Featured'}
                         </div>
                     )}
                     {item.isSpicy && (
