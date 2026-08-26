@@ -1,33 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragOverEvent,
+    DragOverlay,
+    DragStartEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+import toast from 'react-hot-toast';
+import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Flame, Search, UploadCloud,
-    Sparkles
+    Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
+    Smartphone, Loader2
 } from 'lucide-react';
+import { PhoneCameraModal } from '../../components/dashboard/PhoneCameraModal';
+import { isHeicFile } from '../../lib/imageCompression';
 import {
     useMenuItems,
     useCreateMenuItem,
     useUpdateMenuItem,
+    useToggleItemAvailability,
     useDeleteMenuItem,
+    useReorderMenuItems,
     useUploadMenuItemImage,
 } from '../../hooks/useMenuItems';
-import { useCategories } from '../../hooks/useCategories';
+import { useCategories, useCreateCategory } from '../../hooks/useCategories';
+import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
+import { compressImage } from '../../lib/imageCompression';
 import type { MenuItem, Category } from '../../types';
+import { CategoryForm, CategoryFormData } from '../../components/dashboard/CategoryForm';
 import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import toast from 'react-hot-toast';
+
+// ─── Quick Category Modal (Inline Category Creator) ───────────────────────────
+const QuickCategoryModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onCreated: (newCat: any) => void;
+}> = ({ isOpen, onClose, onCreated }) => {
+    const { t } = useTranslation();
+    const { mutate: createCat, isPending } = useCreateCategory();
+
+    const handleSave = (form: CategoryFormData) => {
+        const translations = [
+            { language: 'EN' as const, name: form.nameEn, description: form.descEn || undefined },
+            { language: 'AM' as const, name: form.nameAm || form.nameEn, description: form.descAm || undefined },
+        ];
+        createCat({ translations, isActive: form.isActive }, {
+            onSuccess: (createdCat: any) => {
+                onCreated(createdCat);
+                onClose();
+            }
+        });
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={t('categories.add_title', { defaultValue: 'Create New Category' })} size="md">
+            <div className="p-4 sm:p-6">
+                <CategoryForm
+                    onSave={handleSave}
+                    onCancel={onClose}
+                    isSaving={isPending}
+                    className="shadow-none border-0 p-0 sm:p-0 bg-transparent dark:bg-transparent ring-0"
+                />
+            </div>
+        </Modal>
+    );
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ItemForm {
     nameEn: string; descEn: string; ingredientsEn: string; allergensEn: string;
     nameAm: string; descAm: string; ingredientsAm: string; allergensAm: string;
-    price: string; currency: string; categoryId: string;
+    price: string; discountPrice: string; currency: string; categoryId: string;
     isAvailable: boolean; isFeatured: boolean; isSpicy: boolean;
+    imageUrl?: string | null;
 }
 
 // ─── Form Field Style ─────────────────────────────────────────────────────────
@@ -40,10 +107,13 @@ const inputCls =
 const ItemFormPanel: React.FC<{
     initial?: MenuItem;
     categories: Category[];
+    defaultCurrency?: string;
     onSave: (d: ItemForm, file: File | null) => void;
     onCancel: () => void;
+    onOpenQuickCategory?: () => void;
     isSaving: boolean;
-}> = ({ initial, categories, onSave, onCancel, isSaving }) => {
+    newCategoryId?: string | null;
+}> = ({ initial, categories, defaultCurrency = 'ETB', onSave, onCancel, onOpenQuickCategory, isSaving, newCategoryId }) => {
     const { t, i18n } = useTranslation();
     const [tab, setTab] = useState<'en' | 'am'>('en');
     const [dragOver, setDragOver] = useState(false);
@@ -57,21 +127,70 @@ const ItemFormPanel: React.FC<{
         ingredientsAm: getTranslation(initial?.translations ?? [], 'AM', 'ingredients') ?? '',
         allergensAm: getTranslation(initial?.translations ?? [], 'AM', 'allergens') ?? '',
         price: initial?.price?.toString() ?? '',
-        currency: initial?.currency ?? 'ETB',
+        discountPrice: initial?.discountPrice ? initial.discountPrice.toString() : '',
+        currency: initial?.currency ?? defaultCurrency,
         categoryId: initial?.categoryId ?? (categories[0]?.id ?? ''),
+        imageUrl: initial?.imageUrl ?? null,
         isAvailable: initial?.isAvailable ?? true,
         isFeatured: initial?.isFeatured ?? false,
         isSpicy: initial?.isSpicy ?? false,
     });
+
+    const [hasDiscountToggle, setHasDiscountToggle] = useState<boolean>(Boolean(initial?.discountPrice));
+
+    const toggleDiscount = () => {
+        if (hasDiscountToggle) {
+            setHasDiscountToggle(false);
+            set('discountPrice', '');
+        } else {
+            setHasDiscountToggle(true);
+        }
+    };
+
+    const regularPriceNum = parseFloat(form.price);
+    const discountPriceNum = parseFloat(form.discountPrice);
+    const hasValidDiscount = !isNaN(regularPriceNum) && regularPriceNum > 0 && !isNaN(discountPriceNum) && discountPriceNum > 0 && discountPriceNum < regularPriceNum;
+    const discountPercentage = hasValidDiscount ? Math.round(((regularPriceNum - discountPriceNum) / regularPriceNum) * 100) : 0;
+    const savingsAmount = hasValidDiscount ? (regularPriceNum - discountPriceNum).toFixed(2) : '0';
+    const discountError = form.discountPrice.trim() !== '' && !isNaN(regularPriceNum) && (!isNaN(discountPriceNum) && (discountPriceNum <= 0 || discountPriceNum >= regularPriceNum));
+
+    React.useEffect(() => {
+        if ((!form.categoryId || !categories.some(c => c.id === form.categoryId)) && categories.length > 0) {
+            set('categoryId', categories[categories.length - 1].id);
+        }
+    }, [categories]);
+
+    React.useEffect(() => {
+        if (newCategoryId) {
+            set('categoryId', newCategoryId);
+        }
+    }, [newCategoryId]);
+
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.imageUrl ?? null);
+    const [isPhoneCameraModalOpen, setIsPhoneCameraModalOpen] = useState(false);
+    const [isConvertingPhoto, setIsConvertingPhoto] = useState(false);
+
+    const cameraInputRef = React.useRef<HTMLInputElement>(null);
+    const galleryInputRef = React.useRef<HTMLInputElement>(null);
+    const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     const set = (k: keyof ItemForm, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
 
-    const handleFile = (file: File) => {
-        if (file.type.startsWith('image/')) {
+    const handleFile = async (file: File) => {
+        try {
+            if (isHeicFile(file)) {
+                setIsConvertingPhoto(true);
+            }
+            const compressed = await compressImage(file, { maxDimension: 1400, quality: 0.85 });
+            setImageFile(compressed);
+            setPreviewUrl(URL.createObjectURL(compressed));
+        } catch (err) {
+            console.error('Error handling file:', err);
             setImageFile(file);
             setPreviewUrl(URL.createObjectURL(file));
+        } finally {
+            setIsConvertingPhoto(false);
         }
     };
 
@@ -80,6 +199,14 @@ const ItemFormPanel: React.FC<{
             handleFile(e.target.files[0]);
         }
         e.target.value = '';
+    };
+
+    const handleCameraClick = () => {
+        if (isMobile) {
+            cameraInputRef.current?.click();
+        } else {
+            setIsPhoneCameraModalOpen(true);
+        }
     };
 
     return (
@@ -191,6 +318,7 @@ const ItemFormPanel: React.FC<{
                                     <option value="ETB">ETB</option>
                                     <option value="USD">USD</option>
                                     <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
                                 </select>
                             </div>
                         </div>
@@ -204,18 +332,100 @@ const ItemFormPanel: React.FC<{
                         <div className="relative">
                             <select
                                 value={form.categoryId}
-                                onChange={e => set('categoryId', e.target.value)}
+                                onChange={e => {
+                                    if (e.target.value === '__add_new__') {
+                                        if (onOpenQuickCategory) onOpenQuickCategory();
+                                    } else {
+                                        set('categoryId', e.target.value);
+                                    }
+                                }}
                                 className="w-full h-11 px-4 pr-10 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs cursor-pointer appearance-none"
                             >
+                                {categories.length === 0 ? (
+                                    <option value="">{t('menu_items.select_or_create_category', { defaultValue: '-- Select or Create Category --' })}</option>
+                                ) : null}
                                 {categories.map(c => (
                                     <option key={c.id} value={c.id}>
                                         {getTranslation(c.translations, i18n.language)}
                                     </option>
                                 ))}
+                                <option disabled className="text-neutral-400">──────────</option>
+                                <option value="__add_new__" className="font-bold text-[color:var(--color-brand-600)]">
+                                    ➕ {t('menu_items.add_new_category', { defaultValue: '+ Add New Category' })}
+                                </option>
                             </select>
                             <Tag className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                         </div>
                     </div>
+                </div>
+
+                {/* Discount / Promotional Price Toggle & Input */}
+                <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={toggleDiscount}
+                                className={cn(
+                                    "w-10 h-6 rounded-full transition-colors duration-200 relative p-0.5 focus:outline-none cursor-pointer",
+                                    hasDiscountToggle ? "bg-emerald-500 shadow-sm" : "bg-neutral-300 dark:bg-neutral-700"
+                                )}
+                            >
+                                <div
+                                    className={cn(
+                                        "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                                        hasDiscountToggle ? "translate-x-4" : "translate-x-0"
+                                    )}
+                                />
+                            </button>
+                            <label onClick={toggleDiscount} className="text-[13px] font-bold text-neutral-800 dark:text-neutral-200 cursor-pointer select-none flex items-center gap-1.5">
+                                <span>🏷️</span>
+                                <span>{t('menu_items.has_discount', { defaultValue: 'Apply Special Offer / Discount' })}</span>
+                            </label>
+                        </div>
+                        {hasDiscountToggle && hasValidDiscount && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 animate-fade-in">
+                                <span>🎉</span> {discountPercentage}% {t('menu_items.discount_off', { defaultValue: 'OFF' })} ({savingsAmount} {form.currency} {t('menu_items.save_amount', { defaultValue: 'saved' })})
+                            </span>
+                        )}
+                    </div>
+
+                    {hasDiscountToggle && (
+                        <div className="space-y-1.5 animate-fade-in pl-1">
+                            <label className="text-[12px] font-bold text-neutral-600 dark:text-neutral-400 block">
+                                {t('menu_items.discount_price', { defaultValue: 'Discounted Selling Price' })} <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={form.discountPrice}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            set('discountPrice', val);
+                                        }
+                                    }}
+                                    onWheel={e => e.currentTarget.blur()}
+                                    placeholder={t('menu_items.discount_price_placeholder', { defaultValue: 'e.g. 150' })}
+                                    autoFocus
+                                    className={cn(
+                                        "w-full h-11 pl-4 pr-16 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800/50 text-[14px] font-bold text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all shadow-xs",
+                                        discountError && "border-red-500 focus:ring-red-500/30",
+                                        hasValidDiscount && "border-emerald-500 dark:border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-500/5"
+                                    )}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-neutral-400 dark:text-neutral-500 pointer-events-none">
+                                    {form.currency}
+                                </div>
+                            </div>
+                            {discountError && (
+                                <p className="text-[12px] font-bold text-red-500 mt-1 flex items-center gap-1">
+                                    <span>⚠️</span> {t('menu_items.discount_error', { defaultValue: 'Discount price must be less than regular price' })}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -226,33 +436,53 @@ const ItemFormPanel: React.FC<{
                         <div className="w-2 h-2 rounded-full bg-[color:var(--color-brand-500)]" />
                         <h3 className="text-[12px] font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">{t("menu_items.food_photo")}</h3>
                     </div>
-                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">{t('menu_items.photo_hint')}</span>
+                    <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">{t('menu_items.photo_hint', { defaultValue: 'PNG, JPG, WebP, HEIC · Max 5MB' })}</span>
                 </div>
 
+                {isConvertingPhoto && (
+                    <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] text-xs font-bold animate-pulse">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{t('menu_items.converting_heic', { defaultValue: 'Optimizing & converting HEIC photo...' })}</span>
+                    </div>
+                )}
+
                 {previewUrl ? (
-                    <div className="relative w-full h-[160px] rounded-2xl overflow-hidden border border-neutral-300 dark:border-neutral-700 shadow-sm group">
+                    <div className="relative w-full h-[180px] rounded-2xl overflow-hidden border border-neutral-300 dark:border-neutral-700 shadow-sm group">
                         <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-neutral-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3 backdrop-blur-xs">
-                            <label className="bg-white text-neutral-900 px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all">
-                                <UploadCloud className="w-4 h-4 text-[color:var(--color-brand-600)]" /> {t('menu_items.change_photo')}
-                                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                            </label>
+                        <div className="absolute inset-0 bg-neutral-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2.5 backdrop-blur-xs p-4 flex-wrap">
                             <button
                                 type="button"
-                                onClick={() => { setImageFile(null); setPreviewUrl(null); }}
-                                className="bg-red-600 text-white px-4 py-2 text-[13px] font-bold rounded-xl flex items-center gap-2 shadow-lg hover:bg-red-700 active:scale-95 transition-all"
+                                onClick={handleCameraClick}
+                                className="bg-white text-neutral-900 px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all"
                             >
-                                <Trash2 className="w-4 h-4" /> {t('menu_items.remove_photo')}
+                                <Camera className="w-3.5 h-3.5 text-[color:var(--color-brand-600)]" />
+                                <span>{isMobile ? t('menu_items.take_photo', { defaultValue: 'Camera' }) : t('menu_items.phone_camera', { defaultValue: 'Phone Camera' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="bg-white text-neutral-900 px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-neutral-100 active:scale-95 transition-all"
+                            >
+                                <UploadCloud className="w-3.5 h-3.5 text-[color:var(--color-brand-600)]" />
+                                <span>{t('menu_items.change_photo', { defaultValue: 'Gallery' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setImageFile(null); setPreviewUrl(null); set('imageUrl', ''); }}
+                                className="bg-red-600 text-white px-3.5 py-2 text-[12px] font-bold rounded-xl flex items-center gap-1.5 shadow-lg hover:bg-red-700 active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>{t('menu_items.remove_photo', { defaultValue: 'Remove' })}</span>
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <label
+                    <div
                         className={cn(
-                            'relative flex flex-col items-center justify-center w-full h-[140px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 group overflow-hidden',
+                            'relative flex flex-col items-center justify-center w-full p-5 rounded-2xl border-2 border-dashed transition-all duration-200 group overflow-hidden',
                             dragOver
                                 ? 'border-[color:var(--color-brand-500)] bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 shadow-md'
-                                : 'bg-neutral-50 dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 hover:border-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10'
+                                : 'bg-neutral-50 dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 hover:border-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-50)]/30 dark:hover:bg-[color:var(--color-brand-500)]/10'
                         )}
                         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                         onDragLeave={() => setDragOver(false)}
@@ -268,10 +498,59 @@ const ItemFormPanel: React.FC<{
                         <span className="text-[13px] font-bold text-neutral-800 dark:text-neutral-300 group-hover:text-[color:var(--color-brand-700)] dark:group-hover:text-[color:var(--color-brand-400)] transition-colors">
                             {t('menu_items.drop_food_image')}
                         </span>
-                        <span className="text-[11px] text-neutral-500 dark:text-neutral-500 mt-0.5 font-medium">{t('menu_items.photo_recommend')}</span>
-                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    </label>
+                        <span className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5 font-medium mb-3">
+                            {t('menu_items.photo_recommend', { defaultValue: 'Recommended: 800x600px square or landscape' })}
+                        </span>
+
+                        {/* Direct Action Buttons */}
+                        <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                            <button
+                                type="button"
+                                onClick={handleCameraClick}
+                                className="px-3.5 py-2 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white text-[12px] font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{isMobile ? t('menu_items.take_photo', { defaultValue: 'Take Live Photo' }) : t('menu_items.take_photo_phone', { defaultValue: '📸 Take Photo with Phone' })}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="px-3.5 py-2 rounded-xl bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 text-[12px] font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
+                            >
+                                <UploadCloud className="w-3.5 h-3.5 text-neutral-500" />
+                                <span>{t('menu_items.browse_gallery', { defaultValue: 'Browse Files / Gallery' })}</span>
+                            </button>
+                        </div>
+                    </div>
                 )}
+
+                {/* Hidden File Inputs */}
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*,image/heic,image/heif,.heic,.heif"
+                    capture="environment"
+                    onChange={handleImageChange}
+                    className="hidden"
+                />
+                <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*,image/heic,image/heif,.heic,.heif"
+                    onChange={handleImageChange}
+                    className="hidden"
+                />
+
+                {/* Phone-to-Desktop QR Companion Modal */}
+                <PhoneCameraModal
+                    isOpen={isPhoneCameraModalOpen}
+                    onClose={() => setIsPhoneCameraModalOpen(false)}
+                    onPhotoReceived={(url) => {
+                        setPreviewUrl(url);
+                        set('imageUrl', url);
+                    }}
+                    itemName={form.nameEn || form.nameAm}
+                />
             </div>
 
             {/* ── Section 4: Attribute Toggles ── */}
@@ -413,32 +692,40 @@ const ItemFormPanel: React.FC<{
     );
 };
 
-// ─── Refined High-Contrast Item Card ──────────────────────────────────────────
-const MenuItemCard: React.FC<{
+// ─── Base Menu Item Card ──────────────────────────────────────────
+const MenuItemCardBase: React.FC<{
     item: MenuItem;
     cats: Category[];
     onEdit: () => void;
     onDelete: () => void;
     onToggleAvailability: () => void;
+    orderIndex?: number;
+    isDragging?: boolean;
+    dragOverlay?: boolean;
+    attributes?: any;
+    listeners?: any;
+    setNodeRef?: any;
     style?: React.CSSProperties;
-}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, style }) => {
+}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
     const catName = getTranslation(cats.find(c => c.id === item.categoryId)?.translations ?? [], i18n.language);
     const name = getTranslation(item.translations, i18n.language);
 
     return (
         <div
+            ref={setNodeRef}
             style={style}
             className={cn(
-                'animate-fade-in-up group relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 overflow-hidden',
+                'group relative flex items-stretch overflow-hidden',
                 'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[22px]',
-                'hover:-translate-y-1 hover:shadow-lg transition-all duration-200'
+                !dragOverlay && 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
+                dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
             )}
         >
             {/* Left status accent strip */}
             <div
                 className={cn(
-                    'absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300',
+                    'w-1.5 flex-shrink-0 transition-colors duration-300',
                     item.isAvailable
                         ? item.isFeatured
                             ? 'bg-gradient-to-b from-amber-400 to-amber-600'
@@ -447,57 +734,89 @@ const MenuItemCard: React.FC<{
                 )}
             />
 
-            {/* Thumbnail */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-sm ml-1">
-                {item.imageUrl ? (
-                    <img
-                        src={item.imageUrl}
-                        alt={name}
-                        className={cn(
-                            'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105',
-                            !item.isAvailable && 'grayscale-[40%]'
-                        )}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[color:var(--color-brand-50)] to-neutral-100 dark:from-[color:var(--color-brand-900)] dark:to-neutral-800">
-                        <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
-                    </div>
+            {/* Drag Handle */}
+            <div
+                {...attributes}
+                {...listeners}
+                className={cn(
+                    "flex items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                    (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
                 )}
+            >
+                <GripVertical className="w-5 h-5 sm:w-5 sm:h-5" />
             </div>
 
-            {/* Content Details */}
-            <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
-                {/* Title & Badges */}
-                <div className="flex items-center gap-2 flex-wrap mb-1 sm:mb-1.5">
-                    <h3 className="text-[14px] sm:text-[16px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
-                        {name}
-                    </h3>
-
-                    {item.isFeatured && (
-                        <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
-                            <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
-                        </span>
+            <div className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+                {/* Thumbnail with position badge */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-sm">
+                    {item.imageUrl ? (
+                        <img
+                            src={item.imageUrl}
+                            alt={name}
+                            className={cn(
+                                'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105',
+                                !item.isAvailable && 'grayscale-[40%]'
+                            )}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[color:var(--color-brand-50)] to-neutral-100 dark:from-[color:var(--color-brand-900)] dark:to-neutral-800">
+                            <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
+                        </div>
                     )}
-
-                    {item.isSpicy && (
-                        <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 border border-red-200/80 dark:border-red-500/20">
-                            <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600 dark:text-red-400" /> {t('menu_items.spicy')}
+                    {typeof orderIndex === 'number' && (
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[9px] font-black text-white shadow-xs">
+                            #{orderIndex}
                         </span>
                     )}
                 </div>
 
-                {/* Category & Price */}
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
-                        <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-neutral-500 dark:text-neutral-400 shrink-0" />
-                        <span className="text-[10px] sm:text-[11px] font-bold truncate max-w-[100px] sm:max-w-[130px]">{catName || t('menu_items.uncategorized')}</span>
+                {/* Content Details */}
+                <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
+                    {/* Title & Badges */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1 sm:mb-1.5">
+                        <h3 className="text-[14px] sm:text-[16px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
+                            {name}
+                        </h3>
+
+                        {item.isFeatured && (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
+                                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
+                            </span>
+                        )}
+
+                        {item.isSpicy && (
+                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 border border-red-200/80 dark:border-red-500/20">
+                                <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600 dark:text-red-400" /> {t('menu_items.spicy')}
+                            </span>
+                        )}
                     </div>
 
-                    <div className="text-[14px] sm:text-[15px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight shrink-0">
-                        {formatCurrency(item.price, item.currency)}
+                    {/* Category & Price */}
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
+                            <Tag className="w-3 h-3" />
+                            <span className="text-[11px] font-extrabold truncate max-w-[120px]">{catName}</span>
+                        </div>
+
+                        {item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price) ? (
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-[15px] sm:text-[16px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                    {formatCurrency(item.discountPrice, item.currency)}
+                                </span>
+                                <span className="text-[12px] font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                    {formatCurrency(item.price, item.currency)}
+                                </span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    -{Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)}%
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="text-[15px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
+                                {formatCurrency(item.price, item.currency)}
+                            </div>
+                        )}
                     </div>
                 </div>
-            </div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-1.5 shrink-0 pl-1">
@@ -537,17 +856,42 @@ const MenuItemCard: React.FC<{
                     <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
             </div>
+            </div>
         </div>
     );
+};
+
+// ─── Sortable Menu Item Card ──────────────────────────────────────────
+const SortableMenuItemCard: React.FC<{
+    item: MenuItem;
+    cats: Category[];
+    onEdit: () => void;
+    onDelete: () => void;
+    onToggleAvailability: () => void;
+    orderIndex?: number;
+}> = (props) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 10 : 1,
+        position: 'relative' as const,
+    };
+
+    return <MenuItemCardBase {...props} isDragging={isDragging} attributes={attributes} listeners={listeners} setNodeRef={setNodeRef} style={style} />;
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function MenuItemsPage() {
     const { t, i18n } = useTranslation();
+    const { data: restaurant } = useRestaurant();
     const { data: menuItems, isLoading } = useMenuItems();
     const { data: categories } = useCategories();
     const { mutate: create, isPending: creating } = useCreateMenuItem();
     const { mutate: update, isPending: updating } = useUpdateMenuItem();
+    const { mutate: toggleAvailability } = useToggleItemAvailability();
     const { mutate: remove } = useDeleteMenuItem();
     const { mutate: uploadImage } = useUploadMenuItemImage();
 
@@ -555,13 +899,34 @@ export default function MenuItemsPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [filterCat, setFilterCat] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const debouncedSearch = useDebounce(searchQuery, 300);
+    const [quickCatOpen, setQuickCatOpen] = useState(false);
+    const [newCategoryId, setNewCategoryId] = useState<string | null>(null);
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [localItems, setLocalItems] = useState<MenuItem[]>([]);
 
     const cats = Array.isArray(categories) ? categories : [];
-    const items: MenuItem[] = Array.isArray(menuItems) ? menuItems : [];
-    const editingItem = items.find(i => i.id === editing);
 
+    // Keep local items in sync with server query when not actively dragging
+    useEffect(() => {
+        if (Array.isArray(menuItems) && !activeId) {
+            setLocalItems([...menuItems].sort((a, b) => a.displayOrder - b.displayOrder));
+        }
+    }, [menuItems, activeId]);
+
+    const items: MenuItem[] = localItems;
+    const editingItem = items.find(i => i.id === editing);
     const availableCount = items.filter(i => i.isAvailable).length;
+
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
+    const handleCategoryCreated = (newCat: any) => {
+        if (newCat?.id) {
+            setNewCategoryId(newCat.id);
+            if (!editing) {
+                setEditing('new');
+            }
+        }
+    };
 
     const filtered = items
         .filter(i => filterCat === 'all' || i.categoryId === filterCat)
@@ -574,20 +939,82 @@ export default function MenuItemsPage() {
             return name.includes(q) || desc.includes(q) || ingr.includes(q);
         });
 
-    const handleSave = (form: ItemForm, file: File | null) => {
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const { mutate: reorderMenuItems } = useReorderMenuItems();
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const activeItem = localItems.find(i => i.id === active.id);
+        const overItem = localItems.find(i => i.id === over.id);
+
+        if (!activeItem || !overItem) return;
+
+        // Reorder immediately within the same category for real-time live preview
+        if (activeItem.categoryId === overItem.categoryId) {
+            setLocalItems(prev => {
+                const oldIndex = prev.findIndex(i => i.id === active.id);
+                const newIndex = prev.findIndex(i => i.id === over.id);
+                if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                    return arrayMove(prev, oldIndex, newIndex);
+                }
+                return prev;
+            });
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active } = event;
+        setActiveId(null);
+        if (active) {
+            const activeItem = localItems.find(i => i.id === active.id);
+            if (activeItem) {
+                const categoryItems = localItems.filter(i => i.categoryId === activeItem.categoryId);
+                reorderMenuItems(categoryItems.map((item, index) => ({ id: item.id, displayOrder: index })));
+            }
+        }
+    };
+
+    const handleDragCancel = () => {
+        setActiveId(null);
+        if (Array.isArray(menuItems)) {
+            setLocalItems([...menuItems].sort((a, b) => a.displayOrder - b.displayOrder));
+        }
+    };
+
+    const handleSave = async (form: ItemForm, file: File | null) => {
         const parsedPrice = parseFloat(form.price);
         if (!form.price.trim() || isNaN(parsedPrice) || parsedPrice <= 0) {
             toast.error(t('menu_items.price_required'));
             return;
         }
 
+        let parsedDiscountPrice: number | null = null;
+        if (form.discountPrice.trim()) {
+            parsedDiscountPrice = parseFloat(form.discountPrice);
+            if (isNaN(parsedDiscountPrice) || parsedDiscountPrice <= 0 || parsedDiscountPrice >= parsedPrice) {
+                toast.error(t('menu_items.discount_error', { defaultValue: 'Discount price must be less than regular price' }));
+                return;
+            }
+        }
+
         const translations: any[] = [];
         if (form.nameEn) translations.push({ language: 'EN', name: form.nameEn, description: form.descEn, ingredients: form.ingredientsEn, allergens: form.allergensEn });
         if (form.nameAm) translations.push({ language: 'AM', name: form.nameAm, description: form.descAm, ingredients: form.ingredientsAm, allergens: form.allergensAm });
 
-        const payload = {
+        const payload: any = {
             translations,
             price: parsedPrice,
+            discountPrice: parsedDiscountPrice,
             currency: form.currency,
             categoryId: form.categoryId,
             isAvailable: form.isAvailable,
@@ -595,17 +1022,24 @@ export default function MenuItemsPage() {
             isSpicy: form.isSpicy,
         };
 
+        // If a photo was received via Phone Camera companion (already stored) or cleared
+        if (!file && form.imageUrl !== undefined) {
+            payload.imageUrl = form.imageUrl || null;
+        }
+
+        const compressedFile = file ? await compressImage(file, { maxDimension: 1400, quality: 0.85 }) : null;
+
         if (editing === 'new') {
             create(payload as any, {
                 onSuccess: (res: any) => {
-                    if (file) uploadImage({ id: res.id, file });
+                    if (compressedFile) uploadImage({ id: res.id, file: compressedFile });
                     setEditing(null);
                 },
             });
         } else if (editing) {
             update({ id: editing, data: payload as any }, {
                 onSuccess: () => {
-                    if (file) uploadImage({ id: editing, file });
+                    if (compressedFile) uploadImage({ id: editing, file: compressedFile });
                     setEditing(null);
                 },
             });
@@ -647,7 +1081,7 @@ export default function MenuItemsPage() {
                         </div>
                     </div>
 
-                    {cats.length > 0 && (
+                    {cats.length > 0 ? (
                         <Button
                             variant="primary"
                             className="hidden sm:flex h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold"
@@ -655,6 +1089,15 @@ export default function MenuItemsPage() {
                             onClick={() => setEditing('new')}
                         >
                             {t('menu_items.add_food_item')}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="primary"
+                            className="h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold shadow-sm"
+                            icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                            onClick={() => setQuickCatOpen(true)}
+                        >
+                            {t('menu_items.create_first_category', { defaultValue: 'Create First Category' })}
                         </Button>
                     )}
                 </div>
@@ -788,47 +1231,108 @@ export default function MenuItemsPage() {
                             )}
 
                             {items.length === 0 && cats.length === 0 && (
-                                <div className="flex items-center gap-2 text-[13px] font-medium text-neutral-700 dark:text-neutral-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-2.5">
-                                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span>{t('menu_items.no_category_warning')}</span>
+                                <div className="flex flex-col items-center gap-4 animate-fade-in">
+                                    <p className="text-[14px] text-neutral-600 dark:text-neutral-400 max-w-md text-center leading-relaxed">
+                                        {t('menu_items.no_category_hint', { defaultValue: 'Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.' })}
+                                    </p>
+                                    <Button
+                                        variant="primary"
+                                        className="h-11 px-7 text-[14px] rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold shadow-sm hover:scale-105 transition-all"
+                                        icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                                        onClick={() => setQuickCatOpen(true)}
+                                    >
+                                        {t('menu_items.create_first_category', { defaultValue: 'Create First Category' })}
+                                    </Button>
                                 </div>
                             )}
                         </div>
                     ) : (
                         /* List of items */
-                        <div className="space-y-3">
-                            {filtered.map((item, idx) => (
-                                deletingId === item.id ? (
-                                    <ConfirmDialog
-                                        key={item.id}
-                                        isOpen={true}
-                                        onClose={() => setDeletingId(null)}
-                                        onConfirm={() => { remove(item.id); setDeletingId(null); }}
-                                        title={t('actions.delete')}
-                                        description={t('actions.deleteItemDesc')}
-                                        confirmText={t('actions.delete')}
-                                    />
-                                ) : (
-                                    <MenuItemCard
-                                        key={item.id}
-                                        item={item}
-                                        cats={cats}
-                                        onEdit={() => setEditing(item.id)}
-                                        onDelete={() => setDeletingId(item.id)}
-                                        onToggleAvailability={() => update({ id: item.id, data: { isAvailable: !item.isAvailable } })}
-                                        style={{ animationDelay: `${idx * 20 + 150}ms` }}
-                                    />
-                                )
-                            ))}
+                        <div className="space-y-6">
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDragEnd={handleDragEnd}
+                                onDragCancel={handleDragCancel}
+                            >
+                                {cats.filter(c => filterCat === 'all' || filterCat === 'featured' || c.id === filterCat).map(cat => {
+                                    const catItems = filtered
+                                        .filter(i => i.categoryId === cat.id);
+
+                                    if (catItems.length === 0) return null;
+
+                                    return (
+                                        <div key={cat.id} className="space-y-3">
+                                            {(filterCat === 'all' || filterCat === 'featured') && (
+                                                <h3 className="text-[16px] font-black text-neutral-900 dark:text-neutral-50 px-2 pt-2">
+                                                    {getTranslation(cat.translations, i18n.language)}
+                                                </h3>
+                                            )}
+                                            <SortableContext items={catItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                                                {catItems.map((item, idx) => {
+                                                    const catIndex = catItems.findIndex(i => i.id === item.id);
+                                                    const orderIndex = catIndex >= 0 ? catIndex + 1 : undefined;
+
+                                                    return deletingId === item.id ? (
+                                                        <ConfirmDialog
+                                                            key={item.id}
+                                                            isOpen={true}
+                                                            onClose={() => setDeletingId(null)}
+                                                            onConfirm={() => { remove(item.id); setDeletingId(null); }}
+                                                            title={t('actions.delete')}
+                                                            description={t('actions.deleteItemDesc')}
+                                                            confirmText={t('actions.delete')}
+                                                        />
+                                                    ) : (
+                                                        <SortableMenuItemCard
+                                                            key={item.id}
+                                                            item={item}
+                                                            cats={cats}
+                                                            onEdit={() => setEditing(item.id)}
+                                                            onDelete={() => setDeletingId(item.id)}
+                                                            onToggleAvailability={() => toggleAvailability({ id: item.id, isAvailable: !item.isAvailable })}
+                                                            orderIndex={orderIndex}
+                                                        />
+                                                    );
+                                                })}
+                                            </SortableContext>
+                                        </div>
+                                    );
+                                })}
+
+                                {typeof document !== 'undefined' && createPortal(
+                                    <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                                        {activeId ? (() => {
+                                            const activeItem = items.find(i => i.id === activeId);
+                                            if (!activeItem) return null;
+                                            return (
+                                                <div className="w-[calc(100vw-2rem)] max-w-4xl opacity-95">
+                                                    <MenuItemCardBase
+                                                        item={activeItem}
+                                                        cats={cats}
+                                                        onEdit={() => {}}
+                                                        onDelete={() => {}}
+                                                        onToggleAvailability={() => {}}
+                                                        dragOverlay
+                                                    />
+                                                </div>
+                                            );
+                                        })() : null}
+                                    </DragOverlay>,
+                                    document.body
+                                )}
+                            </DndContext>
                         </div>
                     )}
                 </div>
 
                 {/* Mobile FAB */}
-                {!editing && cats.length > 0 && items.length > 0 && (
+                {!editing && (
                     <div className="fixed bottom-20 right-5 sm:hidden z-40">
                         <button
-                            onClick={() => setEditing('new')}
+                            onClick={() => cats.length === 0 ? setQuickCatOpen(true) : setEditing('new')}
                             className="w-14 h-14 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                         >
                             <Plus className="w-6 h-6 stroke-[2.5]" />
@@ -848,12 +1352,22 @@ export default function MenuItemsPage() {
                     <ItemFormPanel
                         initial={editing === 'new' ? undefined : editingItem}
                         categories={cats}
+                        defaultCurrency={restaurant?.currency}
                         onSave={handleSave}
                         onCancel={() => setEditing(null)}
+                        onOpenQuickCategory={() => setQuickCatOpen(true)}
                         isSaving={creating || updating}
+                        newCategoryId={newCategoryId}
                     />
                 </Modal>
             )}
+
+            {/* Inline Quick Category Creation Modal */}
+            <QuickCategoryModal
+                isOpen={quickCatOpen}
+                onClose={() => setQuickCatOpen(false)}
+                onCreated={handleCategoryCreated}
+            />
         </>
     );
 }

@@ -3,7 +3,7 @@
  * Protects against MIME-type spoofing, extension spoofing, and malicious file uploads (e.g. SVG XSS, HTML, PHP, executables).
  */
 
-export type AllowedImageFormat = 'jpeg' | 'png' | 'webp';
+export type AllowedImageFormat = 'jpeg' | 'png' | 'webp' | 'heic' | 'heif';
 
 export interface ImageValidationResult {
     isValid: boolean;
@@ -13,7 +13,7 @@ export interface ImageValidationResult {
 
 /**
  * Validates an image buffer using its magic bytes (file signature).
- * Explicitly allows only JPEG, PNG, and WebP raster images.
+ * Explicitly allows JPEG, PNG, WebP, HEIC, and HEIF raster images.
  * Rejects SVG, GIF, HTML, scripts, executables, and unrecognized formats.
  */
 export function validateImageMagicBytes(buffer: Buffer): ImageValidationResult {
@@ -66,6 +66,37 @@ export function validateImageMagicBytes(buffer: Buffer): ImageValidationResult {
             isValid: true,
             format: 'webp',
         };
+    }
+
+    // 4. Check for HEIC / HEIF (ISOBMFF with 'ftyp' at offset 4..7)
+    if (
+        buffer.length >= 12 &&
+        buffer[4] === 0x66 && // 'f'
+        buffer[5] === 0x74 && // 't'
+        buffer[6] === 0x79 && // 'y'
+        buffer[7] === 0x70    // 'p'
+    ) {
+        const majorBrand = buffer.subarray(8, 12).toString('ascii').toLowerCase();
+        const heicBrands = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'heif'];
+
+        if (heicBrands.includes(majorBrand)) {
+            return {
+                isValid: true,
+                format: majorBrand.startsWith('heif') || majorBrand === 'mif1' || majorBrand === 'msf1' ? 'heif' : 'heic',
+            };
+        }
+
+        // Also check compatible brands in ftyp box (up to 64 bytes)
+        const checkLimit = Math.min(buffer.length - 4, 64);
+        for (let i = 12; i <= checkLimit; i += 4) {
+            const compatibleBrand = buffer.subarray(i, i + 4).toString('ascii').toLowerCase();
+            if (heicBrands.includes(compatibleBrand)) {
+                return {
+                    isValid: true,
+                    format: compatibleBrand.startsWith('heif') || compatibleBrand === 'mif1' || compatibleBrand === 'msf1' ? 'heif' : 'heic',
+                };
+            }
+        }
     }
 
     // ── Non-raster / Disallowed formats / Security inspection ──────────────────

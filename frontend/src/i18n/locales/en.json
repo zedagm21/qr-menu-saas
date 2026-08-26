@@ -109,7 +109,15 @@
       "publish": "Publish Menu Live",
       "customize": "Customize Design",
       "qr": "Download QR Code"
-    }
+    },
+    "published_success": "🎉 Your menu is now LIVE! Customers can view it via QR code.",
+    "draft_success": "🔒 Menu set to Draft mode (hidden from customers).",
+    "switch_to_draft": "Switch to Draft",
+    "preview_draft": "Preview Menu",
+    "confirm_draft_title": "Switch Menu to Draft Mode?",
+    "confirm_draft_desc": "Your public menu will be hidden from customers. Visitors scanning your QR code will see a \"Menu Updating\" message.",
+    "set_draft_btn": "Yes, Set to Draft",
+    "keep_live_btn": "Keep Menu Live"
   },
   "restaurant": {
     "title": "Restaurant Profile",
@@ -195,7 +203,9 @@
     "status_hidden": "Hidden from customers",
     "hidden": "Hidden",
     "show_category": "Show Category",
-    "hide_category": "Hide Category"
+    "hide_category": "Hide Category",
+    "move_up": "Move Up",
+    "move_down": "Move Down"
   },
   "menu_items": {
     "title": "Menu Items",
@@ -264,7 +274,28 @@
     "ph_en_ingredients": "e.g. Beef, Garlic, Berbere",
     "ph_am_ingredients": "e.g. Beef, Garlic, Berbere",
     "ph_en_allergens": "e.g. Contains Gluten, Dairy, Peanuts",
-    "ph_am_allergens": "e.g. Dairy, Peanuts"
+    "ph_am_allergens": "e.g. Dairy, Peanuts",
+    "filter_featured": "⭐ Featured",
+    "add_new_category": "+ Add New Category",
+    "create_first_category": "Create First Category",
+    "create_category": "Create Category",
+    "select_or_create_category": "-- Select or Create Category --",
+    "no_category_hint": "Create your first category (e.g. Main Dishes, Drinks, Desserts) to start adding menu items.",
+    "move_up": "Move Up",
+    "move_down": "Move Down",
+    "discount": "Discount",
+    "discount_price": "Discounted Price",
+    "has_discount": "Special Offer / Discount",
+    "discount_badge": "Discount",
+    "discount_error": "Discount price must be less than regular price",
+    "original_price": "Original Price",
+    "save_amount": "Save",
+    "take_photo": "Take Live Photo",
+    "take_photo_phone": "📸 Take Photo with Phone",
+    "phone_camera": "Phone Camera",
+    "browse_gallery": "Browse Files / Gallery",
+    "converting_heic": "Optimizing & converting HEIC photo...",
+    "recommended_size": "Recommended: 800x600px square or landscape"
   },
   "qr": {
     "title": "QR Code",
@@ -292,7 +323,28 @@
     "copy_link": "Copy link",
     "copied_to_clipboard": "Copied to clipboard",
     "restaurant": "Restaurant",
-    "canvas_error": "QR code canvas not found"
+    "canvas_error": "QR code canvas not found",
+    "studio_badge": "Custom QR Studio",
+    "download_svg": "Vector SVG",
+    "print_sheets": "Print Table Stand",
+    "png_downloaded": "High-resolution PNG downloaded!",
+    "svg_downloaded": "Vector SVG downloaded!",
+    "pdf_downloaded": "Printable A4 PDF downloaded successfully!",
+    "show_subtitle": "Include Subtitle / Tagline on Stand",
+    "live_interactive_preview": "Live Scan & Print Preview",
+    "tab_templates": "Frame Style",
+    "tab_colors": "Brand Palette",
+    "tab_content": "Text & Branding",
+    "choose_template": "Choose Table Stand Style",
+    "palette_title": "QR & Frame Colors",
+    "branding_title": "Card Content & Logo",
+    "center_logo": "Embed Restaurant Logo",
+    "cta_label": "Call to Action Prompt",
+    "subtitle_label": "Subtitle / Tagline",
+    "export_center": "Export & Print Studio",
+    "include_logo_on_qr": "Include Restaurant Logo on QR",
+    "brand_monogram": "Brand Monogram",
+    "high_res_export_badge": "High-Res 300 DPI Print"
   },
   "customize": {
     "title": "Customize",
@@ -356,7 +408,8 @@
       "nature": "Nature",
       "ocean": "Ocean"
     },
-    "prepared_fresh_daily": "Prepared fresh daily"
+    "prepared_fresh_daily": "Prepared fresh daily",
+    "theme_mode": "Theme"
   },
   "settings": {
     "title": "Settings",
@@ -413,7 +466,10 @@
     "spicy": "Spicy",
     "ingredients": "Ingredients",
     "allergens": "Allergen Information",
-    "best": "Best"
+    "best": "Best",
+    "featured_specials": "⭐ Featured Specials",
+    "featured_subtitle": "Handpicked favorites and recommendations",
+    "featured_badge": "Featured"
   },
   "errors": {
     "required": "This field is required",
@@ -448,7 +504,10 @@
   },
   "common": {
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "copied": "Copied",
+    "copy": "Copy",
+    "remove": "Remove"
   },
   "quick": {
     "add_item": "Add Item",
@@ -467,5 +526,41 @@
   "design": {
     "clear_search": "Clear search",
     "powered_by": "Powered by QR Menu"
+  },
+  "camera_modal": {
+    "badge": "Phone-to-Desktop Sync",
+    "title": "Snap Photo with Your Phone",
+    "desc": "Scan this QR code with your smartphone camera to capture a dish photo.",
+    "desc_item": "Scan to capture a live photo for \"{{item}}\"",
+    "waiting_capture": "Waiting for camera capture on your phone...",
+    "instant_connect": "Opens phone camera instantly",
+    "photo_received": "Photo received from your phone!",
+    "photo_synced": "Photo Received!",
+    "transferring_to_form": "Applied to your food menu form...",
+    "session_expired": "Session expired. Please try again.",
+    "failed_init": "Failed to start camera session",
+    "link_copied": "Companion link copied!"
+  },
+  "camera_page": {
+    "title": "Menu Camera Companion",
+    "connected": "Connected",
+    "ready_to_snap": "Ready to Snap",
+    "take_dish_photo": "Take Food Photo",
+    "instruction": "Take a photo of the dish with your camera or select an existing photo from your gallery.",
+    "optimizing": "Optimizing photo for menu...",
+    "btn_take_photo": "Take Live Photo",
+    "btn_choose_gallery": "Choose from Photo Gallery",
+    "preview_title": "Review Photo",
+    "preview_sub": "Make sure the food is clear and well-lit",
+    "retake": "Retake",
+    "send_desktop": "Send to Computer",
+    "photo_transferred": "Sent to Computer!",
+    "received_on_desktop": "Your desktop session received the photo and applied it to the menu item.",
+    "snap_another": "Snap Another Photo",
+    "invalid_link": "Invalid Camera Link",
+    "scan_again": "Please scan the QR code displayed on your computer dashboard again.",
+    "missing_session": "Invalid or missing session. Please rescan QR code.",
+    "success_sent": "Photo transferred to desktop!",
+    "supported_note": "Supports iPhone HEIC, Samsung, Android, PNG & JPEG"
   }
 }

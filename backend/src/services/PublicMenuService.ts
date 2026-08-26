@@ -1,8 +1,30 @@
 import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
+import { publicMenuCache } from './PublicMenuCache';
 
 export class PublicMenuService {
+    /**
+     * Invalidate all cached data for a given restaurant by its slug or ID
+     */
+    async invalidateCache(slugOrRestaurantId: string): Promise<void> {
+        let slug = slugOrRestaurantId;
+        // If an ID was provided, resolve the slug
+        if (slugOrRestaurantId.length > 20) {
+            const r = await prisma.restaurant.findUnique({
+                where: { id: slugOrRestaurantId },
+                select: { slug: true },
+            });
+            if (r?.slug) slug = r.slug;
+        }
+
+        publicMenuCache.invalidatePrefix(`restaurant:${slug}`);
+        publicMenuCache.invalidatePrefix(`menu:${slug}`);
+    }
+
     async getRestaurantBySlug(slug: string, lang: 'EN' | 'AM' = 'EN') {
+        const cacheKey = `restaurant:${slug}:${lang}`;
+        const cached = publicMenuCache.get(cacheKey);
+        if (cached) return cached;
         const restaurant = await prisma.restaurant.findUnique({
             where: { slug },
             include: { translations: true, theme: true },
@@ -22,7 +44,7 @@ export class PublicMenuService {
             restaurant.translations.find((t) => t.language === 'EN');
 
         // Return only public-safe fields (no internal IDs needed by customers)
-        return {
+        const result = {
             id: restaurant.id,
             name: translation?.name || restaurant.name,
             slug: restaurant.slug,
@@ -39,9 +61,16 @@ export class PublicMenuService {
             theme: restaurant.theme,
             translations: restaurant.translations,
         };
+
+        publicMenuCache.set(cacheKey, result);
+        return result;
     }
 
     async getMenuBySlug(slug: string, lang: 'EN' | 'AM' = 'EN') {
+        const cacheKey = `menu:${slug}:${lang}`;
+        const cached = publicMenuCache.get(cacheKey);
+        if (cached) return cached;
+
         const restaurant = await prisma.restaurant.findUnique({
             where: { slug },
             select: { id: true, status: true, currency: true },
@@ -69,7 +98,7 @@ export class PublicMenuService {
         });
 
         // Project to bilingual-aware structure with fallback to EN
-        return categories.map((category) => {
+        const result = categories.map((category) => {
             const catTranslation =
                 category.translations.find((t) => t.language === lang) ||
                 category.translations.find((t) => t.language === 'EN');
@@ -89,6 +118,7 @@ export class PublicMenuService {
                         name: itemTranslation?.name ?? 'Unnamed',
                         description: itemTranslation?.description ?? null,
                         price: item.price.toString(),
+                        discountPrice: item.discountPrice ? item.discountPrice.toString() : null,
                         currency: item.currency,
                         imageUrl: item.imageUrl,
                         isAvailable: item.isAvailable, // Always returned — customers see "unavailable" label
@@ -101,7 +131,11 @@ export class PublicMenuService {
                 }),
             };
         });
+
+        publicMenuCache.set(cacheKey, result);
+        return result;
     }
 }
 
 export const publicMenuService = new PublicMenuService();
+

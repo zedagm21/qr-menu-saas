@@ -91,6 +91,7 @@ export interface MenuItem {
     restaurantId: string;
     categoryId: string;
     price: string; // Decimal as string from API
+    discountPrice: string | null;
     currency: string;
     imageUrl: string | null;
     isAvailable: boolean;
@@ -120,6 +121,7 @@ export interface PublicMenuItem {
     name: string;
     description: string | null;
     price: string;
+    discountPrice: string | null;
     currency: string;
     imageUrl: string | null;
     isAvailable: boolean;
@@ -174,6 +176,7 @@ export interface CreateCategoryInput {
 export interface CreateMenuItemInput {
     categoryId: string;
     price: number;
+    discountPrice?: number | null;
     currency?: string;
     isAvailable?: boolean;
     isFeatured?: boolean;

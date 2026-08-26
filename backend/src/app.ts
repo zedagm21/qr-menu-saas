@@ -11,6 +11,7 @@ import authRoutes from './routes/auth';
 import restaurantRoutes from './routes/restaurant';
 import menuRoutes from './routes/menu';
 import publicRoutes from './routes/public';
+import uploadSessionRoutes from './routes/uploadSessionRoutes';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api', menuRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/upload-sessions', uploadSessionRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

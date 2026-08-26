@@ -108,6 +108,7 @@ model Category {
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
+  @@index([restaurantId, isActive, displayOrder])
   @@map("categories")
 }
 
@@ -130,6 +131,7 @@ model MenuItem {
   categoryId   String
   category     Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   price        Decimal               @db.Decimal(10, 2)
+  discountPrice Decimal?             @db.Decimal(10, 2)
   currency     String                @default("ETB")
   imageUrl     String?
   isAvailable  Boolean               @default(true)
@@ -140,6 +142,9 @@ model MenuItem {
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
+  @@index([restaurantId, displayOrder])
+  @@index([categoryId, displayOrder])
+  @@index([restaurantId, isAvailable, displayOrder])
   @@map("menu_items")
 }
 
@@ -166,6 +171,7 @@ model QRCode {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@index([restaurantId])
   @@map("qr_codes")
 }
 
@@ -177,7 +183,7 @@ model RestaurantTheme {
   accentColor  String     @default("#F59E0B")
   fontFamily   String     @default("Inter")
   menuStyle    MenuStyle  @default(CLASSIC)
-  darkMode     ThemeMode  @default(LIGHT)
+  darkMode     ThemeMode  @default(AUTO)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

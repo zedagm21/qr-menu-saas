@@ -59,8 +59,8 @@ export class ImageProcessor {
 
             // 3. Inspect metadata to confirm decoding
             const metadata = await image.metadata();
-            if (!metadata.format || !['jpeg', 'png', 'webp'].includes(metadata.format)) {
-                throw createError('Unsupported image format. Allowed formats: JPEG, PNG, WebP.', 400);
+            if (!metadata.format || !['jpeg', 'png', 'webp', 'heif'].includes(metadata.format)) {
+                throw createError('Unsupported image format. Allowed formats: JPEG, PNG, WebP, HEIC/HEIF.', 400);
             }
 
             // 4. Process image: auto-orient, resize within bounds, convert to WebP, strip metadata

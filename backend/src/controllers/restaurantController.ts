@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { restaurantService } from '../services/RestaurantService';
+import { publicMenuService } from '../services/PublicMenuService';
 import { updateRestaurantSchema, updateThemeSchema } from '../validators/restaurant';
 import prisma from '../config/database';
 
@@ -79,6 +80,7 @@ export const publishMenu = async (req: Request, res: Response, next: NextFunctio
             data: { status: newStatus },
             include: { theme: true },
         });
+        publicMenuService.invalidateCache(req.user!.restaurantId!).catch(() => {});
         res.json(result);
     } catch (error) {
         next(error);

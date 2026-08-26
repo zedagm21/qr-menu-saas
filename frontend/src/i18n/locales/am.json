@@ -109,7 +109,15 @@
       "publish": "የምግብ ዝርዝሩን ለደንበኞች ክፍት ያድርጉ",
       "customize": "ገጽታውን ያስተካክሉ",
       "qr": "QR ኮድ ያውርዱ"
-    }
+    },
+    "published_success": "🎉 ምናሌዎ አሁን በቀጥታ ክፍት ሆኗል! ደንበኞች በQR ኮድ ማየት ይችላሉ።",
+    "draft_success": "🔒 ምናሌው ወደ ረቂቅ ሁነታ ተቀይሯል (ከደንበኞች ተደብቋል)።",
+    "switch_to_draft": "ወደ ረቂቅ ቀይር",
+    "preview_draft": "ቅድመ ዕይታ",
+    "confirm_draft_title": "ምናሌውን ወደ ረቂቅ ሁነታ መቀየር ይፈልጋሉ?",
+    "confirm_draft_desc": "ምናሌዎ ከደንበኞች ይደበቃል። QR ኮድዎን የሚቃኙ ደንበኞች 'ምናሌው በመዘጋጀት ላይ ነው' የሚል መልዕክት ያያሉ።",
+    "set_draft_btn": "አዎ፣ ወደ ረቂቅ ቀይር",
+    "keep_live_btn": "እንደነበረው ክፍት ይሁን"
   },
   "restaurant": {
     "title": "የምግብ ቤት መረጃ",
@@ -195,7 +203,9 @@
     "status_hidden": "ለደንበኞች አይታይም",
     "hidden": "የተደበቀ",
     "show_category": "ምድቡ እንዲታይ አድርግ",
-    "hide_category": "ምድቡን ደብቅ"
+    "hide_category": "ምድቡን ደብቅ",
+    "move_up": "ወደ ላይ ውሰድ",
+    "move_down": "ወደ ታች ውሰድ"
   },
   "menu_items": {
     "title": "የምግብ ዓይነቶች",
@@ -264,7 +274,28 @@
     "ph_en_ingredients": "e.g. Beef, Garlic, Berbere",
     "ph_am_ingredients": "ለምሳሌ፦ የበሬ ሥጋ፣ ነጭ ሽንኩርት፣ በርበሬ",
     "ph_en_allergens": "e.g. Contains Gluten, Dairy, Peanuts",
-    "ph_am_allergens": "ለምሳሌ፦ ወተት፣ እንቁላል፣ ኦቾሎኒ ይዟል"
+    "ph_am_allergens": "ለምሳሌ፦ ወተት፣ እንቁላል፣ ኦቾሎኒ ይዟል",
+    "filter_featured": "⭐ ተመራጭ",
+    "add_new_category": "+ አዲስ ምድብ ጨምር",
+    "create_first_category": "+ የመጀመሪያውን ምድብ ፍጠር",
+    "create_category": "+ ምድብ ፍጠር",
+    "select_or_create_category": "-- ምድብ ይምረጡ ወይም ይፍጠሩ --",
+    "no_category_hint": "የምግብ ዓይነቶችን ለመጨመር መጀመሪያ ምድብ (ለምሳሌ፡ ባህላዊ ምግቦች፣ መጠጦች) ይፍጠሩ።",
+    "move_up": "ወደ ላይ ውሰድ",
+    "move_down": "ወደ ታች ውሰድ",
+    "discount": "ቅናሽ",
+    "discount_price": "የቅናሽ ዋጋ",
+    "has_discount": "ልዩ ቅናሽ አለው",
+    "discount_badge": "ቅናሽ",
+    "discount_error": "የቅናሽ ዋጋው ከመደበኛ ዋጋው ማነስ አለበት",
+    "original_price": "የቀድሞ ዋጋ",
+    "save_amount": "የተቆጠበ",
+    "take_photo": "ቀጥታ ፎቶ አንሳ",
+    "take_photo_phone": "📸 በስልክዎ ፎቶ ያንሱ",
+    "phone_camera": "የስልክ ካሜራ",
+    "browse_gallery": "ከጋለሪ / ፋይል ምረጥ",
+    "converting_heic": "የHEIC ፎቶውን በማዘጋጀት ላይ...",
+    "recommended_size": "የሚመከር: 800x600px ስኩዌር ወይም ላንድስኬፕ"
   },
   "qr": {
     "title": "QR ኮድ",
@@ -292,7 +323,28 @@
     "copy_link": "ሊንኩን ቅዳ",
     "copied_to_clipboard": "ወደ ቅንጥብ ሰሌዳ ተቀድቷል",
     "restaurant": "ምግብ ቤት",
-    "canvas_error": "QR ኮዱን ማግኘት አልተቻለም"
+    "canvas_error": "QR ኮዱን ማግኘት አልተቻለም",
+    "studio_badge": "የQR ዲዛይን ስቱዲዮ",
+    "download_svg": "Vector SVG አውርድ",
+    "print_sheets": "የጠረጴዛ ካርድ አትም",
+    "png_downloaded": "ከፍተኛ ጥራት ያለው PNG ወርዷል!",
+    "svg_downloaded": "Vector SVG ወርዷል!",
+    "pdf_downloaded": "ለህትመት የተዘጋጀው A4 PDF በሚገባ ወርዷል!",
+    "show_subtitle": "ንዑስ ርዕስ በካርዱ ላይ አሳይ",
+    "live_interactive_preview": "የቀጥታ ቅኝት እና የህትመት ቅድመ ዕይታ",
+    "tab_templates": "የፍሬም ቅጥ",
+    "tab_colors": "የቀለም ምርጫ",
+    "tab_content": "ጽሑፍ እና ብራንዲንግ",
+    "choose_template": "የጠረጴዛ ካርድ ቅጥ ይምረጡ",
+    "palette_title": "የQR እና የፍሬም ቀለሞች",
+    "branding_title": "የካርድ ይዘት እና ሎጎ",
+    "center_logo": "የምግብ ቤቱን ሎጎ በመሃል አስገባ",
+    "cta_label": "የጥሪ መልእክት (Call to action)",
+    "subtitle_label": "ንዑስ ርዕስ / መግለጫ",
+    "export_center": "የማውረጃ እና የህትመት ስቱዲዮ",
+    "include_logo_on_qr": "የምግብ ቤቱን አርማ በQR ላይ አካትት",
+    "brand_monogram": "የምርት ስም ፊደል",
+    "high_res_export_badge": "ከፍተኛ ጥራት 300 DPI ህትመት"
   },
   "customize": {
     "title": "ገጽታ ማስተካከያ",
@@ -356,7 +408,8 @@
       "nature": "ተፈጥሮ",
       "ocean": "ውቅያኖስ"
     },
-    "prepared_fresh_daily": "በየቀኑ ትኩስ ሆኖ የሚዘጋጅ"
+    "prepared_fresh_daily": "በየቀኑ ትኩስ ሆኖ የሚዘጋጅ",
+    "theme_mode": "ገጽታ (Theme)"
   },
   "settings": {
     "title": "ቅንብሮች",
@@ -413,7 +466,10 @@
     "spicy": "የሚያቃጥል",
     "ingredients": "ግብዓቶች",
     "allergens": "የአለርጂ መረጃ",
-    "best": "ተመራጭ"
+    "best": "ተመራጭ",
+    "featured_specials": "⭐ ተመራጭ ምግቦች",
+    "featured_subtitle": "ልዩ የተመረጡ ተወዳጅ ምግቦች",
+    "featured_badge": "ተመራጭ"
   },
   "errors": {
     "required": "ይህ መስክ መሞላት አለበት",
@@ -448,7 +504,10 @@
   },
   "common": {
     "cancel": "ሰርዝ",
-    "confirm": "አረጋግጥ"
+    "confirm": "አረጋግጥ",
+    "copied": "ተቀድቷል",
+    "copy": "ቅዳ",
+    "remove": "አስወግድ"
   },
   "quick": {
     "add_item": "ምግብ ጨምር",
@@ -467,5 +526,41 @@
   "design": {
     "clear_search": "ፍለጋን አጽዳ",
     "powered_by": "በ QR Menu የቀረበ"
+  },
+  "camera_modal": {
+    "badge": "ከስልክ ወደ ኮምፒውተር ማስተላለፊያ",
+    "title": "በስልክዎ ፎቶ ያንሱ",
+    "desc": "የምግብ ፎቶ ለማንሳት ይህንን QR ኮድ በስልክዎ ካሜራ ይቃኙ።",
+    "desc_item": "ለ \"{{item}}\" ፎቶ ለማንሳት QR ኮዱን ይቃኙ",
+    "waiting_capture": "በስልክዎ ፎቶ እስኪነሳ በመጠበቅ ላይ...",
+    "instant_connect": "የስልክ ካሜራን ወዲያውኑ ይከፍታል",
+    "photo_received": "ፎቶው ከስልክዎ ተቀብሏል!",
+    "photo_synced": "ፎቶው ተቀብሏል!",
+    "transferring_to_form": "ወደ ምናሌ ፎርም በማስገባት ላይ...",
+    "session_expired": "ክፍለ-ጊዜው አልቋል። እባክዎ እንደገና ይሞክሩ።",
+    "failed_init": "የካሜራ ክፍለ-ጊዜ መክፈት አልተቻለም",
+    "link_copied": "የማስተላለፊያ ሊንኩ ተቀድቷል!"
+  },
+  "camera_page": {
+    "title": "የምናሌ ካሜራ ረዳት",
+    "connected": "ተገናኝቷል",
+    "ready_to_snap": "ፎቶ ለማንሳት ዝግጁ",
+    "take_dish_photo": "የምግብ ፎቶ ያንሱ",
+    "instruction": "የምግቡን ፎቶ በካሜራዎ ያንሱ ወይም ከጋለሪዎ ይምረጡ።",
+    "optimizing": "ፎቶውን ለምናሌ በማስተካከል ላይ...",
+    "btn_take_photo": "ቀጥታ ፎቶ አንሳ",
+    "btn_choose_gallery": "ከጋለሪ ምረጥ",
+    "preview_title": "ፎቶውን ይገምግሙ",
+    "preview_sub": "ምግቡ በደንብ የሚታይ እና ብሩህ መሆኑን ያረጋግጡ",
+    "retake": "እንደገና አንሳ",
+    "send_desktop": "ወደ ኮምፒውተር ላክ",
+    "photo_transferred": "ወደ ኮምፒውተር ተልኳል!",
+    "received_on_desktop": "የኮምፒውተርዎ ስክሪን ፎቶውን ተቀብሎ በምናሌው ላይ አስገብቶታል።",
+    "snap_another": "ሌላ ፎቶ አንሳ",
+    "invalid_link": "ልክ ያልሆነ የካሜራ ሊንክ",
+    "scan_again": "እባክዎ በኮምፒውተርዎ ላይ ያለውን QR ኮድ እንደገና ይቃኙ።",
+    "missing_session": "ልክ ያልሆነ ክፍለ-ጊዜ። እባክዎ QR ኮዱን እንደገና ይቃኙ።",
+    "success_sent": "ፎቶው ወደ ኮምፒውተር ተላልፏል!",
+    "supported_note": "iPhone HEIC፣ Samsung፣ Android፣ PNG እና JPEG ይደግፋል"
   }
 }

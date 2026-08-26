@@ -32,7 +32,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('image/')) onChange(file);
+        if (file && (file.type.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp)$/i.test(file.name))) onChange(file);
     };
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +85,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                         </div>
                     </div>
                 )}
-                <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                <input ref={inputRef} type="file" accept="image/*,image/heic,image/heif,.heic,.heif" onChange={handleFile} className="hidden" />
             </div>
         </div>
     );
