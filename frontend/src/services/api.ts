@@ -122,4 +122,25 @@ export const publicApi = {
         api.get(`/public/restaurants/${slug}/menu`, { params: { lang } }).then(r => r.data),
 };
 
+// ─── Upload Sessions (Phone Camera Companion) ─────────────────────────────────
+export const uploadSessionApi = {
+    create: () => api.post<{ success: boolean; data: { sessionId: string; token: string; expiresAt: number } }>('/upload-sessions').then(r => r.data),
+    getStatus: (sessionId: string, token: string) =>
+        api.get<{ success: boolean; data: { status: 'PENDING' | 'COMPLETED' | 'EXPIRED'; imageUrl?: string | null } }>(`/upload-sessions/${sessionId}/status`, { params: { token } }).then(r => r.data),
+    uploadPhoto: (sessionId: string, token: string, file: File, onProgress?: (percent: number) => void) => {
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('token', token);
+        return api.post<{ success: boolean; message: string; data: { imageUrl: string } }>(`/upload-sessions/${sessionId}/upload`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (e) => {
+                if (e.total && onProgress) {
+                    onProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            },
+        }).then(r => r.data);
+    },
+};
+
 export default api;
+

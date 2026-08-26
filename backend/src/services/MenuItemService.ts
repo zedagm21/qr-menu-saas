@@ -11,7 +11,7 @@ export class MenuItemService {
         return prisma.menuItem.findMany({
             where: { restaurantId, ...(categoryId ? { categoryId } : {}) },
             include: { translations: true, category: { include: { translations: true } } },
-            orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }],
+            orderBy: [{ category: { displayOrder: 'asc' } }, { displayOrder: 'asc' }],
         });
     }
 
@@ -40,7 +40,9 @@ export class MenuItemService {
                 restaurantId,
                 categoryId: data.categoryId,
                 price: new Decimal(data.price),
+                discountPrice: data.discountPrice !== undefined && data.discountPrice !== null ? new Decimal(data.discountPrice) : null,
                 currency: data.currency ?? 'ETB',
+                imageUrl: data.imageUrl ?? null,
                 isAvailable: data.isAvailable ?? true,
                 isFeatured: data.isFeatured ?? false,
                 isSpicy: data.isSpicy ?? false,
@@ -72,7 +74,9 @@ export class MenuItemService {
                 data: {
                     ...(data.categoryId && { categoryId: data.categoryId }),
                     ...(data.price !== undefined && { price: new Decimal(data.price) }),
+                    ...(data.discountPrice !== undefined && { discountPrice: data.discountPrice !== null ? new Decimal(data.discountPrice) : null }),
                     ...(data.currency && { currency: data.currency }),
+                    ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
                     ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
                     ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
                     ...(data.isSpicy !== undefined && { isSpicy: data.isSpicy }),

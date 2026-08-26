@@ -18,6 +18,7 @@ const MorePage = lazy(() => import('./pages/dashboard/MorePage'));
 
 // Public
 const PublicMenuPage = lazy(() => import('./pages/public/PublicMenuPage'));
+const CameraUploadPage = lazy(() => import('./pages/public/CameraUploadPage'));
 
 const PageLoader = () => (
     <div className="min-h-screen flex items-center justify-center">
@@ -30,6 +31,7 @@ const App: React.FC = () => (
         <Routes>
             {/* Public */}
             <Route path="/r/:slug" element={<PublicMenuPage />} />
+            <Route path="/camera-upload" element={<CameraUploadPage />} />
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />

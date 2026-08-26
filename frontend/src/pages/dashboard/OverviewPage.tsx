@@ -7,11 +7,13 @@ import {
     CheckCircle2, Circle, TrendingUp, Zap, BarChart3, ArrowUpRight,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRestaurantStats } from '../../hooks/useRestaurant';
+import { useRestaurant, useRestaurantStats, useUpdateRestaurant } from '../../hooks/useRestaurant';
 import { useCategories } from '../../hooks/useCategories';
 import { useMenuItems } from '../../hooks/useMenuItems';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { getTranslation, cn } from '../../lib/utils';
+import toast from 'react-hot-toast';
 
 // ─── Animated counter hook ────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 900, enabled = true) {
@@ -37,7 +39,13 @@ function useCountUp(target: number, duration = 900, enabled = true) {
 
 export default function OverviewPage() {
     const { t, i18n } = useTranslation();
-    const { user, restaurant } = useAuth();
+    const { user, restaurant: authRestaurant } = useAuth();
+    const { data: liveRestaurant } = useRestaurant();
+    const restaurant = liveRestaurant || authRestaurant;
+
+    const { mutate: updateRestaurant, isPending: isUpdatingStatus } = useUpdateRestaurant();
+    const [showDraftConfirm, setShowDraftConfirm] = useState(false);
+
     const { data: stats, isLoading: statsLoading } = useRestaurantStats();
     const { data: categories } = useCategories();
     const { data: menuItems, isLoading: itemsLoading } = useMenuItems();
@@ -46,6 +54,23 @@ export default function OverviewPage() {
     const itemCount = Array.isArray(menuItems) ? menuItems.length : 0;
     const availableItems = Array.isArray(menuItems) ? menuItems.filter(i => i.isAvailable).length : 0;
     const isPublished = restaurant?.status === 'PUBLISHED';
+
+    const handlePublish = () => {
+        updateRestaurant({ status: 'PUBLISHED' }, {
+            onSuccess: () => {
+                toast.success(t('dashboard.published_success', { defaultValue: '🎉 Your menu is now LIVE! Customers can view it via QR code.' }), { duration: 4000 });
+            }
+        });
+    };
+
+    const handleConfirmDraft = () => {
+        setShowDraftConfirm(false);
+        updateRestaurant({ status: 'DRAFT' }, {
+            onSuccess: () => {
+                toast.success(t('dashboard.draft_success', { defaultValue: '🔒 Menu set to Draft mode (hidden from customers).' }), { duration: 3500 });
+            }
+        });
+    };
 
     // Animated counter targets
     const displayItems = stats?.itemCount ?? itemCount;
@@ -69,11 +94,13 @@ export default function OverviewPage() {
             const count = Array.isArray(menuItems)
                 ? menuItems.filter(i => i.categoryId === cat.id).length
                 : 0;
-            const name = getTranslation(cat.translations || [], i18n.language) || '—';
-            return { name, count };
+            return {
+                name: getTranslation(cat.translations, i18n.language.toUpperCase()) || 'Category',
+                count,
+            };
         })
         : [];
-    const maxBar = Math.max(...catBars.map(b => b.count), 1);
+    const maxBar = Math.max(...catBars.map(c => c.count), 1);
 
     const quickActions = [
         { to: '/dashboard/menu?action=add', icon: Plus, bg: 'bg-orange-50/80 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400', labelKey: 'quick.add_item', subKey: 'quick.new_item_desc' },
@@ -84,9 +111,8 @@ export default function OverviewPage() {
 
     return (
         <>
-            <Helmet><title>{t('dashboard.overview')} — QR Menu</title></Helmet>
+            <Helmet><title>Dashboard — QR Menu</title></Helmet>
 
-            {/* ── Page background ── */}
             <div className="min-h-full bg-neutral-50/50 dark:bg-transparent p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-8 transition-colors duration-200">
 
                 {/* ── Welcome header ── */}
@@ -99,50 +125,107 @@ export default function OverviewPage() {
 
                 {/* ── Hero Status Card ── */}
                 <div className={cn(
-                    'animate-fade-in-up delay-75 relative overflow-hidden rounded-2xl p-6 sm:p-8',
-                    'flex flex-col sm:flex-row sm:items-center justify-between gap-6 border',
+                    'animate-fade-in-up delay-75 relative overflow-hidden rounded-3xl p-6 sm:p-8',
+                    'flex flex-col sm:flex-row sm:items-center justify-between gap-6 border transition-all duration-300 shadow-xs',
                     isPublished
-                        ? 'bg-[color:var(--color-brand-50)] dark:bg-neutral-900 border-[color:var(--color-brand-200)] dark:border-neutral-800'
-                        : 'bg-neutral-100 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-700'
+                        ? 'bg-gradient-to-br from-emerald-500/10 via-[color:var(--color-brand-50)] to-white dark:from-emerald-950/20 dark:via-neutral-900 dark:to-neutral-900 border-emerald-500/30 dark:border-emerald-500/20 shadow-emerald-500/5'
+                        : 'bg-gradient-to-br from-amber-500/10 via-neutral-100 to-white dark:from-amber-950/20 dark:via-neutral-900 dark:to-neutral-900 border-amber-500/30 dark:border-amber-500/20'
                 )}>
+                    {/* Background glow circle */}
+                    <div className={cn(
+                        'absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-25 pointer-events-none',
+                        isPublished ? 'bg-emerald-400' : 'bg-amber-400'
+                    )} />
+
                     {/* Left content */}
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2.5 mb-2">
+                    <div className="relative z-10 space-y-2">
+                        <div className="flex items-center gap-2.5">
                             {isPublished ? (
-                                <span className="flex items-center gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md text-[color:var(--color-brand-700)] dark:text-neutral-100 text-[11px] font-bold tracking-widest uppercase border border-[color:var(--color-brand-200)] dark:border-neutral-700 shadow-sm">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    {t('dashboard.live_badge')}
+                                <span className="inline-flex items-center gap-2 bg-emerald-100/80 dark:bg-emerald-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-emerald-800 dark:text-emerald-300 text-[11px] font-black tracking-widest uppercase border border-emerald-300/60 dark:border-emerald-500/30 shadow-xs">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                                    </span>
+                                    {t('dashboard.live_badge', { defaultValue: 'LIVE MENU' })}
                                 </span>
                             ) : (
-                                <span className="flex items-center gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm px-2.5 py-1 rounded-md text-amber-700 dark:text-amber-400 text-[11px] font-bold tracking-widest uppercase border border-amber-200 dark:border-amber-500/30 shadow-sm">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                    {t('dashboard.draft_badge')}
+                                <span className="inline-flex items-center gap-2 bg-amber-100/80 dark:bg-amber-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-amber-900 dark:text-amber-300 text-[11px] font-black tracking-widest uppercase border border-amber-300/60 dark:border-amber-500/30 shadow-xs">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                    {t('dashboard.draft_badge', { defaultValue: 'DRAFT MODE (HIDDEN)' })}
                                 </span>
                             )}
                         </div>
-                        <p className="text-neutral-700 dark:text-neutral-300 text-[15px] font-medium max-w-sm leading-relaxed">
+                        <p className="text-neutral-700 dark:text-neutral-300 text-[15px] font-medium max-w-md leading-relaxed">
                             {isPublished
-                                ? t('dashboard.live_desc')
-                                : t('dashboard.draft_desc')}
+                                ? t('dashboard.live_desc', { defaultValue: 'Your digital menu is live. Customers can scan your QR code to view it.' })
+                                : t('dashboard.draft_desc', { defaultValue: 'Your menu is hidden. Complete setup and publish when ready to welcome customers.' })}
                         </p>
                     </div>
 
                     {/* Right buttons */}
-                    <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-shrink-0 w-full sm:w-auto">
-                        <a href={`/r/${restaurant?.slug}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                            <Button variant="outline" className="w-full sm:w-auto bg-white/80 hover:bg-white dark:bg-neutral-900 hover:dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200" icon={<ExternalLink className="w-4 h-4" />}>
-                                {t('nav.viewMenu')}
-                            </Button>
-                        </a>
-                        {!isPublished && (
-                            <Link to="/dashboard/restaurant" className="w-full sm:w-auto">
-                                <Button className="w-full sm:w-auto bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 hover:dark:bg-white" icon={<Zap className="w-4 h-4" />}>
-                                    {t('dashboard.publish_now')}
+                    <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+                        {isPublished ? (
+                            <>
+                                {restaurant?.slug && (
+                                    <a href={`/r/${restaurant?.slug}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-white/90 hover:bg-white dark:bg-neutral-900 hover:dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-100 font-bold shadow-xs"
+                                            icon={<ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                                        >
+                                            {t('nav.viewMenu', { defaultValue: 'View Live Menu' })}
+                                        </Button>
+                                    </a>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDraftConfirm(true)}
+                                    disabled={isUpdatingStatus}
+                                    className="w-full sm:w-auto h-11 px-4 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-neutral-200 dark:border-neutral-700/80 hover:border-red-200 dark:hover:border-red-500/20 transition-all cursor-pointer"
+                                >
+                                    {t('dashboard.switch_to_draft', { defaultValue: 'Switch to Draft' })}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="primary"
+                                    onClick={handlePublish}
+                                    isLoading={isUpdatingStatus}
+                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
+                                    icon={<Zap className="w-4 h-4 fill-black" />}
+                                >
+                                    {t('dashboard.publish_now', { defaultValue: '🚀 Publish Menu Now' })}
                                 </Button>
-                            </Link>
+                                {restaurant?.slug && (
+                                    <a href={`/r/${restaurant?.slug}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full sm:w-auto h-11 px-4 rounded-xl bg-white/80 hover:bg-white dark:bg-neutral-900 hover:dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold"
+                                            icon={<ExternalLink className="w-4 h-4" />}
+                                        >
+                                            {t('dashboard.preview_draft', { defaultValue: 'Preview' })}
+                                        </Button>
+                                    </a>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
+
+                {/* Confirm Dialog for switching to Draft mode */}
+                <ConfirmDialog
+                    isOpen={showDraftConfirm}
+                    onClose={() => setShowDraftConfirm(false)}
+                    onConfirm={handleConfirmDraft}
+                    title={t('dashboard.confirm_draft_title', { defaultValue: 'Switch Menu to Draft Mode?' })}
+                    description={t('dashboard.confirm_draft_desc', {
+                        defaultValue: 'Your public menu will be hidden from customers. Visitors scanning your QR code will see a "Menu Updating" message.',
+                    })}
+                    confirmText={t('dashboard.set_draft_btn', { defaultValue: 'Yes, Set to Draft' })}
+                    cancelText={t('dashboard.keep_live_btn', { defaultValue: 'Keep Menu Live' })}
+                    isDestructive={true}
+                />
 
                 {/* ── 3 Stat Cards ── */}
                 <div className="animate-fade-in-up delay-150 grid grid-cols-1 sm:grid-cols-3 gap-5">

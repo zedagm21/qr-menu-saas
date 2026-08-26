@@ -3,6 +3,8 @@ import { categoryApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
+import type { Category } from '../types';
+
 export const useCategories = () => {
     return useQuery({
         queryKey: ['categories'],
@@ -55,7 +57,26 @@ export const useReorderCategories = () => {
     const { t } = useTranslation();
     return useMutation({
         mutationFn: (items: { id: string; displayOrder: number }[]) => categoryApi.reorder(items),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
-        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
+        onMutate: async (items) => {
+            await qc.cancelQueries({ queryKey: ['categories'] });
+            const previousCategories = qc.getQueryData<Category[]>(['categories']);
+            if (previousCategories) {
+                const orderMap = new Map(items.map(i => [i.id, i.displayOrder]));
+                const updated = previousCategories
+                    .map(c => (orderMap.has(c.id) ? { ...c, displayOrder: orderMap.get(c.id)! } : c))
+                    .sort((a, b) => a.displayOrder - b.displayOrder);
+                qc.setQueryData<Category[]>(['categories'], updated);
+            }
+            return { previousCategories };
+        },
+        onError: (error: any, _variables, context) => {
+            if (context?.previousCategories) {
+                qc.setQueryData(['categories'], context.previousCategories);
+            }
+            toast.error(error?.response?.data?.error || t('toast.error'));
+        },
+        onSettled: () => {
+            qc.invalidateQueries({ queryKey: ['categories'] });
+        },
     });
 };

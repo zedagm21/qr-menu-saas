@@ -32,7 +32,7 @@ const DEFAULTS: ThemeForm = {
     primaryColor: '#D97706',
     accentColor: '#F59E0B',
     fontFamily: 'Inter',
-    darkMode: 'LIGHT',
+    darkMode: 'AUTO',
 };
 
 // ─────────────────────────────────────────────
