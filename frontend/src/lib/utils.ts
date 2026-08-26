@@ -84,21 +84,25 @@ export const isFastingItem = (item: any): boolean => {
 
     const nonFastingKeywords = [
         'meat', 'beef', 'chicken', 'lamb', 'goat', 'pork', 'fish', 'tibs', 'doro', 'kitfo', 'kurt',
-        'dulet', 'tere sega', 'sega', 'egg', 'cheese', 'butter', 'milk', 'cream', 'ጥብስ', 'ዶሮ',
-        'ክትፎ', 'ቁርጥ', 'ዱለት', 'ሥጋ', 'ስጋ', 'እንቁላል', 'አይብ', 'ቅቤ', 'ወተት'
+        'dulet', 'tere sega', 'sega', 'egg', 'cheese', 'butter', 'milk', 'cream', 'bacon', 'ham', 'mozzarella',
+        'ጥብስ', 'ዶሮ', 'ክትፎ', 'ቁርጥ', 'ዱለት', 'ሥጋ', 'ስጋ', 'እንቁላል', 'አይብ', 'ቅቤ', 'ወተት'
     ];
+
+    const hasNonFasting = nonFastingKeywords.some(kw => textPool.includes(kw));
+    if (hasNonFasting) {
+        if (textPool.includes('fasting') || textPool.includes('የጾም') || textPool.includes('vegan')) {
+            return true;
+        }
+        return false;
+    }
 
     const fastingKeywords = [
         'fasting', 'vegan', 'vegetarian', 'shiro', 'misir', 'kik', 'gomen', 'atakilt', 'fasolia',
         'beyaynetu', 'salad', 'lentil', 'chickpea', 'split pea', 'timatim', 'suf', 'telba',
-        'የጾም', 'ጾም', 'ሽሮ', 'ምስር', 'ክክ', 'ጎመን', 'አትክልት', 'ፋሶሊያ', 'በያይነቱ', 'ሰላጣ', 'ቲማቲም', 'ሱፍ', 'ተልባ'
+        'juice', 'smoothie', 'coffee', 'tea', 'water', 'mango', 'avocado', 'fruit',
+        'የጾም', 'ጾም', 'ሽሮ', 'ምስር', 'ክክ', 'ጎመን', 'አትክልት', 'ፋሶሊያ', 'በያይነቱ', 'ሰላጣ', 'ቲማቲም', 'ሱፍ', 'ተልባ',
+        'ጭማቂ', 'ፍራፍሬ', 'ቡና', 'ሻይ', 'አቮካዶ', 'ማንጎ'
     ];
 
-    const hasFasting = fastingKeywords.some(kw => textPool.includes(kw));
-    const hasNonFasting = nonFastingKeywords.some(kw => textPool.includes(kw));
-
-    if (hasFasting && !hasNonFasting) return true;
-    if (hasFasting && (textPool.includes('fasting') || textPool.includes('የጾም') || textPool.includes('vegan'))) return true;
-
-    return false;
+    return fastingKeywords.some(kw => textPool.includes(kw));
 };
