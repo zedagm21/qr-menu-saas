@@ -9,6 +9,7 @@ import {
 import { useQRCodes, useEnsureQRCode } from '../../hooks/useQR';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRestaurant } from '../../hooks/useRestaurant';
+import { useLogoDataUrl } from '../../hooks/useLogoDataUrl';
 import { Button } from '../../components/ui/Button';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import { QRDesignerPreview, QRStyleConfig, QRTemplateId, resolveImageUrl, getFallbackLogo } from '../../components/dashboard/qr/QRDesignerPreview';
@@ -61,6 +62,12 @@ export default function QRPage() {
     const { user, restaurant: authRestaurant } = useAuth();
     const { data: liveRestaurant } = useRestaurant();
     const restaurant = liveRestaurant || authRestaurant;
+
+    // Pre-fetch the logo and convert to a same-origin data URL so the canvas
+    // (QRCodeCanvas + html2canvas) never becomes tainted by cross-origin images.
+    const logoDataUrl = useLogoDataUrl(restaurant?.logoUrl);
+    // Use the data URL if available, otherwise fall back to the raw URL
+    const safeLogoUrl = logoDataUrl ?? restaurant?.logoUrl ?? null;
 
     const { data: qrCodes, isLoading } = useQRCodes();
     const { mutate: ensure, isPending: isGenerating } = useEnsureQRCode();
@@ -160,7 +167,7 @@ export default function QRPage() {
 
     const handleDownloadSVG = async () => {
         try {
-            const rawLogo = config.customLogoUrl || restaurant?.logoUrl;
+            const rawLogo = config.customLogoUrl || safeLogoUrl;
             const resolvedLogo = resolveImageUrl(rawLogo) || (config.includeLogo ? getFallbackLogo(config.restaurantName, config.fgColor) : undefined);
 
             const svgString = await QRCode.toString(menuUrl, {
@@ -201,7 +208,7 @@ export default function QRPage() {
                 onClose={() => setIsPrintModalOpen(false)}
                 config={config}
                 menuUrl={menuUrl}
-                logoUrl={restaurant?.logoUrl}
+                logoUrl={safeLogoUrl}
             />
 
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 sm:p-6 lg:p-10 pb-28 lg:pb-12 transition-colors duration-200 print:hidden">
@@ -290,7 +297,7 @@ export default function QRPage() {
                                     <QRDesignerPreview
                                         config={config}
                                         menuUrl={menuUrl}
-                                        logoUrl={restaurant?.logoUrl}
+                                        logoUrl={safeLogoUrl}
                                         canvasRef={canvasContainerRef}
                                     />
 

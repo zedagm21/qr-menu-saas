@@ -371,19 +371,6 @@ const CategoriesPage: React.FC = () => {
                             )}
                         </DndContext>
 
-                        {/* Desktop "Add more" button below list */}
-                        {!editing && cats.length > 0 && (
-                            <div className="hidden lg:flex justify-start mt-2">
-                                <Button
-                                    variant="outline"
-                                    className="h-11 px-6 hover:-translate-y-0.5 transition-transform dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                    icon={<Plus className="w-4 h-4" />}
-                                    onClick={() => setEditing('new')}
-                                >
-                                    {t('categories.add')}
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 )}
 

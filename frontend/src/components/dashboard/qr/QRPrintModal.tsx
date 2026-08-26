@@ -41,6 +41,11 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
         sheet.qrCount === 2 ? 'sheet_2' :
         sheet.qrCount === 4 ? 'sheet_4' : 'sheet_6';
 
+    const printScale: QRCardScale =
+        sheet.qrCount === 1 ? 'print_1' :
+        sheet.qrCount === 2 ? 'print_2' :
+        sheet.qrCount === 4 ? 'print_4' : 'print_6';
+
     const handleDownloadPdf = async () => {
         setIsGeneratingPdf(true);
         try {
@@ -49,21 +54,25 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
                 return;
             }
 
-            // Capture high-res A4 render target with html2canvas (2.5x scale for 300 DPI clarity)
+            // Capture high-res A4 render target with html2canvas (2x scale for crisp PDF clarity)
             const canvas = await html2canvas(hiddenPdfContainerRef.current, {
-                scale: 2.5,
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                x: 0,
-                y: 0,
-                scrollX: 0,
-                scrollY: 0,
-                width: 1240,
-                height: 1754,
                 windowWidth: 1240,
                 windowHeight: 1754,
+                onclone: (clonedDoc) => {
+                    const target = clonedDoc.getElementById('pdf-render-target');
+                    if (target) {
+                        target.style.position = 'static';
+                        target.style.left = '0';
+                        target.style.top = '0';
+                        target.style.opacity = '1';
+                        target.style.visibility = 'visible';
+                    }
+                }
             });
 
             // Create A4 PDF (210 × 297 mm)
@@ -253,12 +262,13 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
 
             {/* ── Hidden Off-Screen A4 High-Resolution Render Target for 300 DPI PDF Capture ── */}
             <div
+                id="pdf-render-target"
                 style={{
                     position: 'fixed',
-                    left: 0,
-                    top: 0,
-                    zIndex: -99999,
-                    opacity: 0,
+                    left: '-9999px',
+                    top: '0px',
+                    zIndex: -1,
+                    opacity: 1,
                     pointerEvents: 'none',
                     width: '1240px',
                     height: '1754px', // Proportional to A4 (210 × 297 mm)
@@ -286,21 +296,20 @@ export const QRPrintModal: React.FC<QRPrintModalProps> = ({
                             key={i}
                             style={{
                                 border: sheet.showCutLines ? '2px dashed #cbd5e1' : '2px solid transparent',
-                                padding: '16px',
+                                padding: sheet.qrCount === 1 ? '32px' : sheet.qrCount === 2 ? '24px' : '16px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 borderRadius: '16px',
                                 boxSizing: 'border-box',
-                                overflow: 'hidden',
                             }}
                         >
                             <QRCardItem
                                 config={config}
                                 menuUrl={menuUrl}
                                 logoUrl={logoUrl}
-                                scale={sheet.qrCount === 1 ? 'full' : sheet.qrCount === 2 ? 'sheet_1' : sheet.qrCount === 4 ? 'sheet_2' : 'sheet_4'}
-                                className="w-full h-full justify-center"
+                                scale={printScale}
+                                className="w-full justify-center"
                             />
                         </div>
                     ))}
