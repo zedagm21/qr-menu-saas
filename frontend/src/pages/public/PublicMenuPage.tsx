@@ -8,12 +8,14 @@ import {
     X,
     Flame,
     UtensilsCrossed,
-    Star
+    Star,
+    SlidersHorizontal
 } from 'lucide-react';
 import { publicApi } from '../../services/api';
-import { formatCurrency, applyRestaurantTheme, getTranslation, cn } from '../../lib/utils';
+import { formatCurrency, applyRestaurantTheme, getTranslation, isFastingItem, cn } from '../../lib/utils';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
+import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
 
 export default function PublicMenuPage() {
@@ -26,6 +28,12 @@ export default function PublicMenuPage() {
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filters, setFilters] = useState<FilterState>({
+        minPrice: '',
+        maxPrice: '',
+        fasting: 'all',
+    });
     const [isDark, setIsDark] = useState<boolean>(() => {
         const stored = localStorage.getItem('public-theme');
         if (stored === 'dark') return true;
@@ -121,27 +129,68 @@ export default function PublicMenuPage() {
         }
     }, [restaurant?.defaultLanguage, i18n]);
 
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (filters.minPrice.trim() !== '' || filters.maxPrice.trim() !== '') {
+            count += 1;
+        }
+        if (filters.fasting !== 'all') {
+            count += 1;
+        }
+        return count;
+    }, [filters]);
+
+    const matchesItemFilters = (item: PublicMenuItem) => {
+        if (!item.isAvailable) return false;
+
+        // Search filter
+        if (search) {
+            const query = search.toLowerCase();
+            const name = ((item as any).name ?? '').toLowerCase();
+            const desc = ((item as any).description ?? '').toLowerCase();
+            if (!name.includes(query) && !desc.includes(query)) return false;
+        }
+
+        // Price filter
+        const effectivePrice = (item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price))
+            ? parseFloat(item.discountPrice)
+            : parseFloat(item.price);
+
+        if (filters.minPrice.trim() !== '') {
+            const min = parseFloat(filters.minPrice);
+            if (!isNaN(min) && effectivePrice < min) return false;
+        }
+
+        if (filters.maxPrice.trim() !== '') {
+            const max = parseFloat(filters.maxPrice);
+            if (!isNaN(max) && effectivePrice > max) return false;
+        }
+
+        // Fasting filter
+        if (filters.fasting === 'fasting') {
+            if (!isFastingItem(item)) return false;
+        } else if (filters.fasting === 'non-fasting') {
+            if (isFastingItem(item)) return false;
+        }
+
+        return true;
+    };
+
     const featuredItems = useMemo(() => {
         return categories
             .flatMap(c => c.menuItems)
-            .filter(item => item.isFeatured && item.isAvailable);
-    }, [categories]);
+            .filter(item => item.isFeatured && matchesItemFilters(item));
+    }, [categories, search, filters]);
 
     const filteredCategories = useMemo(() => {
         return categories
             .map(cat => ({
                 ...cat,
-                menuItems: cat.menuItems.filter((item: PublicMenuItem) => {
-                    if (!item.isAvailable) return false;
-                    if (!search) return true;
-                    const name = ((item as any).name ?? '').toLowerCase();
-                    const desc = ((item as any).description ?? '').toLowerCase();
-                    return name.includes(search.toLowerCase()) || desc.includes(search.toLowerCase());
-                }),
+                menuItems: cat.menuItems.filter(matchesItemFilters),
             }))
             .filter(cat => activeCategory ? cat.id === activeCategory : true)
-            .filter(cat => cat.menuItems.length > 0 || !search);
-    }, [categories, search, activeCategory]);
+            .filter(cat => cat.menuItems.length > 0 || (!search && activeFilterCount === 0));
+    }, [categories, search, activeCategory, filters, activeFilterCount]);
 
     const menuStyle = restaurant?.theme?.menuStyle || 'MODERN';
 
@@ -249,26 +298,53 @@ export default function PublicMenuPage() {
                 {/* ─── Sticky Navigation ─── */}
                 <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-sm py-2">
                     <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 space-y-2.5">
-                        <div className="relative">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                            <input
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder={t("public.search_placeholder")}
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                                <input
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder={t("public.search_placeholder")}
+                                    className={cn(
+                                        "w-full h-10 pl-10 pr-10 rounded-xl bg-neutral-100/80 dark:bg-[#111111] border-none text-[14px] font-medium focus:ring-1 focus:ring-[color:var(--color-brand-500)] text-neutral-900 dark:text-[#F5F5F5] placeholder:text-neutral-400 dark:placeholder:text-[#A3A3A3] transition-all",
+                                        lang === 'AM' && 'font-ethiopic'
+                                    )}
+                                />
+                                {search && (
+                                    <button
+                                        onClick={() => setSearch('')}
+                                        aria-label={t("public.clear_search")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-[#F5F5F5] bg-white dark:bg-[#222222] rounded-lg shadow-sm border border-neutral-200 dark:border-[#2A2A2A]"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setIsFilterOpen(true)}
+                                aria-label={t('filters.title')}
                                 className={cn(
-                                    "w-full h-10 pl-10 pr-10 rounded-xl bg-neutral-100/80 dark:bg-[#111111] border-none text-[14px] font-medium focus:ring-1 focus:ring-[color:var(--color-brand-500)] text-neutral-900 dark:text-[#F5F5F5] placeholder:text-neutral-400 dark:placeholder:text-[#A3A3A3] transition-all",
+                                    "h-10 px-3 sm:px-3.5 rounded-xl text-[13px] font-bold flex items-center gap-2 transition-all duration-200 shrink-0 border cursor-pointer select-none",
+                                    activeFilterCount > 0
+                                        ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-sm hover:brightness-105"
+                                        : "bg-neutral-100/80 dark:bg-[#111111] text-neutral-700 dark:text-[#E5E5E5] border-transparent hover:bg-neutral-200/80 dark:hover:bg-[#222222]",
                                     lang === 'AM' && 'font-ethiopic'
                                 )}
-                            />
-                            {search && (
-                                <button
-                                    onClick={() => setSearch('')}
-                                    aria-label={t("public.clear_search")}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-[#F5F5F5] bg-white dark:bg-[#222222] rounded-lg shadow-sm border border-neutral-200 dark:border-[#2A2A2A]"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
+                            >
+                                <SlidersHorizontal className="w-4 h-4 shrink-0" />
+                                <span className="hidden xs:inline sm:inline">
+                                    {activeFilterCount > 0
+                                        ? t('filters.button_active', { count: activeFilterCount })
+                                        : t('filters.button')}
+                                </span>
+                                {activeFilterCount > 0 && (
+                                    <span className="xs:hidden sm:hidden w-5 h-5 rounded-full bg-white text-[color:var(--color-brand-500)] text-[10px] font-black flex items-center justify-center">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </button>
                         </div>
 
                         {categories.length > 1 && (
@@ -393,14 +469,32 @@ export default function PublicMenuPage() {
                             {filteredCategories.length === 0 && (
                                 <div className="text-center py-20 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-black/5 dark:border-[#2A2A2A] shadow-sm">
                                     <p className="text-3xl mb-2">🍽️</p>
-                                    <p className={cn("text-neutral-900 dark:text-[#F5F5F5] font-bold text-base mb-1", lang === 'AM' && 'font-ethiopic')}>{t("public.no_items_found")}</p>
-                                    <p className={cn("text-neutral-500 dark:text-[#A3A3A3] text-[13px]", lang === 'AM' && 'font-ethiopic')}>{t("public.no_search_results_desc")}</p>
-                                    <button
-                                        onClick={() => setSearch('')}
-                                        className={cn("mt-4 px-4 py-2 rounded-lg bg-neutral-100 dark:bg-[#222222] hover:bg-neutral-200 dark:hover:bg-[#2A2A2A] text-neutral-700 dark:text-[#F5F5F5] font-bold text-xs transition-colors", lang === 'AM' && 'font-ethiopic')}
-                                    >
-                                        {t("public.clear_search")}
-                                    </button>
+                                    <p className={cn("text-neutral-900 dark:text-[#F5F5F5] font-bold text-base mb-1", lang === 'AM' && 'font-ethiopic')}>
+                                        {activeFilterCount > 0 && !search
+                                            ? t("filters.no_filtered_items")
+                                            : t("public.no_items_found")}
+                                    </p>
+                                    <p className={cn("text-neutral-500 dark:text-[#A3A3A3] text-[13px]", lang === 'AM' && 'font-ethiopic')}>
+                                        {t("public.no_search_results_desc")}
+                                    </p>
+                                    <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+                                        {search && (
+                                            <button
+                                                onClick={() => setSearch('')}
+                                                className={cn("px-4 py-2 rounded-lg bg-neutral-100 dark:bg-[#222222] hover:bg-neutral-200 dark:hover:bg-[#2A2A2A] text-neutral-700 dark:text-[#F5F5F5] font-bold text-xs transition-colors cursor-pointer", lang === 'AM' && 'font-ethiopic')}
+                                            >
+                                                {t("public.clear_search")}
+                                            </button>
+                                        )}
+                                        {activeFilterCount > 0 && (
+                                            <button
+                                                onClick={() => setFilters({ minPrice: '', maxPrice: '', fasting: 'all' })}
+                                                className={cn("px-4 py-2 rounded-lg bg-[color:var(--color-brand-500)] hover:brightness-110 text-white font-bold text-xs transition-all shadow-xs cursor-pointer", lang === 'AM' && 'font-ethiopic')}
+                                            >
+                                                {t("filters.reset_filters")}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -418,6 +512,16 @@ export default function PublicMenuPage() {
                     item={selectedItem}
                     isOpen={!!selectedItem}
                     onClose={() => setSelectedItem(null)}
+                    isAm={lang === 'AM'}
+                />
+
+                {/* ─── Menu Filters Modal / Bottom-Sheet ─── */}
+                <MenuFilterModal
+                    isOpen={isFilterOpen}
+                    onClose={() => setIsFilterOpen(false)}
+                    currentFilters={filters}
+                    onApply={(newFilters) => setFilters(newFilters)}
+                    currencyCode={t('currency.code', { defaultValue: 'ETB' })}
                     isAm={lang === 'AM'}
                 />
             </div>

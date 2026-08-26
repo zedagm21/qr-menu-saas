@@ -32,6 +32,25 @@
     "EUR": "EUR",
     "GBP": "GBP"
   },
+  "filters": {
+    "title": "ማጣሪያ",
+    "button": "ማጣሪያ",
+    "button_active": "ማጣሪያ ({{count}})",
+    "price_range": "የዋጋ ክልል",
+    "min_price": "ዝቅተኛ ዋጋ",
+    "max_price": "ከፍተኛ ዋጋ",
+    "min_placeholder": "ዝቅተኛ",
+    "max_placeholder": "ከፍተኛ",
+    "fasting_preference": "የጾም ምርጫ",
+    "all": "ሁሉም",
+    "fasting_only": "የጾም ብቻ",
+    "non_fasting_only": "የጾም ያልሆነ ብቻ",
+    "clear_all": "ሁሉንም አጽዳ",
+    "apply_filters": "ተግብር",
+    "invalid_price_range": "ዝቅተኛው ዋጋ ከከፍተኛው ዋጋ መብለጥ አይችልም",
+    "no_filtered_items": "በተመረጡት ማጣሪያዎች ምንም አይነት ምግብ አልተገኘም",
+    "reset_filters": "ማጣሪያዎችን አጽዳ"
+  },
   "toast": {
     "saved": "በተሳካ ሁኔታ ተቀምጧል",
     "created": "በተሳካ ሁኔታ ተፈጥሯል",

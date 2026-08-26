@@ -32,6 +32,25 @@
     "EUR": "EUR",
     "GBP": "GBP"
   },
+  "filters": {
+    "title": "Filters",
+    "button": "Filters",
+    "button_active": "Filters ({{count}})",
+    "price_range": "Price Range",
+    "min_price": "Minimum Price",
+    "max_price": "Maximum Price",
+    "min_placeholder": "Min",
+    "max_placeholder": "Max",
+    "fasting_preference": "Fasting",
+    "all": "All",
+    "fasting_only": "Fasting Only",
+    "non_fasting_only": "Non-Fasting Only",
+    "clear_all": "Clear All",
+    "apply_filters": "Apply Filters",
+    "invalid_price_range": "Minimum price cannot exceed maximum price",
+    "no_filtered_items": "No items match your filter criteria",
+    "reset_filters": "Clear Filters"
+  },
   "toast": {
     "saved": "Saved successfully",
     "created": "Created successfully",
