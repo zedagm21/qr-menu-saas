@@ -67,3 +67,42 @@ function shadeColor(hex: string, percent: number): string {
     const B = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
     return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
+
+export const isFastingItem = (item: any): boolean => {
+    if (!item) return false;
+    if (typeof item.isFasting === 'boolean') {
+        return item.isFasting;
+    }
+
+    const textPool = [
+        item.name,
+        item.description,
+        item.ingredients,
+        item.allergens,
+        ...(item.translations?.map((t: any) => `${t.name} ${t.description || ''} ${t.ingredients || ''} ${t.allergens || ''}`) || [])
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    const nonFastingKeywords = [
+        'meat', 'beef', 'chicken', 'lamb', 'goat', 'pork', 'fish', 'tibs', 'doro', 'kitfo', 'kurt',
+        'dulet', 'tere sega', 'sega', 'egg', 'cheese', 'butter', 'milk', 'cream', 'bacon', 'ham', 'mozzarella',
+        'ጥብስ', 'ዶሮ', 'ክትፎ', 'ቁርጥ', 'ዱለት', 'ሥጋ', 'ስጋ', 'እንቁላል', 'አይብ', 'ቅቤ', 'ወተት'
+    ];
+
+    const hasNonFasting = nonFastingKeywords.some(kw => textPool.includes(kw));
+    if (hasNonFasting) {
+        if (textPool.includes('fasting') || textPool.includes('የጾም') || textPool.includes('vegan')) {
+            return true;
+        }
+        return false;
+    }
+
+    const fastingKeywords = [
+        'fasting', 'vegan', 'vegetarian', 'shiro', 'misir', 'kik', 'gomen', 'atakilt', 'fasolia',
+        'beyaynetu', 'salad', 'lentil', 'chickpea', 'split pea', 'timatim', 'suf', 'telba',
+        'juice', 'smoothie', 'coffee', 'tea', 'water', 'mango', 'avocado', 'fruit',
+        'የጾም', 'ጾም', 'ሽሮ', 'ምስር', 'ክክ', 'ጎመን', 'አትክልት', 'ፋሶሊያ', 'በያይነቱ', 'ሰላጣ', 'ቲማቲም', 'ሱፍ', 'ተልባ',
+        'ጭማቂ', 'ፍራፍሬ', 'ቡና', 'ሻይ', 'አቮካዶ', 'ማንጎ'
+    ];
+
+    return fastingKeywords.some(kw => textPool.includes(kw));
+};
