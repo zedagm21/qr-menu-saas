@@ -102,47 +102,47 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* ── Mobile Drag Indicator ── */}
-                <div className="sm:hidden pt-3 pb-1 flex justify-center shrink-0">
+                <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
                     <div className="w-12 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
                 </div>
 
                 {/* ── Header with Close Button ── */}
-                <div className="relative px-6 pt-4 sm:pt-6 pb-4 border-b border-neutral-100 dark:border-[#222222] shrink-0">
+                <div className="relative px-5 sm:px-6 pt-3 sm:pt-6 pb-3 sm:pb-4 border-b border-neutral-100 dark:border-[#222222] shrink-0">
                     <button
                         onClick={onClose}
                         aria-label={t('public.close', { defaultValue: 'Close' })}
-                        className="absolute right-3.5 top-3.5 sm:top-5 w-11 h-11 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] hover:text-neutral-900 dark:hover:text-[#F5F5F5] hover:bg-neutral-200 dark:hover:bg-[#2E2E2E] transition-colors cursor-pointer"
+                        className="absolute right-3 top-3 sm:right-4 sm:top-5 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] hover:text-neutral-900 dark:hover:text-[#F5F5F5] hover:bg-neutral-200 dark:hover:bg-[#2E2E2E] transition-colors cursor-pointer"
                     >
                         <X className="w-4 h-4" />
                     </button>
 
                     {/* Logo + Name + Subtitle */}
                     <div className="flex flex-col items-center text-center">
-                        <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-[color:var(--color-brand-500)]/30 p-1 mb-3 shadow-md bg-white dark:bg-[#1E1E1E]">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 aspect-square rounded-full border-2 border-[color:var(--color-brand-500)]/30 p-1 mb-2 sm:mb-2.5 shadow-md bg-white dark:bg-[#1E1E1E] overflow-hidden flex items-center justify-center">
                             {restaurant.logoUrl ? (
                                 <img
                                     src={restaurant.logoUrl}
                                     alt={displayName}
-                                    className="w-full h-full object-cover rounded-full"
+                                    className="w-full h-full object-cover rounded-full aspect-square block"
                                 />
                             ) : (
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-[color:var(--color-brand-500)] to-[color:var(--color-accent-500)] flex items-center justify-center text-white text-2xl font-black">
-                                    {displayName.charAt(0).toUpperCase() || <Store className="w-8 h-8" />}
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-[color:var(--color-brand-500)] to-[color:var(--color-accent-500)] flex items-center justify-center text-white text-xl sm:text-2xl font-black aspect-square">
+                                    {displayName.charAt(0).toUpperCase() || <Store className="w-7 h-7 sm:w-8 sm:h-8" />}
                                 </div>
                             )}
                         </div>
 
-                        <h2 id="restaurant-info-title" className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight break-words">
+                        <h2 id="restaurant-info-title" className="text-lg sm:text-2xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight break-words px-6 sm:px-8 leading-tight">
                             {displayName}
                         </h2>
-                        <p className="text-xs font-semibold text-[color:var(--color-brand-500)] tracking-wide uppercase mt-0.5">
+                        <p className="text-[11px] sm:text-xs font-semibold text-[color:var(--color-brand-500)] tracking-wider uppercase mt-0.5">
                             {t('public.about_restaurant', { defaultValue: 'About Restaurant' })}
                         </p>
                     </div>
                 </div>
 
                 {/* ── Scrollable Body ── */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[14px]">
+                <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 text-[14px]">
                     {/* 1. Description */}
                     {displayDesc && (
                         <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626]">
