@@ -93,6 +93,17 @@ export default function PublicMenuPage() {
             root.classList.remove('dark');
             root.style.colorScheme = 'light';
         }
+
+        return () => {
+            const dashboardTheme = localStorage.getItem('dashboard-theme') || 'auto';
+            root.classList.remove('light', 'dark');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const effective = dashboardTheme === 'auto'
+                ? systemPrefersDark
+                : dashboardTheme === 'dark';
+            root.classList.add(effective ? 'dark' : 'light');
+            root.style.colorScheme = effective ? 'dark' : 'light';
+        };
     }, [isDark]);
 
     // Listen to device system theme changes if visitor hasn't set an explicit localStorage override

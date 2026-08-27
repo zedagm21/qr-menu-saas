@@ -4,6 +4,7 @@ import multer from 'multer';
 export interface AppError extends Error {
     statusCode?: number;
     isOperational?: boolean;
+    data?: any;
 }
 
 export const errorHandler = (
@@ -33,13 +34,15 @@ export const errorHandler = (
 
     res.status(statusCode).json({
         error: message,
+        ...(err.data && { data: err.data }),
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     });
 };
 
-export const createError = (message: string, statusCode: number): AppError => {
+export const createError = (message: string, statusCode: number, data?: any): AppError => {
     const error: AppError = new Error(message);
     error.statusCode = statusCode;
     error.isOperational = true;
+    error.data = data;
     return error;
 };

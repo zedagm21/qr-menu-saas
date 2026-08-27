@@ -30,8 +30,14 @@ api.interceptors.response.use(
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-    register: (data: { name: string; email: string; password: string; restaurantName: string }) =>
+    register: (data: { name: string; email: string; password: string; restaurantName?: string }): Promise<{ success: boolean; email: string; requiresVerification: boolean }> =>
         api.post('/auth/register', data).then(r => r.data),
+    verifyOtp: (data: { email: string; otp: string }) =>
+        api.post('/auth/verify-otp', data).then(r => r.data),
+    resendOtp: (data: { email: string }) =>
+        api.post('/auth/resend-otp', data).then(r => r.data),
+    googleAuth: (data: { credential: string }) =>
+        api.post('/auth/google', data).then(r => r.data),
     login: (data: { email: string; password: string }) =>
         api.post('/auth/login', data).then(r => r.data),
     logout: () => api.post('/auth/logout').then(r => r.data),

@@ -4,6 +4,7 @@ import { createError } from '../middleware/errorHandler';
 import { imageStorage } from './ImageStorageService';
 import { ImageProcessor } from './ImageProcessor';
 import { publicMenuService } from './PublicMenuService';
+import { generateSlug, ensureUniqueSlug } from '../utils/slug';
 import type { UpdateRestaurantInput, UpdateThemeInput } from '../validators/restaurant';
 
 export class RestaurantService {
@@ -23,11 +24,29 @@ export class RestaurantService {
     async updateRestaurant(restaurantId: string, data: UpdateRestaurantInput) {
         const { translations, socialMedia, ...scalarData } = data;
 
+        // Determine the primary name for slug generation:
+        // Priority 1: English name from translations or scalarData.name
+        // Priority 2: Amharic name from translations (will be phonetically transliterated into Latin)
+        const enName = translations?.find(t => t.language === 'EN')?.name?.trim();
+        const amName = translations?.find(t => t.language === 'AM')?.name?.trim();
+        const candidateName = enName || scalarData.name?.trim() || amName;
+
+        let slugUpdate: { name?: string; slug?: string } = {};
+        if (candidateName) {
+            const baseSlug = generateSlug(candidateName);
+            const slug = await ensureUniqueSlug(baseSlug, restaurantId);
+            slugUpdate = {
+                name: candidateName,
+                slug,
+            };
+        }
+
         const updated = await prisma.$transaction(async (tx) => {
             await tx.restaurant.update({
                 where: { id: restaurantId },
                 data: {
                     ...scalarData,
+                    ...slugUpdate,
                     socialMedia: socialMedia === null ? Prisma.JsonNull : (socialMedia ?? undefined),
                 },
             });
