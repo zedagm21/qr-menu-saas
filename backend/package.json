@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "prisma generate && tsc",
-    "start": "node dist/app.js",
+    "start": "prisma migrate deploy && node dist/app.js",
     "lint": "tsc --noEmit",
     "test": "echo \"No tests specified\" && exit 0",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio",
