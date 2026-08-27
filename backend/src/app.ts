@@ -15,6 +15,12 @@ import uploadSessionRoutes from './routes/uploadSessionRoutes';
 
 const app = express();
 
+// ─── Trust Proxy ─────────────────────────────────────────────────────────────
+// When running behind reverse proxies (like Render, AWS ALB, Nginx),
+// trusting the first proxy hop ensures req.ip resolves to the real client IP
+// and express-rate-limit correctly identifies users without throwing validation errors.
+app.set('trust proxy', 1);
+
 // ─── Security ────────────────────────────────────────────────────────────────
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow serving images
