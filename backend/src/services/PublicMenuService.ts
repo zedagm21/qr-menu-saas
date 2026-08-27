@@ -35,9 +35,8 @@ export class PublicMenuService {
         }
 
         if (restaurant.isSuspended) {
-            throw createError('This restaurant menu is temporarily suspended', 403, {
+            throw createError('This menu is currently unavailable', 403, {
                 isSuspended: true,
-                reason: restaurant.suspensionReason || 'Service temporarily paused by platform administrator',
             });
         }
 
@@ -92,9 +91,8 @@ export class PublicMenuService {
         }
 
         if (restaurant.isSuspended) {
-            throw createError('This restaurant menu is temporarily suspended', 403, {
+            throw createError('This menu is currently unavailable', 403, {
                 isSuspended: true,
-                reason: restaurant.suspensionReason || 'Service temporarily paused by platform administrator',
             });
         }
 

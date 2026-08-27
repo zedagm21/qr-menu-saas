@@ -264,21 +264,18 @@ export default function PublicMenuPage() {
         (error as any)?.response?.data?.isSuspended ||
         (error as any)?.response?.status === 403
     );
-    const suspensionReason =
-        restaurant?.suspensionReason ||
-        (error as any)?.response?.data?.reason;
 
     if (isSuspended) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#111111] text-center px-4 animate-fade-in">
-                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-amber-200 dark:border-amber-500/20">
-                    <span className="text-3xl">⏳</span>
+                <div className="w-16 h-16 bg-neutral-100 dark:bg-[#1A1A1A] rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-black/5 dark:border-[#2A2A2A]">
+                    <span className="text-3xl">🍽️</span>
                 </div>
-                <h1 className="text-xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight">
+                <h1 className="text-xl font-bold text-neutral-900 dark:text-[#F5F5F5] tracking-tight">
                     {t("public.menu_temporarily_suspended", { defaultValue: "Menu Temporarily Unavailable" })}
                 </h1>
                 <p className="text-neutral-500 dark:text-[#A3A3A3] mt-2 font-medium max-w-sm text-sm">
-                    {suspensionReason || t("public.menu_temporarily_suspended_desc", { defaultValue: "This restaurant menu is currently paused by the platform. Please check back shortly." })}
+                    {t("public.menu_temporarily_suspended_desc", { defaultValue: "This menu is currently unavailable. Please check back shortly or speak with your server." })}
                 </p>
             </div>
         );

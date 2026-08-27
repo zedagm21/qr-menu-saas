@@ -89,7 +89,7 @@ async function runTests() {
     console.log('Languages split:', analytics.languages);
     console.log('Interactions:', analytics.interactions);
     console.log('Top Searches:', analytics.topSearches);
-    console.log('Top Dishes:', analytics.topDishes.map(d => ({ name: d.name, clicks: d.clicks, sharePct: d.sharePct })));
+    console.log('Top Dishes:', analytics.topDishes.map((d: any) => ({ name: d.name, clicks: d.clicks, sharePct: d.sharePct })));
 
     if (analytics.summary.totalScans < 3) {
         throw new Error(`Expected at least 3 scans, got ${analytics.summary.totalScans}`);
@@ -128,7 +128,7 @@ async function runTests() {
     } catch (err: any) {
         if (err.statusCode === 403 && err.data?.isSuspended === true) {
             suspensionBlockedPublicMenu = true;
-            console.log(`✅ Step 6a: Public menu correctly blocked with 403 and reason: "${err.data.reason}"`);
+            console.log('✅ Step 6a: Public menu correctly blocked with 403 (isSuspended: true, reason withheld from public diner)');
         }
     }
 
@@ -163,7 +163,7 @@ async function runTests() {
     });
 
     const auditLogs = await adminService.listAuditLogs({ page: 1, limit: 10 });
-    console.log(`Found ${auditLogs.data.length} audit logs. Latest actions:`, auditLogs.data.slice(0, 3).map(a => a.action));
+    console.log(`Found ${auditLogs.data.length} audit logs. Latest actions:`, auditLogs.data.slice(0, 3).map((a: any) => a.action));
 
     console.log('\n🎉 ALL SaaS Super Admin & Analytics tests PASSED perfectly! 🚀\n');
 }
