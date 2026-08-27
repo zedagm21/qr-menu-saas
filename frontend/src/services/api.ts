@@ -147,9 +147,9 @@ export const analyticsApi = {
 // ─── SaaS Super Admin ─────────────────────────────────────────────────────────
 export const adminApi = {
     getOverview: () => api.get('/admin/overview').then(r => r.data),
-    listRestaurants: (params: { page?: number; limit?: number; search?: string; status?: string }) =>
+    listRestaurants: (params: { page?: number; limit?: number; search?: string; status?: string; tier?: string }) =>
         api.get('/admin/restaurants', { params }).then(r => r.data),
-    updateRestaurantAccess: (id: string, data: { isSuspended?: boolean; suspensionReason?: string | null; status?: string }) =>
+    updateRestaurantAccess: (id: string, data: { isSuspended?: boolean; suspensionReason?: string | null; status?: string; subscriptionTier?: string; subscriptionExpiresAt?: string | null }) =>
         api.patch(`/admin/restaurants/${id}/access`, data).then(r => r.data),
     deleteRestaurant: (id: string) =>
         api.delete(`/admin/restaurants/${id}`).then(r => r.data),
@@ -163,6 +163,14 @@ export const adminApi = {
         api.delete(`/admin/users/${id}`).then(r => r.data),
     listAuditLogs: (params: { page?: number; limit?: number; action?: string; search?: string }) =>
         api.get('/admin/activity', { params }).then(r => r.data),
+    getBroadcast: () => api.get('/admin/broadcast').then(r => r.data),
+    setBroadcast: (data: { title: string; message: string; type?: string; isActive?: boolean }) =>
+        api.post('/admin/broadcast', data).then(r => r.data),
+};
+
+// ─── Global Broadcast Announcement ────────────────────────────────────────────
+export const broadcastApi = {
+    getActive: () => api.get('/broadcast/active').then(r => r.data),
 };
 
 // ─── Upload Sessions (Phone Camera Companion) ─────────────────────────────────

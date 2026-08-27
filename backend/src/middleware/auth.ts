@@ -17,7 +17,9 @@ declare global {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
-    const token = req.cookies?.token;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = req.cookies?.token || bearerToken;
 
     if (!token) {
         res.status(401).json({ error: 'Authentication required' });

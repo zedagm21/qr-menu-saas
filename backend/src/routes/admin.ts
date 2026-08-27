@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, requireAdmin } from '../middleware/auth';
 import {
     getOverview,
@@ -10,6 +10,8 @@ import {
     verifyUserEmail,
     deleteUser,
     listAuditLogs,
+    getBroadcast,
+    setBroadcast,
 } from '../controllers/adminController';
 
 const router = Router();
@@ -28,5 +30,7 @@ router.patch('/users/:id/verify', verifyUserEmail);
 router.delete('/users/:id', deleteUser);
 
 router.get('/activity', listAuditLogs);
+router.get('/broadcast', getBroadcast);
+router.post('/broadcast', setBroadcast);
 
 export default router;

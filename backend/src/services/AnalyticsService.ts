@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 import prisma from '../config/database';
 import { Language, InteractionType } from '@prisma/client';
 
@@ -293,6 +293,21 @@ export class AnalyticsService {
             else enCount++;
         });
 
+        // Day-of-Week Distribution (Monday to Sunday)
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+        currentScans.forEach((s) => {
+            const jsDay = new Date(s.createdAt).getDay(); // 0 is Sun, 1 is Mon...
+            const mappedIndex = jsDay === 0 ? 6 : jsDay - 1;
+            dayCounts[mappedIndex]++;
+        });
+
+        const dayOfWeek = dayNames.map((day, idx) => ({
+            day,
+            count: dayCounts[idx],
+            pct: totalScans > 0 ? Math.round((dayCounts[idx] / totalScans) * 100) : 0,
+        }));
+
         // Top dishes details
         const topItemIds = itemClicks.map((i) => i.menuItemId);
         const menuItems = await prisma.menuItem.findMany({
@@ -360,6 +375,7 @@ export class AnalyticsService {
                 label: `${hour % 12 || 12} ${hour >= 12 ? 'PM' : 'AM'}`,
                 count,
             })),
+            dayOfWeek,
             topDishes,
             topSearches,
             devices: {
@@ -412,6 +428,13 @@ export class AnalyticsService {
         rows.push('Period,Scans');
         data.timeline.forEach((t) => {
             rows.push(`"${t.label}",${t.count}`);
+        });
+        rows.push('');
+
+        rows.push('--- DAY OF WEEK DINING RHYTHM ---');
+        rows.push('Day,Scans,Share %');
+        data.dayOfWeek.forEach((d) => {
+            rows.push(`"${d.day}",${d.count},${d.pct}%`);
         });
         rows.push('');
 

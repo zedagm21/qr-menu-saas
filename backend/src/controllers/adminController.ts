@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/AdminService';
 
 export const getOverview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -17,6 +17,7 @@ export const listRestaurants = async (req: Request, res: Response, next: NextFun
             limit: req.query.limit ? Number(req.query.limit) : undefined,
             search: req.query.search as string,
             status: req.query.status as string,
+            tier: req.query.tier as string,
         });
         res.json(result);
     } catch (error) {
@@ -101,6 +102,24 @@ export const listAuditLogs = async (req: Request, res: Response, next: NextFunct
             search: req.query.search as string,
         });
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getBroadcast = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const broadcast = await adminService.getLatestBroadcast();
+        res.json(broadcast || null);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const setBroadcast = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const broadcast = await adminService.setBroadcast(req.body, req.user!.userId);
+        res.json(broadcast);
     } catch (error) {
         next(error);
     }

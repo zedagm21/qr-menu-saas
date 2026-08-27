@@ -1,8 +1,8 @@
-﻿import prisma from '../config/database';
+import prisma from '../config/database';
 import { createError } from '../middleware/errorHandler';
 import { publicMenuService } from './PublicMenuService';
 import { auditService } from './AuditService';
-import { MenuStatus, Role } from '@prisma/client';
+import { MenuStatus, Role, SubscriptionTier } from '@prisma/client';
 
 export class AdminService {
     /**
@@ -81,6 +81,35 @@ export class AdminService {
             }
         });
 
+        // Top 5 restaurants by customer foot traffic (diner scans)
+        const topRestaurantsRaw = await prisma.restaurant.findMany({
+            take: 5,
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                city: true,
+                subscriptionTier: true,
+                _count: {
+                    select: { scanEvents: true },
+                },
+            },
+            orderBy: {
+                scanEvents: {
+                    _count: 'desc',
+                },
+            },
+        });
+
+        const topRestaurants = topRestaurantsRaw.map((r) => ({
+            id: r.id,
+            name: r.name,
+            slug: r.slug,
+            city: r.city,
+            tier: r.subscriptionTier,
+            scans: r._count.scanEvents,
+        }));
+
         return {
             restaurants: {
                 total: totalRestaurants,
@@ -103,6 +132,7 @@ export class AdminService {
                 week: weekScans,
             },
             signupTimeline: Array.from(timelineMap.values()),
+            topRestaurants,
             recentAudits,
         };
     }
@@ -115,6 +145,7 @@ export class AdminService {
         limit?: number;
         search?: string;
         status?: string;
+        tier?: string;
     }) {
         const page = Math.max(Number(params.page) || 1, 1);
         const limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100);
@@ -141,6 +172,10 @@ export class AdminService {
         } else if (params.status === 'DRAFT') {
             whereClause.isSuspended = false;
             whereClause.status = MenuStatus.DRAFT;
+        }
+
+        if (params.tier && ['FREE_TRIAL', 'STARTER', 'PRO'].includes(params.tier)) {
+            whereClause.subscriptionTier = params.tier as SubscriptionTier;
         }
 
         const [total, restaurants] = await Promise.all([
@@ -175,6 +210,10 @@ export class AdminService {
                 status: r.status,
                 isSuspended: r.isSuspended,
                 suspensionReason: r.suspensionReason,
+                subscriptionTier: r.subscriptionTier,
+                subscriptionExpiresAt: r.subscriptionExpiresAt,
+                phone: r.phone,
+                email: r.email,
                 city: r.city,
                 country: r.country,
                 createdAt: r.createdAt,
@@ -198,7 +237,13 @@ export class AdminService {
      */
     async updateRestaurantAccess(
         restaurantId: string,
-        data: { isSuspended?: boolean; suspensionReason?: string | null; status?: MenuStatus },
+        data: {
+            isSuspended?: boolean;
+            suspensionReason?: string | null;
+            status?: MenuStatus;
+            subscriptionTier?: SubscriptionTier;
+            subscriptionExpiresAt?: Date | string | null;
+        },
         adminUserId: string
     ) {
         const restaurant = await prisma.restaurant.findUnique({
@@ -217,6 +262,12 @@ export class AdminService {
         if (data.status !== undefined) {
             updateData.status = data.status;
         }
+        if (data.subscriptionTier !== undefined) {
+            updateData.subscriptionTier = data.subscriptionTier;
+        }
+        if (data.subscriptionExpiresAt !== undefined) {
+            updateData.subscriptionExpiresAt = data.subscriptionExpiresAt ? new Date(data.subscriptionExpiresAt) : null;
+        }
 
         const updated = await prisma.restaurant.update({
             where: { id: restaurantId },
@@ -228,14 +279,26 @@ export class AdminService {
         let action = 'RESTAURANT_UPDATED';
         if (data.isSuspended === true) action = 'RESTAURANT_SUSPENDED';
         else if (data.isSuspended === false) action = 'RESTAURANT_ACTIVATED';
+        else if (data.subscriptionTier !== undefined) action = 'RESTAURANT_TIER_UPDATED';
 
         await auditService.logAction({
             action,
             userId: adminUserId,
             restaurantId,
             details: {
-                previous: { isSuspended: restaurant.isSuspended, status: restaurant.status },
-                updated: { isSuspended: updated.isSuspended, status: updated.status, reason: updated.suspensionReason },
+                previous: {
+                    isSuspended: restaurant.isSuspended,
+                    status: restaurant.status,
+                    subscriptionTier: restaurant.subscriptionTier,
+                    subscriptionExpiresAt: restaurant.subscriptionExpiresAt,
+                },
+                updated: {
+                    isSuspended: updated.isSuspended,
+                    status: updated.status,
+                    reason: updated.suspensionReason,
+                    subscriptionTier: updated.subscriptionTier,
+                    subscriptionExpiresAt: updated.subscriptionExpiresAt,
+                },
             },
         });
 
@@ -462,6 +525,71 @@ export class AdminService {
                 totalPages: Math.ceil(total / limit),
             },
         };
+    }
+
+    /**
+     * Get currently active broadcast announcement for dashboards
+     */
+    async getActiveBroadcast() {
+        return prisma.broadcastAnnouncement.findFirst({
+            where: { isActive: true },
+            orderBy: { updatedAt: 'desc' },
+        });
+    }
+
+    /**
+     * Get the latest broadcast announcement (active or inactive) for admin inspector
+     */
+    async getLatestBroadcast() {
+        return prisma.broadcastAnnouncement.findFirst({
+            orderBy: { updatedAt: 'desc' },
+        });
+    }
+
+    /**
+     * Create or update the global broadcast announcement
+     */
+    async setBroadcast(
+        data: { title: string; message: string; type?: string; isActive?: boolean },
+        adminUserId: string
+    ) {
+        const existing = await prisma.broadcastAnnouncement.findFirst({
+            orderBy: { updatedAt: 'desc' },
+        });
+
+        let announcement;
+        if (existing) {
+            announcement = await prisma.broadcastAnnouncement.update({
+                where: { id: existing.id },
+                data: {
+                    title: data.title,
+                    message: data.message,
+                    type: data.type || 'info',
+                    isActive: data.isActive !== undefined ? data.isActive : true,
+                },
+            });
+        } else {
+            announcement = await prisma.broadcastAnnouncement.create({
+                data: {
+                    title: data.title,
+                    message: data.message,
+                    type: data.type || 'info',
+                    isActive: data.isActive !== undefined ? data.isActive : true,
+                },
+            });
+        }
+
+        await auditService.logAction({
+            action: 'BROADCAST_UPDATED',
+            userId: adminUserId,
+            details: {
+                title: announcement.title,
+                type: announcement.type,
+                isActive: announcement.isActive,
+            },
+        });
+
+        return announcement;
     }
 }
 

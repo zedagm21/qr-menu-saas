@@ -298,6 +298,15 @@ export default function AdminUsersPage() {
                                                         </button>
                                                     )}
 
+                                                    {/* Email Contact Shortcut */}
+                                                    <a
+                                                        href={`mailto:${u.email}?subject=Support from QR Menu SaaS Admin`}
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                                                        title={`Email ${u.email}`}
+                                                    >
+                                                        <Mail className="w-3.5 h-3.5" />
+                                                    </a>
+
                                                     {/* Delete Button */}
                                                     <button
                                                         type="button"

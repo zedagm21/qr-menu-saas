@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "InteractionType" AS ENUM ('PROFILE_VIEW', 'SOCIAL_CLICK', 'CALL_CLICK', 'DIRECTIONS_CLICK');
 
 -- AlterTable

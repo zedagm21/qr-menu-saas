@@ -12,6 +12,12 @@ datasource db {
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
+enum SubscriptionTier {
+  FREE_TRIAL
+  STARTER
+  PRO
+}
+
 enum Role {
   OWNER
   ADMIN
@@ -87,6 +93,8 @@ model Restaurant {
   status              MenuStatus           @default(DRAFT)
   isSuspended         Boolean              @default(false)
   suspensionReason    String?
+  subscriptionTier    SubscriptionTier     @default(FREE_TRIAL)
+  subscriptionExpiresAt DateTime?
   wifiName            String?
   wifiPassword        String?
   paymentInfo         String?
@@ -293,4 +301,17 @@ model AuditLog {
   @@index([restaurantId, createdAt])
   @@index([userId, createdAt])
   @@map("audit_logs")
+}
+
+// ─── Platform Broadcast Announcements ─────────────────────────────────────────
+model BroadcastAnnouncement {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("info") // 'info', 'warning', 'success'
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("broadcast_announcements")
 }

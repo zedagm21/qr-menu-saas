@@ -165,6 +165,50 @@ async function runTests() {
     const auditLogs = await adminService.listAuditLogs({ page: 1, limit: 10 });
     console.log(`Found ${auditLogs.data.length} audit logs. Latest actions:`, auditLogs.data.slice(0, 3).map((a: any) => a.action));
 
+    // 8. Test Day-of-Week Dining Rhythm
+    console.log('\nTesting Day-of-Week Dining Rhythm...');
+    if (!analytics.dayOfWeek || analytics.dayOfWeek.length !== 7) {
+        throw new Error(`Expected 7 days in dayOfWeek distribution, got ${analytics.dayOfWeek?.length}`);
+    }
+    console.log('✅ Step 8: Day-of-Week distribution validated (7 days Mon–Sun):', analytics.dayOfWeek.map((d: any) => `${d.day}: ${d.count} (${d.pct}%)`).join(', '));
+
+    // 9. Test Subscription Tiers & Expiry Management
+    console.log('\nTesting Subscription Tier Upgrade & Expiry...');
+    const oneMonthFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const updatedWithTier = await adminService.updateRestaurantAccess(
+        restaurantId,
+        {
+            subscriptionTier: 'PRO' as any,
+            subscriptionExpiresAt: oneMonthFromNow,
+        },
+        adminUser.id
+    );
+    if (updatedWithTier.subscriptionTier !== 'PRO' || !updatedWithTier.subscriptionExpiresAt) {
+        throw new Error('Subscription tier or expiry was not updated in database');
+    }
+    console.log('✅ Step 9: Successfully upgraded restaurant to PRO with 30-day expiration date.');
+
+    // 10. Test Global Broadcast Announcements
+    console.log('\nTesting Global Broadcast Announcements...');
+    const broadcast = await adminService.setBroadcast(
+        {
+            title: '⚡ Server Maintenance Completed',
+            message: 'All menu updates and QR code scans are running at lightning speed!',
+            type: 'success',
+            isActive: true,
+        },
+        adminUser.id
+    );
+    if (!broadcast || broadcast.title !== '⚡ Server Maintenance Completed') {
+        throw new Error('Failed to create broadcast announcement');
+    }
+
+    const activeBroadcast = await adminService.getActiveBroadcast();
+    if (!activeBroadcast || activeBroadcast.id !== broadcast.id) {
+        throw new Error('getActiveBroadcast did not return the active broadcast');
+    }
+    console.log('✅ Step 10: Broadcast created and verified as live for all restaurant dashboards.');
+
     console.log('\n🎉 ALL SaaS Super Admin & Analytics tests PASSED perfectly! 🚀\n');
 }
 

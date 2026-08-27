@@ -5,7 +5,8 @@ import { Helmet } from 'react-helmet-async';
 import {
     Store, Search, ExternalLink, ShieldAlert,
     ShieldCheck, Eye, Trash2, RefreshCw, AlertTriangle,
-    SlidersHorizontal, CheckCircle2, ChevronRight, X
+    SlidersHorizontal, CheckCircle2, ChevronRight, X,
+    Phone, Mail, MessageSquare, CreditCard, Sparkles
 } from 'lucide-react';
 import { useAdminRestaurants, useUpdateRestaurantAccess, useDeleteRestaurant } from '../../hooks/useAdmin';
 import { Modal } from '../../components/ui/Modal';
@@ -13,7 +14,43 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
-import type { AdminRestaurantItem } from '../../types';
+import type { AdminRestaurantItem, SubscriptionTier } from '../../types';
+
+function getTierBadge(r: AdminRestaurantItem) {
+    const now = new Date();
+    const expiresAt = r.subscriptionExpiresAt ? new Date(r.subscriptionExpiresAt) : null;
+    const isExpired = expiresAt ? expiresAt < now : false;
+    const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+    if (r.subscriptionTier === 'PRO') {
+        return {
+            label: 'Pro',
+            sublabel: isExpired ? 'Expired' : daysLeft !== null ? `${daysLeft}d left` : 'Active',
+            color: isExpired
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+            isExpired,
+        };
+    }
+    if (r.subscriptionTier === 'STARTER') {
+        return {
+            label: 'Starter',
+            sublabel: isExpired ? 'Expired' : daysLeft !== null ? `${daysLeft}d left` : 'Active',
+            color: isExpired
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+            isExpired,
+        };
+    }
+    return {
+        label: 'Free Trial',
+        sublabel: isExpired ? 'Trial Expired' : daysLeft !== null ? `${daysLeft}d left` : 'Active',
+        color: isExpired
+            ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+            : 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        isExpired,
+    };
+}
 
 export default function AdminRestaurantsPage() {
     const { t } = useTranslation();
@@ -21,6 +58,7 @@ export default function AdminRestaurantsPage() {
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [tierFilter, setTierFilter] = useState('ALL');
     const [page, setPage] = useState(1);
 
     // Selected restaurant for access modal
@@ -28,6 +66,8 @@ export default function AdminRestaurantsPage() {
     const [modalIsSuspended, setModalIsSuspended] = useState(false);
     const [modalReason, setModalReason] = useState('');
     const [modalStatus, setModalStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
+    const [modalTier, setModalTier] = useState<SubscriptionTier>('FREE_TRIAL');
+    const [modalExpiresAt, setModalExpiresAt] = useState<string | null>(null);
 
     // Delete restaurant state
     const [deleteTarget, setDeleteTarget] = useState<AdminRestaurantItem | null>(null);
@@ -37,6 +77,7 @@ export default function AdminRestaurantsPage() {
         limit: 20,
         search,
         status: statusFilter,
+        tier: tierFilter !== 'ALL' ? tierFilter : undefined,
     });
 
     const { mutate: updateAccess, isPending: isUpdatingAccess } = useUpdateRestaurantAccess();
@@ -47,6 +88,8 @@ export default function AdminRestaurantsPage() {
         setModalIsSuspended(r.isSuspended);
         setModalReason(r.suspensionReason || '');
         setModalStatus(r.status);
+        setModalTier(r.subscriptionTier || 'FREE_TRIAL');
+        setModalExpiresAt(r.subscriptionExpiresAt || null);
     };
 
     const handleSaveAccess = () => {
@@ -59,15 +102,13 @@ export default function AdminRestaurantsPage() {
                     isSuspended: modalIsSuspended,
                     suspensionReason: modalIsSuspended ? modalReason : null,
                     status: modalStatus,
+                    subscriptionTier: modalTier,
+                    subscriptionExpiresAt: modalExpiresAt,
                 },
             },
             {
                 onSuccess: () => {
-                    toast.success(
-                        modalIsSuspended
-                            ? `🔒 Access suspended for "${selectedRestaurant.name}"`
-                            : `✅ Access restored for "${selectedRestaurant.name}"`
-                    );
+                    toast.success(`✅ Settings updated for "${selectedRestaurant.name}"`);
                     setSelectedRestaurant(null);
                 },
                 onError: () => {
@@ -140,28 +181,53 @@ export default function AdminRestaurantsPage() {
                         />
                     </div>
 
-                    {/* Status Tabs */}
-                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                        {[
-                            { id: 'ALL', label: 'All' },
-                            { id: 'PUBLISHED', label: 'Live' },
-                            { id: 'DRAFT', label: 'Draft' },
-                            { id: 'SUSPENDED', label: 'Suspended' },
-                        ].map((tab) => (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => { setStatusFilter(tab.id); setPage(1); }}
-                                className={cn(
-                                    'px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
-                                    statusFilter === tab.id
-                                        ? 'bg-indigo-600 text-white shadow-xs'
-                                        : 'text-slate-400 hover:text-slate-200'
-                                )}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
+                    {/* Status & Tier Filter Tabs */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                            {[
+                                { id: 'ALL', label: 'All Status' },
+                                { id: 'PUBLISHED', label: 'Live' },
+                                { id: 'DRAFT', label: 'Draft' },
+                                { id: 'SUSPENDED', label: 'Suspended' },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => { setStatusFilter(tab.id); setPage(1); }}
+                                    className={cn(
+                                        'px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all',
+                                        statusFilter === tab.id
+                                            ? 'bg-indigo-600 text-white shadow-xs'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                            {[
+                                { id: 'ALL', label: 'All Tiers' },
+                                { id: 'FREE_TRIAL', label: 'Trial' },
+                                { id: 'STARTER', label: 'Starter' },
+                                { id: 'PRO', label: 'Pro' },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => { setTierFilter(tab.id); setPage(1); }}
+                                    className={cn(
+                                        'px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all',
+                                        tierFilter === tab.id
+                                            ? 'bg-purple-600 text-white shadow-xs'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -217,34 +283,73 @@ export default function AdminRestaurantsPage() {
                                                 </div>
                                             </td>
 
-                                            {/* Owner */}
+                                            {/* Owner & Quick Contact */}
                                             <td className="py-3.5 px-4">
                                                 {r.owner ? (
                                                     <div className="min-w-0">
                                                         <p className="font-semibold text-slate-200 truncate">{r.owner.name}</p>
                                                         <p className="text-[11px] text-slate-400 truncate">{r.owner.email}</p>
+                                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                                            {r.phone && (
+                                                                <a
+                                                                    href={`https://wa.me/${r.phone.replace(/[^0-9]/g, '')}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                                                    title={`WhatsApp ${r.phone}`}
+                                                                >
+                                                                    <MessageSquare className="w-3 h-3" />
+                                                                </a>
+                                                            )}
+                                                            {r.phone && (
+                                                                <a
+                                                                    href={`tel:${r.phone}`}
+                                                                    className="p-1 rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                                                                    title={`Call ${r.phone}`}
+                                                                >
+                                                                    <Phone className="w-3 h-3" />
+                                                                </a>
+                                                            )}
+                                                            {(r.owner?.email || r.email) && (
+                                                                <a
+                                                                    href={`mailto:${r.owner?.email || r.email}?subject=Regarding your menu on QR Menu SaaS`}
+                                                                    className="p-1 rounded-md bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
+                                                                    title={`Email ${r.owner?.email || r.email}`}
+                                                                >
+                                                                    <Mail className="w-3 h-3" />
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <span className="text-slate-500 italic">No owner linked</span>
                                                 )}
                                             </td>
 
-                                            {/* Access Status */}
+                                            {/* Access Status & Subscription Tier */}
                                             <td className="py-3.5 px-4">
-                                                <div className="space-y-1">
-                                                    {r.isSuspended ? (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                                            <ShieldAlert className="w-3 h-3" /> Suspended
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                            <ShieldCheck className="w-3 h-3" /> Active
-                                                        </span>
-                                                    )}
+                                                <div className="space-y-1.5">
                                                     <div>
-                                                        <span className="text-[10px] font-bold text-slate-400">
-                                                            Menu: {r.status === 'PUBLISHED' ? 'Live' : 'Draft'}
-                                                        </span>
+                                                        {r.isSuspended ? (
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                                                <ShieldAlert className="w-3 h-3" /> Suspended
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                                <ShieldCheck className="w-3 h-3" /> Active
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        {(() => {
+                                                            const badge = getTierBadge(r);
+                                                            return (
+                                                                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border', badge.color)}>
+                                                                    <CreditCard className="w-2.5 h-2.5" />
+                                                                    {badge.label} • {badge.sublabel}
+                                                                </span>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </td>
@@ -385,6 +490,76 @@ export default function AdminRestaurantsPage() {
                                     />
                                 </div>
                             )}
+                        </div>
+
+                        {/* Subscription Plan Tier & Expiration */}
+                        <div className="p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 space-y-3">
+                            <div>
+                                <p className="text-sm font-bold">Subscription Plan Tier</p>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                    Assign or upgrade the restaurant's SaaS tier.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'FREE_TRIAL', label: 'Free Trial', color: 'border-blue-500 text-blue-600 dark:text-blue-400' },
+                                    { id: 'STARTER', label: 'Starter', color: 'border-emerald-500 text-emerald-600 dark:text-emerald-400' },
+                                    { id: 'PRO', label: 'Pro', color: 'border-purple-500 text-purple-600 dark:text-purple-400' },
+                                ].map((tier) => (
+                                    <button
+                                        key={tier.id}
+                                        type="button"
+                                        onClick={() => setModalTier(tier.id as any)}
+                                        className={cn(
+                                            'py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center',
+                                            modalTier === tier.id
+                                                ? cn('bg-neutral-100 dark:bg-neutral-800 ring-2 ring-offset-1 dark:ring-offset-neutral-950 font-black', tier.color)
+                                                : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                                        )}
+                                    >
+                                        {tier.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Subscription Expiration Extension */}
+                            <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-bold text-neutral-600 dark:text-neutral-400">Current Expiry:</span>
+                                    <span className="font-mono text-neutral-800 dark:text-neutral-200 font-bold">
+                                        {modalExpiresAt ? new Date(modalExpiresAt).toLocaleDateString() : 'Never (Unlimited)'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                    <span className="text-[11px] text-neutral-400 self-center mr-1">Extend:</span>
+                                    {[
+                                        { label: '+14 Days', days: 14 },
+                                        { label: '+30 Days', days: 30 },
+                                        { label: '+90 Days', days: 90 },
+                                        { label: '+1 Year', days: 365 },
+                                    ].map((ext) => (
+                                        <button
+                                            key={ext.label}
+                                            type="button"
+                                            onClick={() => {
+                                                const base = modalExpiresAt ? new Date(modalExpiresAt) : new Date();
+                                                const newDate = new Date(base.getTime() + ext.days * 24 * 60 * 60 * 1000);
+                                                setModalExpiresAt(newDate.toISOString());
+                                            }}
+                                            className="px-2 py-1 rounded-lg text-[11px] font-bold bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+                                        >
+                                            {ext.label}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalExpiresAt(null)}
+                                        className="px-2 py-1 rounded-lg text-[11px] font-bold text-rose-500 hover:bg-rose-500/10 transition-colors"
+                                    >
+                                        Clear Expiry
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Menu Status Toggle */}

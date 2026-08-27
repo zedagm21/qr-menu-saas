@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
     BarChart3, QrCode, Users, Clock, UtensilsCrossed,
     Download, RefreshCw, Smartphone, Search,
     Eye, Share2, Phone, TrendingUp, TrendingDown,
-    Calendar, Sparkles
+    Calendar, Sparkles, Printer, ArrowRight
 } from 'lucide-react';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsApi } from '../../services/api';
@@ -29,6 +30,10 @@ export default function AnalyticsPage() {
     const [hoveredBar, setHoveredBar] = useState<{ label: string; count: number } | null>(null);
 
     const { data, isLoading, refetch, isFetching } = useAnalytics(timeframe);
+
+    const busiestDay = data?.dayOfWeek
+        ? [...data.dayOfWeek].sort((a, b) => b.count - a.count)[0]
+        : null;
 
     const handleExportCsv = async () => {
         try {
@@ -54,7 +59,16 @@ export default function AnalyticsPage() {
 
     return (
         <>
-            <Helmet><title>{t('nav.analytics', { defaultValue: 'Analytics' })} — QR Menu</title></Helmet>
+            <Helmet>
+                <title>{t('nav.analytics', { defaultValue: 'Analytics' })} — QR Menu</title>
+                <style>{`
+                    @media print {
+                        aside, nav, header, button, .print\\:hidden { display: none !important; }
+                        body { background: white !important; color: black !important; }
+                        .p-4, .sm\\:p-6, .lg\\:p-8 { padding: 0 !important; }
+                    }
+                `}</style>
+            </Helmet>
 
             <div className="min-h-full p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-8 animate-fade-in">
                 {/* ── Header ── */}
@@ -72,7 +86,7 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Timeframe selector & Actions */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 print:hidden">
                         <div className="inline-flex p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700">
                             {TIMEFRAMES.map((tf) => (
                                 <button
@@ -110,6 +124,16 @@ export default function AnalyticsPage() {
                             className="text-xs font-bold"
                         >
                             {t('analytics.export_csv', { defaultValue: 'Export CSV' })}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.print()}
+                            icon={<Printer className="w-4 h-4 text-neutral-600 dark:text-neutral-300" />}
+                            className="text-xs font-bold"
+                        >
+                            {t('analytics.print_report', { defaultValue: 'Print Report' })}
                         </Button>
                     </div>
                 </div>
@@ -192,6 +216,33 @@ export default function AnalyticsPage() {
                     </div>
                 )}
 
+                {/* ── Onboarding Empty State (When Total Scans = 0) ── */}
+                {!isLoading && data?.summary.totalScans === 0 && (
+                    <div className="bg-gradient-to-br from-amber-500/5 via-white to-amber-500/10 dark:from-amber-500/5 dark:via-neutral-900 dark:to-neutral-900 rounded-3xl p-8 border-2 border-dashed border-amber-500/30 text-center space-y-4 my-4 animate-fade-in print:hidden">
+                        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                            <QrCode className="w-8 h-8 animate-pulse" />
+                        </div>
+                        <div className="max-w-md mx-auto space-y-1.5">
+                            <h2 className="text-xl font-black text-neutral-900 dark:text-white tracking-tight">
+                                {t('analytics.empty_title', { defaultValue: 'Ready to Track Live Diner Traffic?' })}
+                            </h2>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                {t('analytics.empty_desc', { defaultValue: 'Print your QR code table cards and place them on your dining tables. Once guests scan to browse your dishes, real-time foot traffic and rush hour analytics will populate here automatically.' })}
+                            </p>
+                        </div>
+                        <div className="pt-2">
+                            <Link
+                                to="/dashboard/qr"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold text-sm shadow-md transition-all active:scale-95"
+                            >
+                                <QrCode className="w-4 h-4" />
+                                {t('analytics.go_to_qr', { defaultValue: 'Print Table QR Codes' })}
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Scan Activity Timeline Chart ── */}
                 <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
@@ -250,6 +301,67 @@ export default function AnalyticsPage() {
                             })}
                         </div>
                     )}
+                </div>
+
+                {/* ── Day-of-Week Dining Rhythm (Monday - Sunday) ── */}
+                <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                        <div>
+                            <h3 className="text-base font-extrabold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-emerald-500" />
+                                {t('analytics.day_of_week_title', { defaultValue: 'Day-of-Week Dining Rhythm' })}
+                            </h3>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                {t('analytics.day_of_week_subtitle', { defaultValue: 'Customer foot traffic volume from Monday to Sunday for kitchen prep & staffing' })}
+                            </p>
+                        </div>
+                        {busiestDay && busiestDay.count > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-500/20">
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                                {t('analytics.busiest_day', { defaultValue: 'Busiest Day' })}: {busiestDay.day} ({busiestDay.pct}%)
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-2 sm:gap-4 pt-2">
+                        {data?.dayOfWeek?.map((item) => {
+                            const maxDayCount = Math.max(...(data?.dayOfWeek?.map(d => d.count) || [1]), 1);
+                            const heightPct = maxDayCount > 0 ? Math.max((item.count / maxDayCount) * 100, 8) : 8;
+                            const isBusiest = busiestDay && item.day === busiestDay.day && item.count > 0;
+
+                            return (
+                                <div key={item.day} className="flex flex-col items-center gap-2 group">
+                                    <div className="text-xs font-bold text-neutral-600 dark:text-neutral-400">
+                                        {item.count > 0 ? item.count : '—'}
+                                    </div>
+                                    <div className="w-full h-28 sm:h-32 flex items-end justify-center">
+                                        <div
+                                            style={{ height: `${heightPct}%` }}
+                                            className={cn(
+                                                'w-full max-w-[36px] rounded-t-xl transition-all duration-300',
+                                                isBusiest
+                                                    ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 shadow-md ring-2 ring-emerald-500/30'
+                                                    : item.count > 0
+                                                    ? 'bg-gradient-to-t from-neutral-400 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600 group-hover:from-emerald-500 group-hover:to-emerald-400'
+                                                    : 'bg-neutral-100 dark:bg-neutral-800'
+                                            )}
+                                        />
+                                    </div>
+                                    <span className={cn(
+                                        'text-xs font-bold tracking-tight text-center',
+                                        isBusiest
+                                            ? 'text-emerald-600 dark:text-emerald-400 font-black'
+                                            : 'text-neutral-500 dark:text-neutral-400'
+                                    )}>
+                                        {item.day}
+                                    </span>
+                                    <span className="text-[10px] text-neutral-400 font-medium">
+                                        {item.pct}%
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* ── 2 Columns: Peak Dining Rush Hours + Audience Insights ── */}

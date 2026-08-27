@@ -42,6 +42,8 @@ export interface SocialMediaEntry {
     url: string;
 }
 
+export type SubscriptionTier = 'FREE_TRIAL' | 'STARTER' | 'PRO';
+
 export interface Restaurant {
     id: string;
     name: string;
@@ -59,6 +61,8 @@ export interface Restaurant {
     status: MenuStatus;
     isSuspended?: boolean;
     suspensionReason?: string | null;
+    subscriptionTier?: SubscriptionTier;
+    subscriptionExpiresAt?: string | null;
     wifiName?: string | null;
     wifiPassword?: string | null;
     paymentInfo?: string | null;
@@ -236,10 +240,17 @@ export interface TopSearchItem {
     count: number;
 }
 
+export interface DayOfWeekItem {
+    day: string;
+    count: number;
+    pct: number;
+}
+
 export interface AnalyticsData {
     summary: AnalyticsSummary;
     timeline: AnalyticsTimelineItem[];
     peakHours: PeakHourItem[];
+    dayOfWeek: DayOfWeekItem[];
     topDishes: TopDishItem[];
     topSearches: TopSearchItem[];
     devices: {
@@ -290,6 +301,14 @@ export interface AdminOverviewMetrics {
         users: number;
         restaurants: number;
     }[];
+    topRestaurants: {
+        id: string;
+        name: string;
+        slug: string;
+        city: string | null;
+        tier: string;
+        scans: number;
+    }[];
     recentAudits: AuditLogEntry[];
 }
 
@@ -301,6 +320,10 @@ export interface AdminRestaurantItem {
     status: MenuStatus;
     isSuspended: boolean;
     suspensionReason: string | null;
+    subscriptionTier: SubscriptionTier;
+    subscriptionExpiresAt: string | null;
+    phone: string | null;
+    email: string | null;
     city: string | null;
     country: string;
     createdAt: string;
@@ -351,5 +374,15 @@ export interface AuditLogEntry {
         name: string;
         slug: string;
     } | null;
+}
+
+export interface BroadcastAnnouncement {
+    id: string;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'success';
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 

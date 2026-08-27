@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, ArrowLeft, Megaphone, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useActiveBroadcast } from '../../hooks/useAdmin';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { cn } from '../../lib/utils';
 
 export const DashboardLayout: React.FC = () => {
     const { t } = useTranslation();
@@ -12,6 +14,26 @@ export const DashboardLayout: React.FC = () => {
     const navigate = useNavigate();
 
     const [impersonatingName, setImpersonatingName] = useState<string | null>(null);
+    const { data: activeBroadcast } = useActiveBroadcast();
+    const [isBroadcastDismissed, setIsBroadcastDismissed] = useState(false);
+
+    useEffect(() => {
+        if (activeBroadcast) {
+            const dismissedId = sessionStorage.getItem('dismissed_broadcast_id');
+            if (dismissedId === activeBroadcast.id) {
+                setIsBroadcastDismissed(true);
+            } else {
+                setIsBroadcastDismissed(false);
+            }
+        }
+    }, [activeBroadcast]);
+
+    const handleDismissBroadcast = () => {
+        if (activeBroadcast) {
+            sessionStorage.setItem('dismissed_broadcast_id', activeBroadcast.id);
+            setIsBroadcastDismissed(true);
+        }
+    };
 
     useEffect(() => {
         const storedName = localStorage.getItem('admin_impersonating_restaurant_name');
@@ -80,6 +102,34 @@ export const DashboardLayout: React.FC = () => {
                                 <span>{restaurant.suspensionReason || 'Modifications are locked by platform administrator. Diners currently see an unavailable notice.'}</span>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Global Platform Broadcast Announcement Banner */}
+                {activeBroadcast && activeBroadcast.isActive && !isBroadcastDismissed && (
+                    <div className={cn(
+                        'px-4 py-2.5 text-xs flex items-center justify-between shadow-xs sticky top-0 z-20 border-b animate-fade-in',
+                        activeBroadcast.type === 'warning'
+                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-900 dark:text-amber-200'
+                            : activeBroadcast.type === 'success'
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                            : 'bg-blue-500/15 border-blue-500/30 text-blue-900 dark:text-blue-200'
+                    )}>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <Megaphone className="w-4 h-4 flex-shrink-0" />
+                            <div className="min-w-0">
+                                <span className="font-extrabold mr-1.5">{activeBroadcast.title}:</span>
+                                <span className="opacity-90">{activeBroadcast.message}</span>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleDismissBroadcast}
+                            className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex-shrink-0 ml-3 cursor-pointer"
+                            title="Dismiss announcement"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
                     </div>
                 )}
 
