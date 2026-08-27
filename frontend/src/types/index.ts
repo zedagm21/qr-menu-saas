@@ -11,6 +11,7 @@ export interface User {
     email: string;
     role: Role;
     restaurantId: string | null;
+    emailVerified: boolean;
     createdAt: string;
     updatedAt: string;
 }

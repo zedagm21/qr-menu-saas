@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/AuthService';
-import { registerSchema, loginSchema, updatePasswordSchema } from '../validators/auth';
+import {
+    registerSchema,
+    loginSchema,
+    verifyOtpSchema,
+    resendOtpSchema,
+    googleAuthSchema,
+    updatePasswordSchema,
+} from '../validators/auth';
 import { config } from '../config/env';
 
 const cookieOptions = {
@@ -14,8 +21,44 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     try {
         const data = registerSchema.parse(req.body);
         const result = await authService.register(data);
+        // Note: No session cookie set here because email OTP verification is required
+        res.status(201).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const verifyOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = verifyOtpSchema.parse(req.body);
+        const result = await authService.verifyEmailOtp(data.email, data.otp);
         res.cookie('token', result.token, cookieOptions);
-        res.status(201).json({ user: result.user, restaurant: result.restaurant });
+        res.json({ user: result.user, restaurant: result.restaurant });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resendOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = resendOtpSchema.parse(req.body);
+        const result = await authService.resendOtp(data.email);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const googleAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = googleAuthSchema.parse(req.body);
+        const result = await authService.googleAuth(data.credential);
+        res.cookie('token', result.token, cookieOptions);
+        res.json({
+            user: result.user,
+            restaurant: result.restaurant,
+            isNewUser: result.isNewUser,
+        });
     } catch (error) {
         next(error);
     }

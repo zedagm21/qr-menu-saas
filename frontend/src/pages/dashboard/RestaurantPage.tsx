@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
     Save, Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
-    Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info
+    Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info,
+    AlertTriangle
 } from 'lucide-react';
 import { useRestaurant, useUpdateRestaurant } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
@@ -187,13 +189,14 @@ const selectCls = 'w-full h-12 px-4 rounded-xl border border-neutral-200 dark:bo
 // ─── Main Component ───────────────────────────────────────────────────────────
 const RestaurantPage: React.FC = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const { data: restaurant, isLoading } = useRestaurant();
     const { mutate: update, isPending } = useUpdateRestaurant();
     const qc = useQueryClient();
 
     const [tab, setTab] = useState<'en' | 'am'>('en');
 
-    const { register, handleSubmit, reset, watch } = useForm<FormData>();
+    const { register, handleSubmit, reset, watch, formState: { isDirty } } = useForm<FormData>();
     const status = watch('status');
 
     const [logoDragOver, setLogoDragOver] = useState(false);
@@ -204,6 +207,10 @@ const RestaurantPage: React.FC = () => {
     const [coverProgress, setCoverProgress] = useState<number | null>(null);
     const [showWifiPassword, setShowWifiPassword] = useState(false);
     const [socialLinks, setSocialLinks] = useState<SocialMediaEntry[]>([]);
+    const initialSocialJson = useRef('[]');
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+    const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
+
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -229,9 +236,83 @@ const RestaurantPage: React.FC = () => {
                 wifiPassword: restaurant.wifiPassword ?? '',
                 paymentInfo: restaurant.paymentInfo ?? '',
             });
-            setSocialLinks(Array.isArray(restaurant.socialMedia) ? (restaurant.socialMedia as SocialMediaEntry[]) : []);
+            const originalSocial = Array.isArray(restaurant.socialMedia) ? (restaurant.socialMedia as SocialMediaEntry[]) : [];
+            setSocialLinks(originalSocial);
+            initialSocialJson.current = JSON.stringify(originalSocial);
         }
     }, [restaurant, reset, t]);
+
+    const isSocialDirty = JSON.stringify(socialLinks.filter(l => l.url.trim() !== '')) !== initialSocialJson.current;
+    const isModified = isDirty || isSocialDirty;
+
+    // Warn on browser reload / tab close
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isModified) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isModified]);
+
+    // Intercept internal link clicks when there are unsaved changes
+    useEffect(() => {
+        if (!isModified) return;
+
+        const handleAnchorClick = (e: MouseEvent) => {
+            const target = (e.target as HTMLElement).closest('a');
+            if (!target) return;
+            const href = target.getAttribute('href');
+            if (!href || href.startsWith('#') || target.target === '_blank' || href.startsWith('blob:')) return;
+
+            // If navigating away from the current page
+            if (href !== window.location.pathname) {
+                e.preventDefault();
+                e.stopPropagation();
+                setPendingNavHref(href);
+                setShowUnsavedModal(true);
+            }
+        };
+
+        document.addEventListener('click', handleAnchorClick, true);
+        return () => document.removeEventListener('click', handleAnchorClick, true);
+    }, [isModified]);
+
+    const handleDiscardChanges = () => {
+        if (restaurant) {
+            const translations = restaurant.translations ?? [];
+            reset({
+                nameEn: getTranslation(translations, 'EN', 'name') || restaurant.name || '',
+                descEn: getTranslation(translations, 'EN', 'description') || restaurant.description || '',
+                addressEn: getTranslation(translations, 'EN', 'address') || restaurant.address || '',
+                cityEn: getTranslation(translations, 'EN', 'city') || restaurant.city || '',
+                nameAm: getTranslation(translations, 'AM', 'name') || '',
+                descAm: getTranslation(translations, 'AM', 'description') || '',
+                addressAm: getTranslation(translations, 'AM', 'address') || '',
+                cityAm: getTranslation(translations, 'AM', 'city') || '',
+                phone: restaurant.phone ?? '',
+                email: restaurant.email ?? '',
+                country: restaurant.country ?? t('restaurant.ethiopia'),
+                defaultLanguage: restaurant.defaultLanguage ?? 'EN',
+                currency: restaurant.currency ?? 'ETB',
+                status: restaurant.status ?? 'DRAFT',
+                wifiName: restaurant.wifiName ?? '',
+                wifiPassword: restaurant.wifiPassword ?? '',
+                paymentInfo: restaurant.paymentInfo ?? '',
+            });
+            const originalSocial = Array.isArray(restaurant.socialMedia) ? (restaurant.socialMedia as SocialMediaEntry[]) : [];
+            setSocialLinks(originalSocial);
+            initialSocialJson.current = JSON.stringify(originalSocial);
+        }
+        setShowUnsavedModal(false);
+        if (pendingNavHref) {
+            const target = pendingNavHref;
+            setPendingNavHref(null);
+            navigate(target);
+        }
+    };
 
     useEffect(() => () => {
         clearTimeout(logoTimer.current); clearTimeout(coverTimer.current);
@@ -285,7 +366,22 @@ const RestaurantPage: React.FC = () => {
             translations,
         };
 
-        update(payload);
+        update(payload, {
+            onSuccess: () => {
+                initialSocialJson.current = JSON.stringify(payload.socialMedia);
+                reset(data);
+                if (pendingNavHref) {
+                    const target = pendingNavHref;
+                    setPendingNavHref(null);
+                    setShowUnsavedModal(false);
+                    navigate(target);
+                }
+            },
+        });
+    };
+
+    const handleSaveAndLeave = () => {
+        handleSubmit(onSubmit)();
     };
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -718,8 +814,8 @@ const RestaurantPage: React.FC = () => {
                         </div>
                     </SectionCard>
 
-                    {/* ── Save ── */}
-                    <div className="animate-fade-in-up flex justify-start" style={{ animationDelay: '300ms' }}>
+                    {/* ── Standard Save Button (Bottom of form) ── */}
+                    <div className="animate-fade-in-up flex justify-start pb-12" style={{ animationDelay: '300ms' }}>
                         <Button
                             type="submit"
                             variant="primary"
@@ -731,7 +827,101 @@ const RestaurantPage: React.FC = () => {
                         </Button>
                     </div>
 
+                    {/* ── Sticky Floating Save Bar ── */}
+                    <div className="fixed bottom-0 lg:bottom-5 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-16 lg:pb-0">
+                        <div className="pointer-events-auto max-w-3xl w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 p-3 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300">
+                            <div className="flex items-center gap-2.5">
+                                {isModified ? (
+                                    <>
+                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                        <span className="text-[13px] font-medium text-amber-700 dark:text-amber-400">
+                                            {t('restaurant.unsaved_changes', { defaultValue: 'You have unsaved changes' })}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                        <span className="text-[13px] font-medium text-neutral-500 dark:text-neutral-400">
+                                            {t('restaurant.all_saved', { defaultValue: 'All changes saved' })}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {isModified && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleDiscardChanges}
+                                        className="h-10 text-[13px] text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                    >
+                                        {t('common.discard', { defaultValue: 'Discard' })}
+                                    </Button>
+                                )}
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="sm"
+                                    className="h-10 px-6 text-[13px] font-semibold"
+                                    isLoading={isPending}
+                                    icon={<Save className="w-4 h-4" />}
+                                >
+                                    {t('restaurant.save', { defaultValue: 'Save Changes' })}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
                 </form>
+
+                {/* ── Unsaved Changes Navigation Modal ── */}
+                {showUnsavedModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                                    <AlertTriangle className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                                        {t('restaurant.unsaved_modal_title', { defaultValue: 'Unsaved Changes' })}
+                                    </h3>
+                                    <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                        {t('restaurant.unsaved_modal_desc', { defaultValue: 'You have unsaved changes on your profile. What would you like to do before leaving?' })}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowUnsavedModal(false)}
+                                    className="w-full sm:w-auto h-10 text-[13px]"
+                                >
+                                    {t('restaurant.stay_on_page', { defaultValue: 'Stay on Page' })}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={handleDiscardChanges}
+                                    className="w-full sm:w-auto h-10 text-[13px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                >
+                                    {t('common.discard_and_leave', { defaultValue: 'Discard & Leave' })}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    onClick={handleSaveAndLeave}
+                                    isLoading={isPending}
+                                    className="w-full sm:w-auto h-10 text-[13px] font-semibold"
+                                >
+                                    {t('common.save_and_leave', { defaultValue: 'Save Changes' })}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );

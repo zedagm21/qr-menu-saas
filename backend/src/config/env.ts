@@ -20,4 +20,16 @@ export const config = {
     cloudflareR2BucketName: process.env.CLOUDFLARE_R2_BUCKET_NAME || '',
     cloudflareR2PublicUrl: process.env.CLOUDFLARE_R2_PUBLIC_URL || '',
     cloudflareR2Endpoint: process.env.CLOUDFLARE_R2_ENDPOINT || '',
+
+    // Google OAuth
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+
+    // SMTP Email Configuration (Gmail SMTP / Brevo / Custom)
+    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+    smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+    smtpSecure: process.env.SMTP_SECURE === 'true',
+    smtpUser: process.env.SMTP_USER || '',
+    smtpPass: process.env.SMTP_PASS || '',
+    smtpFrom: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@qrmenu.app',
 };

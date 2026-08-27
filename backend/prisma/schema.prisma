@@ -43,15 +43,21 @@ enum ThemeMode {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
-  id           String      @id @default(cuid())
-  name         String
-  email        String      @unique
-  passwordHash String
-  role         Role        @default(OWNER)
-  restaurantId String?
-  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id                       String      @id @default(cuid())
+  name                     String
+  email                    String      @unique
+  passwordHash             String?
+  googleId                 String?     @unique
+  emailVerified            Boolean     @default(false)
+  emailVerificationOtp     String?
+  emailVerificationExpires DateTime?
+  resendAttemptsCount      Int         @default(0)
+  lastResendAttemptAt      DateTime?
+  role                     Role        @default(OWNER)
+  restaurantId             String?
+  restaurant               Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
 
   @@map("users")
 }

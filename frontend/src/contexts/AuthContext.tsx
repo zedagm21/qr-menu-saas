@@ -8,7 +8,10 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string) => Promise<void>;
-    register: (data: { name: string; email: string; password: string; restaurantName: string }) => Promise<void>;
+    register: (data: { name: string; email: string; password: string; restaurantName?: string }) => Promise<{ success: boolean; email: string; requiresVerification: boolean }>;
+    verifyOtp: (email: string, otp: string) => Promise<{ user: User; restaurant: Restaurant }>;
+    resendOtp: (email: string) => Promise<{ success: boolean; message: string }>;
+    googleAuth: (credential: string) => Promise<{ user: User; restaurant: Restaurant; isNewUser: boolean }>;
     logout: () => Promise<void>;
     refreshAuth: () => Promise<void>;
     updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -42,10 +45,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRestaurant(data.restaurant);
     };
 
-    const register = async (data: { name: string; email: string; password: string; restaurantName: string }) => {
+    const register = async (data: { name: string; email: string; password: string; restaurantName?: string }) => {
         const result = await authApi.register(data);
+        return result;
+    };
+
+    const verifyOtp = async (email: string, otp: string) => {
+        const result = await authApi.verifyOtp({ email, otp });
         setUser(result.user);
         setRestaurant(result.restaurant);
+        return result;
+    };
+
+    const resendOtp = async (email: string) => {
+        return await authApi.resendOtp({ email });
+    };
+
+    const googleAuth = async (credential: string) => {
+        const result = await authApi.googleAuth({ credential });
+        setUser(result.user);
+        setRestaurant(result.restaurant);
+        return result;
     };
 
     const logout = async () => {
@@ -67,6 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 isAuthenticated: !!user,
                 login,
                 register,
+                verifyOtp,
+                resendOtp,
+                googleAuth,
                 logout,
                 refreshAuth,
                 updatePassword,
