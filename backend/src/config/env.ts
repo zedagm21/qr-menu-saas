@@ -25,11 +25,7 @@ export const config = {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
 
-    // SMTP Email Configuration (Gmail SMTP / Brevo / Custom)
-    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
-    smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
-    smtpSecure: process.env.SMTP_SECURE === 'true',
-    smtpUser: process.env.SMTP_USER || '',
-    smtpPass: process.env.SMTP_PASS || '',
-    smtpFrom: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@qrmenu.app',
+    // Brevo (Sendinblue) Email Configuration
+    brevoApiKey: process.env.BREVO_API_KEY || '',
+    emailFrom: process.env.EMAIL_FROM || 'no-reply@qrmenu.app',
 };
