@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -17,16 +17,23 @@ import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
+import { useDebounce } from '../../hooks/useDebounce';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
 
 export default function PublicMenuPage() {
     const { t, i18n } = useTranslation();
     const { slug } = useParams<{ slug: string }>();
+    const [searchParams] = useSearchParams();
+    const tableParam = searchParams.get('table');
+    const qrParam = searchParams.get('qr');
+
     const [lang, setLang] = useState<'EN' | 'AM'>(() => {
         const current = i18n.language?.toUpperCase();
         return current === 'AM' ? 'AM' : 'EN';
     });
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 700);
+
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -51,7 +58,7 @@ export default function PublicMenuPage() {
         localStorage.setItem('ui-language', nextLang.toLowerCase());
     };
 
-    const { data: restaurant, isLoading: restaurantLoading, isError } = useQuery<Restaurant>({
+    const { data: restaurant, isLoading: restaurantLoading, isError, error } = useQuery<Restaurant>({
         queryKey: ['public-restaurant', slug, lang],
         queryFn: () => publicApi.getRestaurant(slug!, lang),
         enabled: !!slug,
@@ -205,6 +212,44 @@ export default function PublicMenuPage() {
             .filter(cat => cat.menuItems.length > 0 || (!search && activeFilterCount === 0));
     }, [categories, search, activeCategory, filters, activeFilterCount]);
 
+    // ─── Analytics Tracking ──────────────────────────────────────────────────
+    // 1. Record QR scan once per session
+    useEffect(() => {
+        if (!slug || !restaurant || restaurant.isSuspended) return;
+        const sessionScanKey = `scanned:${slug}`;
+        if (!sessionStorage.getItem(sessionScanKey)) {
+            sessionStorage.setItem(sessionScanKey, 'true');
+            publicApi.recordScan(slug, {
+                table: tableParam || undefined,
+                qr: qrParam || undefined,
+                language: lang,
+            });
+        }
+    }, [slug, restaurant, tableParam, qrParam, lang]);
+
+    // 2. Record debounced customer search demand
+    useEffect(() => {
+        if (!slug || !debouncedSearch || debouncedSearch.trim().length < 2) return;
+        const totalMatches = filteredCategories.reduce((acc, cat) => acc + cat.menuItems.length, 0);
+        publicApi.recordSearch(slug, debouncedSearch.trim(), totalMatches);
+    }, [debouncedSearch, slug, filteredCategories]);
+
+    // 3. Track dish modal clicks
+    const handleSelectItem = (item: any) => {
+        setSelectedItem(item);
+        if (slug && item?.id) {
+            publicApi.recordItemClick(slug, item.id);
+        }
+    };
+
+    // 4. Track profile view
+    const handleOpenRestaurantInfo = () => {
+        setShowRestaurantInfo(true);
+        if (slug) {
+            publicApi.recordInteraction(slug, 'PROFILE_VIEW');
+        }
+    };
+
     const menuStyle = restaurant?.theme?.menuStyle || 'MODERN';
 
     if (restaurantLoading) return (
@@ -212,6 +257,32 @@ export default function PublicMenuPage() {
             <div className="w-10 h-10 border-4 border-[color:var(--color-brand-500)] border-t-transparent rounded-full animate-spin" />
         </div>
     );
+
+    // ─── Suspension Screen ───
+    const isSuspended = Boolean(
+        restaurant?.isSuspended ||
+        (error as any)?.response?.data?.isSuspended ||
+        (error as any)?.response?.status === 403
+    );
+    const suspensionReason =
+        restaurant?.suspensionReason ||
+        (error as any)?.response?.data?.reason;
+
+    if (isSuspended) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#111111] text-center px-4 animate-fade-in">
+                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-amber-200 dark:border-amber-500/20">
+                    <span className="text-3xl">⏳</span>
+                </div>
+                <h1 className="text-xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight">
+                    {t("public.menu_temporarily_suspended", { defaultValue: "Menu Temporarily Unavailable" })}
+                </h1>
+                <p className="text-neutral-500 dark:text-[#A3A3A3] mt-2 font-medium max-w-sm text-sm">
+                    {suspensionReason || t("public.menu_temporarily_suspended_desc", { defaultValue: "This restaurant menu is currently paused by the platform. Please check back shortly." })}
+                </p>
+            </div>
+        );
+    }
 
     if (isError || !restaurant) return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-[#F9FAFB] dark:bg-[#111111] text-center px-4">
@@ -243,7 +314,7 @@ export default function PublicMenuPage() {
                     {/* Left side: Logo + MENU text (Clickable -> Opens Restaurant Info Modal) */}
                     <button
                         type="button"
-                        onClick={() => setShowRestaurantInfo(true)}
+                        onClick={handleOpenRestaurantInfo}
                         aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
                         className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer group"
                     >
@@ -440,7 +511,7 @@ export default function PublicMenuPage() {
                                                 <MenuItemCard
                                                     item={item}
                                                     lang={lang}
-                                                    onClick={() => setSelectedItem(item)}
+                                                    onClick={() => handleSelectItem(item)}
                                                     menuStyle={menuStyle}
                                                 />
                                             </div>
@@ -475,7 +546,7 @@ export default function PublicMenuPage() {
                                                 <MenuItemCard
                                                     item={item}
                                                     lang={lang}
-                                                    onClick={() => setSelectedItem(item)}
+                                                    onClick={() => handleSelectItem(item)}
                                                     menuStyle={menuStyle}
                                                 />
                                             </div>
@@ -549,6 +620,9 @@ export default function PublicMenuPage() {
                     onClose={() => setShowRestaurantInfo(false)}
                     restaurant={restaurant}
                     isAm={lang === 'AM'}
+                    onSocialClick={(platform) => slug && publicApi.recordInteraction(slug, 'SOCIAL_CLICK', platform)}
+                    onCallClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
+                    onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
                 />
             </div>
         </ThemeProvider>

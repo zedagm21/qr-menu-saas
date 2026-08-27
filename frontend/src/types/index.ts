@@ -57,6 +57,8 @@ export interface Restaurant {
     defaultLanguage: Language;
     currency: string;
     status: MenuStatus;
+    isSuspended?: boolean;
+    suspensionReason?: string | null;
     wifiName?: string | null;
     wifiPassword?: string | null;
     paymentInfo?: string | null;
@@ -193,3 +195,161 @@ export interface CreateMenuItemInput {
     isSpicy?: boolean;
     translations: TranslationInput[];
 }
+
+// ─── Analytics Types ──────────────────────────────────────────────────────────
+export interface AnalyticsSummary {
+    totalScans: number;
+    uniqueDiners: number;
+    scanGrowthPct: number;
+    peakHour: string;
+    topDish: string;
+    profileViews: number;
+    totalSocialClicks: number;
+    callClicks: number;
+    directionsClicks: number;
+}
+
+export interface AnalyticsTimelineItem {
+    label: string;
+    count: number;
+}
+
+export interface PeakHourItem {
+    hour: number;
+    label: string;
+    count: number;
+}
+
+export interface TopDishItem {
+    id: string;
+    name: string;
+    amName: string | null;
+    category: string;
+    price: number;
+    imageUrl: string | null;
+    clicks: number;
+    sharePct: number;
+}
+
+export interface TopSearchItem {
+    query: string;
+    count: number;
+}
+
+export interface AnalyticsData {
+    summary: AnalyticsSummary;
+    timeline: AnalyticsTimelineItem[];
+    peakHours: PeakHourItem[];
+    topDishes: TopDishItem[];
+    topSearches: TopSearchItem[];
+    devices: {
+        ios: number;
+        android: number;
+        other: number;
+        iosPct: number;
+        androidPct: number;
+    };
+    languages: {
+        en: number;
+        am: number;
+        enPct: number;
+        amPct: number;
+    };
+    interactions: {
+        profileViews: number;
+        callClicks: number;
+        directionsClicks: number;
+        socialPlatforms: Record<string, number>;
+    };
+}
+
+// ─── SaaS Super Admin Types ───────────────────────────────────────────────────
+export interface AdminOverviewMetrics {
+    restaurants: {
+        total: number;
+        published: number;
+        draft: number;
+        suspended: number;
+    };
+    users: {
+        total: number;
+        verified: number;
+        unverified: number;
+    };
+    catalog: {
+        totalItems: number;
+        totalCategories: number;
+    };
+    scans: {
+        total: number;
+        today: number;
+        week: number;
+    };
+    signupTimeline: {
+        date: string;
+        users: number;
+        restaurants: number;
+    }[];
+    recentAudits: AuditLogEntry[];
+}
+
+export interface AdminRestaurantItem {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl: string | null;
+    status: MenuStatus;
+    isSuspended: boolean;
+    suspensionReason: string | null;
+    city: string | null;
+    country: string;
+    createdAt: string;
+    updatedAt: string;
+    owner: {
+        id: string;
+        name: string;
+        email: string;
+        role: Role;
+        emailVerified: boolean;
+    } | null;
+    itemCount: number;
+    categoryCount: number;
+    scanCount: number;
+}
+
+export interface AdminUserItem {
+    id: string;
+    name: string;
+    email: string;
+    role: Role;
+    emailVerified: boolean;
+    isGoogleUser: boolean;
+    restaurant: {
+        id: string;
+        name: string;
+        slug: string;
+        isSuspended: boolean;
+        status: MenuStatus;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AuditLogEntry {
+    id: string;
+    action: string;
+    details: any;
+    ipAddress: string | null;
+    createdAt: string;
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+    } | null;
+    restaurant?: {
+        id: string;
+        name: string;
+        slug: string;
+    } | null;
+}
+

@@ -40,6 +40,13 @@ enum ThemeMode {
   AUTO
 }
 
+enum InteractionType {
+  PROFILE_VIEW
+  SOCIAL_CLICK
+  CALL_CLICK
+  DIRECTIONS_CLICK
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -56,6 +63,7 @@ model User {
   role                     Role        @default(OWNER)
   restaurantId             String?
   restaurant               Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  auditLogs                AuditLog[]
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 
@@ -63,32 +71,39 @@ model User {
 }
 
 model Restaurant {
-  id              String           @id @default(cuid())
-  name            String
-  slug            String           @unique
-  description     String?
-  logoUrl         String?
-  coverImageUrl   String?
-  phone           String?
-  email           String?
-  address         String?
-  city            String?
-  country         String           @default("Ethiopia")
-  defaultLanguage Language         @default(EN)
-  currency        String           @default("ETB")
-  status          MenuStatus       @default(DRAFT)
-  wifiName        String?
-  wifiPassword    String?
-  paymentInfo     String?
-  socialMedia     Json?
-  users           User[]
-  translations    RestaurantTranslation[]
-  categories      Category[]
-  menuItems       MenuItem[]
-  qrCodes         QRCode[]
-  theme           RestaurantTheme?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  description         String?
+  logoUrl             String?
+  coverImageUrl       String?
+  phone               String?
+  email               String?
+  address             String?
+  city                String?
+  country             String               @default("Ethiopia")
+  defaultLanguage     Language             @default(EN)
+  currency            String               @default("ETB")
+  status              MenuStatus           @default(DRAFT)
+  isSuspended         Boolean              @default(false)
+  suspensionReason    String?
+  wifiName            String?
+  wifiPassword        String?
+  paymentInfo         String?
+  socialMedia         Json?
+  users               User[]
+  translations        RestaurantTranslation[]
+  categories          Category[]
+  menuItems           MenuItem[]
+  qrCodes             QRCode[]
+  theme               RestaurantTheme?
+  scanEvents          ScanEvent[]
+  menuItemClicks      MenuItemClick[]
+  searchQueries       SearchQueryLog[]
+  profileInteractions ProfileInteraction[]
+  auditLogs           AuditLog[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@map("restaurants")
 }
@@ -135,22 +150,23 @@ model CategoryTranslation {
 }
 
 model MenuItem {
-  id           String                @id @default(cuid())
-  restaurantId String
-  restaurant   Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  categoryId   String
-  category     Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  price        Decimal               @db.Decimal(10, 2)
-  discountPrice Decimal?             @db.Decimal(10, 2)
-  currency     String                @default("ETB")
-  imageUrl     String?
-  isAvailable  Boolean               @default(true)
-  displayOrder Int                   @default(0)
-  isFeatured   Boolean               @default(false)
-  isSpicy      Boolean               @default(false)
-  translations MenuItemTranslation[]
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  id            String                @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  price         Decimal               @db.Decimal(10, 2)
+  discountPrice Decimal?              @db.Decimal(10, 2)
+  currency      String                @default("ETB")
+  imageUrl      String?
+  isAvailable   Boolean               @default(true)
+  displayOrder  Int                   @default(0)
+  isFeatured    Boolean               @default(false)
+  isSpicy       Boolean               @default(false)
+  translations  MenuItemTranslation[]
+  clicks        MenuItemClick[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 
   @@index([restaurantId, displayOrder])
   @@index([categoryId, displayOrder])
@@ -173,13 +189,14 @@ model MenuItemTranslation {
 }
 
 model QRCode {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  name         String     @default("Main QR")
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String      @default("Main QR")
+  isActive     Boolean     @default(true)
+  scans        ScanEvent[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([restaurantId])
   @@map("qr_codes")
@@ -198,4 +215,82 @@ model RestaurantTheme {
   updatedAt    DateTime   @updatedAt
 
   @@map("restaurant_themes")
+}
+
+// ─── QR Scan Tracking Event ──────────────────────────────────────────────────
+model ScanEvent {
+  id           String      @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  qrCodeId     String?
+  qrCode       QRCode?     @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  tableNumber  String?
+  device       String?     // 'Mobile', 'Tablet', 'Desktop'
+  os           String?     // 'iOS', 'Android', 'Other'
+  language     Language?
+  ipHash       String?     // SHA-256 hashed identifier for unique diner deduplication
+  createdAt    DateTime    @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([restaurantId, qrCodeId])
+  @@map("scan_events")
+}
+
+// ─── Menu Item Interaction Event ─────────────────────────────────────────────
+model MenuItemClick {
+  id           String      @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItemId   String
+  menuItem     MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([menuItemId, createdAt])
+  @@map("menu_item_clicks")
+}
+
+// ─── Customer Search Query Demand Log ────────────────────────────────────────
+model SearchQueryLog {
+  id           String      @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  query        String
+  resultsCount Int         @default(0)
+  createdAt    DateTime    @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@map("search_query_logs")
+}
+
+// ─── Restaurant Profile & Social Media Interaction ───────────────────────────
+model ProfileInteraction {
+  id           String          @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  type         InteractionType
+  platform     String?         // 'instagram', 'telegram', 'tiktok', 'facebook', 'phone', 'directions'
+  createdAt    DateTime        @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([restaurantId, type])
+  @@map("profile_interactions")
+}
+
+// ─── Platform Audit Log ──────────────────────────────────────────────────────
+model AuditLog {
+  id           String      @id @default(cuid())
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  action       String
+  details      Json?
+  ipAddress    String?
+  createdAt    DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([restaurantId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }

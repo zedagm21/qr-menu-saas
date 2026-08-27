@@ -9,6 +9,7 @@ const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
 
 // Dashboard pages
 const OverviewPage = lazy(() => import('./pages/dashboard/OverviewPage'));
+const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
 const RestaurantPage = lazy(() => import('./pages/dashboard/RestaurantPage'));
 const CategoriesPage = lazy(() => import('./pages/dashboard/CategoriesPage'));
 const MenuItemsPage = lazy(() => import('./pages/dashboard/MenuItemsPage'));
@@ -17,13 +18,21 @@ const CustomizePage = lazy(() => import('./pages/dashboard/CustomizePage'));
 const SettingsPage = lazy(() => import('./pages/dashboard/SettingsPage'));
 const MorePage = lazy(() => import('./pages/dashboard/MorePage'));
 
+// Admin pages & layouts
+const AdminRoute = lazy(() => import('./components/auth/AdminRoute').then(m => ({ default: m.AdminRoute })));
+const AdminLayout = lazy(() => import('./components/layout/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage'));
+const AdminRestaurantsPage = lazy(() => import('./pages/admin/AdminRestaurantsPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
+
 // Public
 const PublicMenuPage = lazy(() => import('./pages/public/PublicMenuPage'));
 const CameraUploadPage = lazy(() => import('./pages/public/CameraUploadPage'));
 
 const PageLoader = () => (
-    <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin border-[3px]" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin border-[3px]" />
     </div>
 );
 
@@ -39,9 +48,10 @@ const App: React.FC = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-            {/* Dashboard */}
+            {/* Restaurant Owner Dashboard */}
             <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<OverviewPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="restaurant" element={<RestaurantPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="menu" element={<MenuItemsPage />} />
@@ -49,6 +59,16 @@ const App: React.FC = () => (
                 <Route path="customize" element={<CustomizePage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="more" element={<MorePage />} />
+            </Route>
+
+            {/* SaaS Super Admin */}
+            <Route path="/admin" element={<AdminRoute />}>
+                <Route element={<AdminLayout />}>
+                    <Route index element={<AdminOverviewPage />} />
+                    <Route path="restaurants" element={<AdminRestaurantsPage />} />
+                    <Route path="users" element={<AdminUsersPage />} />
+                    <Route path="activity" element={<AdminActivityPage />} />
+                </Route>
             </Route>
 
             {/* Redirects */}

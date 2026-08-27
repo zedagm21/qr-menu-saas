@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Store, List, Palette, Settings, LogOut, ExternalLink, ChevronRight } from 'lucide-react';
+import { Store, List, Palette, Settings, LogOut, ExternalLink, ChevronRight, BarChart3, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
 
@@ -16,10 +16,14 @@ const MorePage: React.FC = () => {
     };
 
     const links = [
+        { to: '/dashboard/analytics', icon: BarChart3, labelKey: 'nav.analytics', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 border border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/20' },
         { to: '/dashboard/categories', icon: List, labelKey: 'nav.categories', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 border border-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-500/20' },
         { to: '/dashboard/restaurant', icon: Store, labelKey: 'nav.restaurant', color: 'text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]', bg: 'bg-[color:var(--color-brand-50)] border border-[color:var(--color-brand-100)] dark:bg-[color:var(--color-brand-500)]/10 dark:border-[color:var(--color-brand-500)]/20' },
         { to: '/dashboard/customize', icon: Palette, labelKey: 'nav.customize', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 border border-rose-100 dark:bg-rose-500/10 dark:border-rose-500/20' },
         { to: '/dashboard/settings', icon: Settings, labelKey: 'nav.settings', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
+        ...(user?.role === 'ADMIN' ? [
+            { to: '/admin', icon: ShieldCheck, labelKey: 'nav.admin_panel', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 border border-purple-100 dark:bg-purple-500/10 dark:border-purple-500/20' },
+        ] : []),
     ];
 
     return (

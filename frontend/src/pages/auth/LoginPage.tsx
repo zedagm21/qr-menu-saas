@@ -37,8 +37,12 @@ const LoginPage: React.FC = () => {
     const onSubmit = async (data: FormData) => {
         setApiError('');
         try {
-            await login(data.email, data.password);
-            navigate('/dashboard');
+            const result = await login(data.email, data.password);
+            if (result?.user?.role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err: any) {
             const resData = err?.response?.data;
             if (resData?.error === 'EMAIL_NOT_VERIFIED') {
@@ -56,7 +60,9 @@ const LoginPage: React.FC = () => {
         setApiError('');
         try {
             const result = await googleAuth(credential);
-            if (result.isNewUser) {
+            if (result?.user?.role === 'ADMIN') {
+                navigate('/admin');
+            } else if (result.isNewUser) {
                 // First-time users land directly on Restaurant Profile to fill it in
                 toast.success(t('auth.google_welcome_new', { defaultValue: 'Welcome! Complete your restaurant profile.' }));
                 navigate('/dashboard/restaurant');

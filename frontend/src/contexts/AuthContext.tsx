@@ -7,7 +7,7 @@ interface AuthContextType {
     restaurant: Restaurant | null;
     isLoading: boolean;
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<{ user: User; restaurant: Restaurant }>;
     register: (data: { name: string; email: string; password: string; restaurantName?: string }) => Promise<{ success: boolean; email: string; requiresVerification: boolean }>;
     verifyOtp: (email: string, otp: string) => Promise<{ user: User; restaurant: Restaurant }>;
     resendOtp: (email: string) => Promise<{ success: boolean; message: string }>;
@@ -43,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await authApi.login({ email, password });
         setUser(data.user);
         setRestaurant(data.restaurant);
+        return data;
     };
 
     const register = async (data: { name: string; email: string; password: string; restaurantName?: string }) => {

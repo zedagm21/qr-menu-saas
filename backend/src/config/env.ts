@@ -32,4 +32,10 @@ export const config = {
     smtpUser: process.env.SMTP_USER || '',
     smtpPass: process.env.SMTP_PASS || '',
     smtpFrom: process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@qrmenu.app',
+
+    // Super Admin bootstrap emails
+    superAdminEmails: (process.env.SUPER_ADMIN_EMAILS || 'admin@bluenile.et')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
 };
