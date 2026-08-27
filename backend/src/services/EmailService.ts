@@ -94,8 +94,13 @@ export class EmailService {
                 from: `"QR Menu" <${config.smtpFrom}>`,
                 to: email,
                 subject: `${otp} is your QR Menu verification code`,
+                text: `Hello ${name},\n\nYour QR Menu verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not create a QR Menu account, please ignore this email.\n\n— The QR Menu Team`,
                 html,
-                text: `Your QR Menu verification code is: ${otp}. It will expire in 15 minutes.`,
+                headers: {
+                    'X-Priority': '1',
+                    'X-MSMail-Priority': 'High',
+                    'Importance': 'high',
+                },
             });
             return true;
         } catch (error) {

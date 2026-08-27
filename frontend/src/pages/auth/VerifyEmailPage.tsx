@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
-import { MailCheck, ArrowRight, RotateCw, ArrowLeft } from 'lucide-react';
+import { MailCheck, ArrowRight, RotateCw, ArrowLeft, Info } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 import toast from 'react-hot-toast';
@@ -153,27 +153,27 @@ const VerifyEmailPage: React.FC = () => {
             <Helmet>
                 <title>{t('auth.verify.title', { defaultValue: 'Verify Your Email' })} — QR Menu</title>
             </Helmet>
-            <div className="min-h-screen bg-neutral-50 overflow-hidden flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 overflow-hidden flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     {/* Header */}
                     <div className="text-center mb-6">
                         <div className="inline-flex items-center justify-center w-14 h-14 bg-amber-600 rounded-2xl shadow-[0_4px_16px_rgba(217,119,6,0.3)] mb-4 text-white">
                             <MailCheck className="w-7 h-7" />
                         </div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">
                             {t('auth.verify.title', { defaultValue: 'Check your email' })}
                         </h1>
-                        <p className="text-neutral-500 mt-2 text-[14px] leading-relaxed">
+                        <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-[14px] leading-relaxed">
                             {t('auth.verify.subtitle', { defaultValue: 'We sent a 6-digit verification code to' })}
                             <br />
-                            <strong className="text-neutral-900 font-semibold">{email || 'your email address'}</strong>
+                            <strong className="text-neutral-900 dark:text-neutral-200 font-semibold">{email || 'your email address'}</strong>
                         </p>
                     </div>
 
                     {/* Card container */}
-                    <div className="bg-white py-8 px-6 shadow-[0_2px_16px_rgba(0,0,0,0.04)] rounded-2xl sm:px-10 border border-neutral-100">
+                    <div className="bg-white dark:bg-neutral-900 py-8 px-6 shadow-[0_2px_16px_rgba(0,0,0,0.04)] dark:shadow-none rounded-2xl sm:px-10 border border-neutral-100 dark:border-neutral-800 transition-colors duration-200">
                         {apiError && (
-                            <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                            <div className="mb-6 px-4 py-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
                                 {apiError}
                             </div>
                         )}
@@ -191,10 +191,10 @@ const VerifyEmailPage: React.FC = () => {
                                     value={digit}
                                     onChange={e => handleChange(index, e.target.value)}
                                     onKeyDown={e => handleKeyDown(index, e)}
-                                    className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-2xl font-bold rounded-xl border transition-all shadow-sm focus:outline-none focus:bg-white focus:ring-[3px] ${
+                                    className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-2xl font-bold rounded-xl border transition-all shadow-sm focus:outline-none focus:ring-[3px] ${
                                         digit
-                                            ? 'border-amber-500 bg-amber-50/20 text-neutral-900 focus:ring-amber-500/20'
-                                            : 'border-neutral-200 bg-white/50 text-neutral-900 focus:ring-amber-500/20 focus:border-amber-500'
+                                            ? 'border-amber-500 bg-amber-50/30 dark:bg-amber-500/10 text-neutral-900 dark:text-neutral-50 focus:ring-amber-500/20'
+                                            : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800/80 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:ring-amber-500/20 focus:border-amber-500'
                                     }`}
                                 />
                             ))}
@@ -217,16 +217,16 @@ const VerifyEmailPage: React.FC = () => {
                             {/* Resend Action */}
                             <div className="text-center pt-2">
                                 {countdown > 0 ? (
-                                    <p className="text-xs text-neutral-400">
+                                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
                                         {t('auth.verify.resend_in', { defaultValue: 'Resend code in' })}{' '}
-                                        <span className="font-semibold text-neutral-600">{countdown}s</span>
+                                        <span className="font-semibold text-neutral-600 dark:text-neutral-300">{countdown}s</span>
                                     </p>
                                 ) : (
                                     <button
                                         type="button"
                                         onClick={handleResend}
                                         disabled={isResending}
-                                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 transition-colors cursor-pointer"
                                     >
                                         <RotateCw className={`w-3.5 h-3.5 ${isResending ? 'animate-spin' : ''}`} />
                                         {t('auth.verify.resend_code', { defaultValue: 'Resend verification code' })}
@@ -234,11 +234,19 @@ const VerifyEmailPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* Spam Folder Reminder */}
+                        <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800 text-center">
+                            <p className="text-xs text-neutral-400 dark:text-neutral-500 flex items-center justify-center gap-1.5">
+                                <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 shrink-0" />
+                                <span>{t('auth.verify.spam_hint', { defaultValue: "Didn't see the email? Please check your Spam or Junk folder." })}</span>
+                            </p>
+                        </div>
                     </div>
 
                     {/* Back to Login link */}
-                    <p className="text-center mt-6 text-sm text-neutral-500">
-                        <Link to="/login" className="inline-flex items-center gap-1 text-neutral-500 hover:text-neutral-800 transition-colors">
+                    <p className="text-center mt-6 text-sm text-neutral-500 dark:text-neutral-400">
+                        <Link to="/login" className="inline-flex items-center gap-1 text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
                             <ArrowLeft className="w-4 h-4" />
                             {t('auth.verify.back_to_login', { defaultValue: 'Back to sign in' })}
                         </Link>

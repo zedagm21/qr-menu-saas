@@ -94,7 +94,8 @@
       "code_sent_toast": "የማረጋገጫ ኮድ ወደ ኢሜይልዎ ተልኳል!",
       "success_toast": "ኢሜይልዎ በተሳካ ሁኔታ ተረጋግጧል!",
       "please_verify_toast": "እባክዎ ከመግባትዎ በፊት ኢሜይልዎን ያረጋግጡ::",
-      "missing_email": "የኢሜይል አድራሻ አልተገኘም:: እባክዎ በድጋሚ ይመዝገቡ::"
+      "missing_email": "የኢሜይል አድራሻ አልተገኘም:: እባክዎ በድጋሚ ይመዝገቡ::",
+      "spam_hint": "ኢሜይሉ ካልደረስዎ? እባክዎ የስፓም (Spam) ወይም ጀንክ ማህደሩን ይመልከቱ::"
     },
     "ph_email": "you@restaurant.com",
     "ph_password": "የይለፍ ቃልዎን ያስገቡ",

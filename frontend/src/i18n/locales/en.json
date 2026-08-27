@@ -94,7 +94,8 @@
       "code_sent_toast": "Verification code sent to your email!",
       "success_toast": "Email verified successfully! Complete your restaurant profile.",
       "please_verify_toast": "Please verify your email before signing in.",
-      "missing_email": "No email address found. Please register again."
+      "missing_email": "No email address found. Please register again.",
+      "spam_hint": "Didn't see the email? Please check your Spam or Junk folder."
     },
     "ph_email": "you@restaurant.com",
     "ph_password": "Enter your password",

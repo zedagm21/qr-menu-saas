@@ -12,7 +12,7 @@ const DashboardThemeContext = createContext<DashboardThemeContextType | undefine
 export const DashboardThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [theme, setThemeState] = useState<Theme>(() => {
         const stored = localStorage.getItem('dashboard-theme');
-        return (stored as Theme) || 'light';
+        return (stored as Theme) || 'auto';
     });
 
     const setTheme = (newTheme: Theme) => {
@@ -26,12 +26,12 @@ export const DashboardThemeProvider: React.FC<{ children: React.ReactNode }> = (
         const applyTheme = () => {
             root.classList.remove('light', 'dark');
 
-            if (theme === 'auto') {
-                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                root.classList.add(systemPrefersDark ? 'dark' : 'light');
-            } else {
-                root.classList.add(theme);
-            }
+            const isDark = theme === 'auto'
+                ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                : theme === 'dark';
+
+            root.classList.add(isDark ? 'dark' : 'light');
+            root.style.colorScheme = isDark ? 'dark' : 'light';
         };
 
         applyTheme();

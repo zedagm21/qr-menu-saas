@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,16 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
     text = 'continue_with',
 }) => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'));
+        const observer = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'));
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
 
     // Fallback UI when VITE_GOOGLE_CLIENT_ID is not configured in environment
     if (!clientId) {
@@ -28,7 +38,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
                         id: 'google-missing-env',
                     });
                 }}
-                className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-[15px] font-medium text-neutral-700 shadow-sm transition-all hover:border-neutral-300"
+                className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700/80 text-[15px] font-medium text-neutral-700 dark:text-neutral-200 shadow-sm transition-all hover:border-neutral-300 dark:hover:border-neutral-600 cursor-pointer"
             >
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                     <path
@@ -69,7 +79,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
                     }}
                     text={text}
                     shape="rectangular"
-                    theme="outline"
+                    theme={isDark ? 'filled_black' : 'outline'}
                     size="large"
                     width="100%"
                 />

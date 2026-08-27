@@ -461,7 +461,7 @@ const RestaurantPage: React.FC = () => {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-7">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-7 pb-32 sm:pb-36">
 
                     {/* ── 1. Brand Identity ── */}
                     <SectionCard
@@ -814,21 +814,8 @@ const RestaurantPage: React.FC = () => {
                         </div>
                     </SectionCard>
 
-                    {/* ── Standard Save Button (Bottom of form) ── */}
-                    <div className="animate-fade-in-up flex justify-start pb-12" style={{ animationDelay: '300ms' }}>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            className="w-full sm:w-auto h-12 px-10 text-[15px] hover:-translate-y-0.5 transition-transform"
-                            isLoading={isPending}
-                            icon={<Save className="w-5 h-5" />}
-                        >
-                            {t('restaurant.save')}
-                        </Button>
-                    </div>
-
                     {/* ── Sticky Floating Save Bar ── */}
-                    <div className="fixed bottom-0 lg:bottom-5 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-16 lg:pb-0">
+                    <div className="fixed bottom-0 lg:bottom-6 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-20 lg:pb-0">
                         <div className="pointer-events-auto max-w-3xl w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 p-3 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300">
                             <div className="flex items-center gap-2.5">
                                 {isModified ? (
