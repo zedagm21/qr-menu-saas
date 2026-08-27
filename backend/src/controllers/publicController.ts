@@ -51,3 +51,113 @@ export const proxyImage = async (req: Request, res: Response, next: NextFunction
     }
 };
 
+// ─── Analytics Tracking Handlers ─────────────────────────────────────────────
+import prisma from '../config/database';
+import { analyticsService } from '../services/AnalyticsService';
+
+export const recordPublicScan = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { slug } = req.params;
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { slug },
+            select: { id: true, isSuspended: true },
+        });
+
+        if (!restaurant || restaurant.isSuspended) {
+            res.status(200).json({ success: false });
+            return;
+        }
+
+        // Fire-and-forget scan recording
+        analyticsService.recordScan(restaurant.id, {
+            tableNumber: req.body?.tableNumber || req.body?.table || undefined,
+            qrCodeId: req.body?.qrCodeId || req.body?.qr || undefined,
+            userAgent: req.headers['user-agent'],
+            language: req.body?.language === 'AM' ? 'AM' : 'EN',
+            ip: req.ip,
+        }).catch(() => {});
+
+        res.json({ success: true });
+    } catch {
+        res.status(200).json({ success: false });
+    }
+};
+
+export const recordPublicItemClick = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { slug } = req.params;
+        const { menuItemId } = req.body;
+        if (!menuItemId) {
+            res.json({ success: false });
+            return;
+        }
+
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { slug },
+            select: { id: true, isSuspended: true },
+        });
+
+        if (!restaurant || restaurant.isSuspended) {
+            res.json({ success: false });
+            return;
+        }
+
+        analyticsService.recordItemClick(restaurant.id, menuItemId).catch(() => {});
+        res.json({ success: true });
+    } catch {
+        res.json({ success: false });
+    }
+};
+
+export const recordPublicSearch = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { slug } = req.params;
+        const { query, resultsCount } = req.body;
+        if (!query) {
+            res.json({ success: false });
+            return;
+        }
+
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { slug },
+            select: { id: true, isSuspended: true },
+        });
+
+        if (!restaurant || restaurant.isSuspended) {
+            res.json({ success: false });
+            return;
+        }
+
+        analyticsService.recordSearchQuery(restaurant.id, query, resultsCount || 0).catch(() => {});
+        res.json({ success: true });
+    } catch {
+        res.json({ success: false });
+    }
+};
+
+export const recordPublicInteraction = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { slug } = req.params;
+        const { type, platform } = req.body;
+        if (!type) {
+            res.json({ success: false });
+            return;
+        }
+
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { slug },
+            select: { id: true, isSuspended: true },
+        });
+
+        if (!restaurant || restaurant.isSuspended) {
+            res.json({ success: false });
+            return;
+        }
+
+        analyticsService.recordInteraction(restaurant.id, type, platform).catch(() => {});
+        res.json({ success: true });
+    } catch {
+        res.json({ success: false });
+    }
+};
+

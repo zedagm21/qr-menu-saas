@@ -17,7 +17,9 @@ declare global {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
-    const token = req.cookies?.token;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = req.cookies?.token || bearerToken;
 
     if (!token) {
         res.status(401).json({ error: 'Authentication required' });
@@ -36,6 +38,14 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 export const requireRestaurant = (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user?.restaurantId) {
         res.status(403).json({ error: 'Restaurant association required' });
+        return;
+    }
+    next();
+};
+
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+    if (req.user?.role !== 'ADMIN') {
+        res.status(403).json({ error: 'Super Admin access required' });
         return;
     }
     next();

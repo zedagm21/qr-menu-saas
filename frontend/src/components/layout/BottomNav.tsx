@@ -10,6 +10,7 @@ export const BottomNav: React.FC = () => {
 
     // Check if the current route is one of the 'More' routes
     const isMoreActive = [
+        '/dashboard/analytics',
         '/dashboard/categories',
         '/dashboard/restaurant',
         '/dashboard/customize',

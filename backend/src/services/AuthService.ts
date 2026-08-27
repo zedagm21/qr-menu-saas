@@ -7,12 +7,16 @@ import { config } from '../config/env';
 import { generateSlug, ensureUniqueSlug } from '../utils/slug';
 import { createError } from '../middleware/errorHandler';
 import { emailService } from './EmailService';
+import { auditService } from './AuditService';
 import type { RegisterInput, LoginInput, UpdatePasswordInput } from '../validators/auth';
 import type { AuthPayload } from '../middleware/auth';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
 export class AuthService {
+    private isSuperAdmin(email: string): boolean {
+        return config.superAdminEmails.includes(email.toLowerCase().trim());
+    }
     /**
      * Register a new user with email and password.
      * Generates a 6-digit OTP and sends it via email without logging them in immediately.
@@ -62,6 +66,8 @@ export class AuthService {
                 include: { translations: true, theme: true },
             });
 
+            const role = this.isSuperAdmin(input.email) ? 'ADMIN' : 'OWNER';
+
             const user = await tx.user.create({
                 data: {
                     name: input.name.trim(),
@@ -70,12 +76,20 @@ export class AuthService {
                     emailVerified: false,
                     emailVerificationOtp: otp,
                     emailVerificationExpires: otpExpires,
-                    role: 'OWNER',
+                    role,
                     restaurantId: restaurant.id,
                 },
             });
 
             return { user, restaurant };
+        });
+
+        // Log audit event
+        auditService.logAction({
+            action: 'USER_REGISTERED',
+            userId: user.id,
+            restaurantId: user.restaurantId,
+            details: { email: user.email, name: user.name, role: user.role },
         });
 
         // Dispatch verification email in the background
@@ -123,7 +137,9 @@ export class AuthService {
             throw createError('Verification code has expired. Please request a new one.', 400);
         }
 
-        // Mark verified and clear OTP fields
+        // Mark verified and clear OTP fields, and auto-sync admin role if configured
+        const role = this.isSuperAdmin(user.email) ? 'ADMIN' : user.role;
+
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -131,8 +147,16 @@ export class AuthService {
                 emailVerificationOtp: null,
                 emailVerificationExpires: null,
                 resendAttemptsCount: 0,
+                role,
             },
             include: { restaurant: true },
+        });
+
+        auditService.logAction({
+            action: 'USER_VERIFIED',
+            userId: updatedUser.id,
+            restaurantId: updatedUser.restaurantId,
+            details: { email: updatedUser.email, role: updatedUser.role },
         });
 
         const token = this.signToken({
@@ -226,13 +250,30 @@ export class AuthService {
             throw createError('EMAIL_NOT_VERIFIED', 403, { email: user.email });
         }
 
-        const token = this.signToken({
-            userId: user.id,
-            restaurantId: user.restaurantId,
-            role: user.role,
+        // Auto-promote to ADMIN if configured in superAdminEmails
+        let activeUser = user;
+        if (this.isSuperAdmin(user.email) && user.role !== 'ADMIN') {
+            activeUser = await prisma.user.update({
+                where: { id: user.id },
+                data: { role: 'ADMIN' },
+                include: { restaurant: true },
+            });
+        }
+
+        auditService.logAction({
+            action: 'USER_LOGIN',
+            userId: activeUser.id,
+            restaurantId: activeUser.restaurantId,
+            details: { email: activeUser.email, role: activeUser.role, provider: 'password' },
         });
 
-        return { user: this.sanitizeUser(user), restaurant: user.restaurant, token };
+        const token = this.signToken({
+            userId: activeUser.id,
+            restaurantId: activeUser.restaurantId,
+            role: activeUser.role,
+        });
+
+        return { user: this.sanitizeUser(activeUser), restaurant: activeUser.restaurant, token };
     }
 
     /**
@@ -325,6 +366,8 @@ export class AuthService {
                     include: { translations: true, theme: true },
                 });
 
+                const role = this.isSuperAdmin(googleEmail) ? 'ADMIN' : 'OWNER';
+
                 const newUser = await tx.user.create({
                     data: {
                         name,
@@ -332,7 +375,7 @@ export class AuthService {
                         googleId,
                         emailVerified: true,
                         passwordHash: null,
-                        role: 'OWNER',
+                        role,
                         restaurantId: restaurant.id,
                     },
                     include: { restaurant: true },
@@ -343,6 +386,22 @@ export class AuthService {
 
             user = result.user;
         }
+
+        // Auto-promote existing google user to ADMIN if configured
+        if (this.isSuperAdmin(user.email) && user.role !== 'ADMIN') {
+            user = await prisma.user.update({
+                where: { id: user.id },
+                data: { role: 'ADMIN' },
+                include: { restaurant: true },
+            });
+        }
+
+        auditService.logAction({
+            action: isNewUser ? 'USER_REGISTERED' : 'USER_LOGIN',
+            userId: user.id,
+            restaurantId: user.restaurantId,
+            details: { email: user.email, provider: 'google', isNewUser },
+        });
 
         const token = this.signToken({
             userId: user.id,

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     LayoutDashboard, Store, List, UtensilsCrossed,
     QrCode, Palette, Settings, LogOut, ChevronLeft,
-    ChevronRight, ExternalLink
+    ChevronRight, ExternalLink, BarChart3, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.overview', end: true },
+    { to: '/dashboard/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
     { to: '/dashboard/restaurant', icon: Store, labelKey: 'nav.restaurant' },
     { to: '/dashboard/categories', icon: List, labelKey: 'nav.categories' },
     { to: '/dashboard/menu', icon: UtensilsCrossed, labelKey: 'nav.menu' },
@@ -108,6 +109,24 @@ export const Sidebar: React.FC = () => {
                     </NavLink>
                 ))}
             </nav>
+
+            {/* Platform Admin Switcher */}
+            {user?.role === 'ADMIN' && (
+                <div className={cn('px-3 pb-2', collapsed && 'flex justify-center')}>
+                    <NavLink
+                        to="/admin"
+                        className={cn(
+                            'group flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all',
+                            'text-indigo-700 dark:text-indigo-300 bg-indigo-50/90 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs',
+                            collapsed && 'justify-center'
+                        )}
+                        title={collapsed ? t('nav.admin_panel', { defaultValue: 'Platform Admin' }) : undefined}
+                    >
+                        <ShieldCheck className="w-4 h-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+                        {!collapsed && <span>{t('nav.admin_panel', { defaultValue: 'Platform Admin' })}</span>}
+                    </NavLink>
+                </div>
+            )}
 
             {/* View Menu button */}
             {restaurant && (

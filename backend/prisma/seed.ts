@@ -68,7 +68,8 @@ async function main() {
             name: 'Abebe Girma',
             email: 'admin@bluenile.et',
             passwordHash,
-            role: Role.OWNER,
+            emailVerified: true,
+            role: Role.ADMIN,
             restaurantId: restaurant.id,
         },
     });

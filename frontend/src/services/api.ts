@@ -126,6 +126,51 @@ export const publicApi = {
         api.get(`/public/restaurants/${slug}`, { params: { lang } }).then(r => r.data),
     getMenu: (slug: string, lang: string = 'EN') =>
         api.get(`/public/restaurants/${slug}/menu`, { params: { lang } }).then(r => r.data),
+    recordScan: (slug: string, data: { table?: string; qr?: string; language?: string }) =>
+        api.post(`/public/restaurants/${slug}/scan`, data).then(r => r.data).catch(() => {}),
+    recordItemClick: (slug: string, menuItemId: string) =>
+        api.post(`/public/restaurants/${slug}/item-click`, { menuItemId }).then(r => r.data).catch(() => {}),
+    recordSearch: (slug: string, query: string, resultsCount?: number) =>
+        api.post(`/public/restaurants/${slug}/search`, { query, resultsCount }).then(r => r.data).catch(() => {}),
+    recordInteraction: (slug: string, type: 'PROFILE_VIEW' | 'SOCIAL_CLICK' | 'CALL_CLICK' | 'DIRECTIONS_CLICK', platform?: string) =>
+        api.post(`/public/restaurants/${slug}/interaction`, { type, platform }).then(r => r.data).catch(() => {}),
+};
+
+// ─── Restaurant Analytics ─────────────────────────────────────────────────────
+export const analyticsApi = {
+    get: (timeframe: string = '7d') =>
+        api.get('/restaurant/analytics', { params: { range: timeframe } }).then(r => r.data),
+    downloadCsv: (timeframe: string = '30d') =>
+        api.get('/restaurant/analytics/export', { params: { range: timeframe }, responseType: 'blob' }).then(r => r.data),
+};
+
+// ─── SaaS Super Admin ─────────────────────────────────────────────────────────
+export const adminApi = {
+    getOverview: () => api.get('/admin/overview').then(r => r.data),
+    listRestaurants: (params: { page?: number; limit?: number; search?: string; status?: string; tier?: string }) =>
+        api.get('/admin/restaurants', { params }).then(r => r.data),
+    updateRestaurantAccess: (id: string, data: { isSuspended?: boolean; suspensionReason?: string | null; status?: string; subscriptionTier?: string; subscriptionExpiresAt?: string | null }) =>
+        api.patch(`/admin/restaurants/${id}/access`, data).then(r => r.data),
+    deleteRestaurant: (id: string) =>
+        api.delete(`/admin/restaurants/${id}`).then(r => r.data),
+    listUsers: (params: { page?: number; limit?: number; search?: string; role?: string; verified?: string }) =>
+        api.get('/admin/users', { params }).then(r => r.data),
+    updateUserRole: (id: string, role: string) =>
+        api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),
+    verifyUserEmail: (id: string) =>
+        api.patch(`/admin/users/${id}/verify`).then(r => r.data),
+    deleteUser: (id: string) =>
+        api.delete(`/admin/users/${id}`).then(r => r.data),
+    listAuditLogs: (params: { page?: number; limit?: number; action?: string; search?: string }) =>
+        api.get('/admin/activity', { params }).then(r => r.data),
+    getBroadcast: () => api.get('/admin/broadcast').then(r => r.data),
+    setBroadcast: (data: { title: string; message: string; type?: string; isActive?: boolean }) =>
+        api.post('/admin/broadcast', data).then(r => r.data),
+};
+
+// ─── Global Broadcast Announcement ────────────────────────────────────────────
+export const broadcastApi = {
+    getActive: () => api.get('/broadcast/active').then(r => r.data),
 };
 
 // ─── Upload Sessions (Phone Camera Companion) ─────────────────────────────────

@@ -34,6 +34,12 @@ export class PublicMenuService {
             throw createError('Restaurant not found', 404);
         }
 
+        if (restaurant.isSuspended) {
+            throw createError('This menu is currently unavailable', 403, {
+                isSuspended: true,
+            });
+        }
+
         if (restaurant.status !== 'PUBLISHED') {
             throw createError('This menu is currently unavailable', 404);
         }
@@ -77,11 +83,17 @@ export class PublicMenuService {
 
         const restaurant = await prisma.restaurant.findUnique({
             where: { slug },
-            select: { id: true, status: true, currency: true },
+            select: { id: true, status: true, currency: true, isSuspended: true, suspensionReason: true },
         });
 
         if (!restaurant) {
             throw createError('Restaurant not found', 404);
+        }
+
+        if (restaurant.isSuspended) {
+            throw createError('This menu is currently unavailable', 403, {
+                isSuspended: true,
+            });
         }
 
         if (restaurant.status !== 'PUBLISHED') {

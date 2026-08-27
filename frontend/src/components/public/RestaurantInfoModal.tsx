@@ -15,13 +15,19 @@ interface RestaurantInfoModalProps {
     onClose: () => void;
     restaurant: Restaurant | null;
     isAm?: boolean;
+    onSocialClick?: (platform: string) => void;
+    onCallClick?: () => void;
+    onDirectionsClick?: () => void;
 }
 
 export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
     isOpen,
     onClose,
     restaurant,
-    isAm = false
+    isAm = false,
+    onSocialClick,
+    onCallClick,
+    onDirectionsClick,
 }) => {
     const { t } = useTranslation();
     const [showWifiPassword, setShowWifiPassword] = useState(false);
@@ -164,6 +170,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                 {restaurant.phone && (
                                     <a
                                         href={`tel:${restaurant.phone}`}
+                                        onClick={() => onCallClick?.()}
                                         className="flex items-center gap-2.5 sm:gap-3 text-neutral-800 dark:text-[#E5E5E5] hover:text-[color:var(--color-brand-500)] transition-colors group"
                                     >
                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-white dark:bg-[#242424] border border-neutral-200/70 dark:border-[#333333] flex items-center justify-center text-[color:var(--color-brand-500)] shrink-0 group-hover:border-[color:var(--color-brand-500)]">
@@ -186,7 +193,10 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                 )}
 
                                 {(displayAddress || displayCity || restaurant.country) && (
-                                    <div className="flex items-start gap-2.5 sm:gap-3 text-neutral-700 dark:text-[#D4D4D4]">
+                                    <div
+                                        onClick={() => onDirectionsClick?.()}
+                                        className="flex items-start gap-2.5 sm:gap-3 text-neutral-700 dark:text-[#D4D4D4] cursor-pointer"
+                                    >
                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-white dark:bg-[#242424] border border-neutral-200/70 dark:border-[#333333] flex items-center justify-center text-[color:var(--color-brand-500)] shrink-0 mt-0.5">
                                             <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                         </div>
@@ -260,13 +270,11 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                         <div className="space-y-2">
                             <h3 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-[#888888] flex items-center gap-1.5">
                                 <CreditCard className="w-3.5 h-3.5 text-[color:var(--color-brand-500)]" />
-                                <span>{t('public.payment', { defaultValue: 'Accepted Payment Methods' })}</span>
+                                <span>{t('public.payment_info', { defaultValue: 'Payment Methods' })}</span>
                             </h3>
 
-                            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626]">
-                                <p className="text-neutral-700 dark:text-[#D4D4D4] leading-relaxed text-xs sm:text-[13px] whitespace-pre-wrap break-words">
-                                    {restaurant.paymentInfo}
-                                </p>
+                            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626] text-xs sm:text-sm text-neutral-700 dark:text-[#D4D4D4] whitespace-pre-line leading-relaxed font-mono">
+                                {restaurant.paymentInfo}
                             </div>
                         </div>
                     )}
@@ -286,6 +294,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                         href={item.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={() => onSocialClick?.(item.platform)}
                                         className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200/60 dark:border-[#262626] hover:border-[color:var(--color-brand-500)] hover:bg-white dark:hover:bg-[#222222] transition-all group min-h-[42px]"
                                     >
                                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-white dark:bg-[#262626] border border-neutral-200/60 dark:border-[#333333] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">

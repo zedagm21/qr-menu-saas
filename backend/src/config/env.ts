@@ -24,8 +24,13 @@ export const config = {
     // Google OAuth
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-
     // Brevo (Sendinblue) Email Configuration
     brevoApiKey: process.env.BREVO_API_KEY || '',
     emailFrom: process.env.EMAIL_FROM || 'no-reply@qrmenu.app',
+
+    // Super Admin bootstrap emails
+    superAdminEmails: (process.env.SUPER_ADMIN_EMAILS || 'admin@bluenile.et')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
 };

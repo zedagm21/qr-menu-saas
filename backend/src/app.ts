@@ -12,6 +12,9 @@ import restaurantRoutes from './routes/restaurant';
 import menuRoutes from './routes/menu';
 import publicRoutes from './routes/public';
 import uploadSessionRoutes from './routes/uploadSessionRoutes';
+import adminRoutes from './routes/admin';
+import analyticsRoutes from './routes/analytics';
+import { adminService } from './services/AdminService';
 
 const app = express();
 
@@ -66,9 +69,21 @@ app.use('/uploads', express.static(uploadDir));
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurant', restaurantRoutes);
+app.use('/api/restaurant/analytics', analyticsRoutes);
 app.use('/api', menuRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload-sessions', uploadSessionRoutes);
+app.use('/api/admin', adminRoutes);
+
+// ─── Broadcast announcement for authenticated dashboard ─────────────────────
+app.get('/api/broadcast/active', async (_req, res, next) => {
+    try {
+        const broadcast = await adminService.getActiveBroadcast();
+        res.json(broadcast || null);
+    } catch (error) {
+        next(error);
+    }
+});
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

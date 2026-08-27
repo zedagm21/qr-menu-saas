@@ -33,7 +33,7 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
         const data = verifyOtpSchema.parse(req.body);
         const result = await authService.verifyEmailOtp(data.email, data.otp);
         res.cookie('token', result.token, cookieOptions);
-        res.json({ user: result.user, restaurant: result.restaurant });
+        res.json({ user: result.user, restaurant: result.restaurant, token: result.token });
     } catch (error) {
         next(error);
     }
@@ -57,6 +57,7 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
         res.json({
             user: result.user,
             restaurant: result.restaurant,
+            token: result.token,
             isNewUser: result.isNewUser,
         });
     } catch (error) {
@@ -69,7 +70,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         const data = loginSchema.parse(req.body);
         const result = await authService.login(data);
         res.cookie('token', result.token, cookieOptions);
-        res.json({ user: result.user, restaurant: result.restaurant });
+        res.json({ user: result.user, restaurant: result.restaurant, token: result.token });
     } catch (error) {
         next(error);
     }
