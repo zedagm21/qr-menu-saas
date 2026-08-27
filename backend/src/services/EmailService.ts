@@ -1,31 +1,18 @@
-import nodemailer from 'nodemailer';
+import { BrevoClient } from '@getbrevo/brevo';
 import { config } from '../config/env';
 
+const brevo = config.brevoApiKey
+    ? new BrevoClient({ apiKey: config.brevoApiKey })
+    : null;
+
 export class EmailService {
-    private transporter: nodemailer.Transporter | null = null;
-
-    constructor() {
-        if (config.smtpUser && config.smtpPass) {
-            this.transporter = nodemailer.createTransport({
-                host: config.smtpHost,
-                port: config.smtpPort,
-                secure: config.smtpSecure,
-                auth: {
-                    user: config.smtpUser,
-                    pass: config.smtpPass,
-                },
-            });
-        }
-    }
-
     /**
      * Sends a 6-digit OTP email verification code to the user.
-     * In development or when SMTP credentials are not configured, prints the OTP clearly to the terminal.
+     * In development or when BREVO_API_KEY is not configured, prints the OTP
+     * clearly to the terminal so testing is never blocked.
      */
     async sendVerificationOtp(email: string, otp: string, name: string): Promise<boolean> {
-        const isSmtpConfigured = !!(config.smtpUser && config.smtpPass);
-
-        if (!isSmtpConfigured || !this.transporter) {
+        if (!brevo) {
             console.log('\n┌──────────────────────────────────────────────────────────────────┐');
             console.log(`│ 📧 [DEV EMAIL CONSOLE] Verification Code for ${email.padEnd(31)}│`);
             console.log(`│ 🔑 CODE: [ ${otp.split('').join(' ')} ] (Valid for 15 minutes)            │`);
@@ -90,22 +77,16 @@ export class EmailService {
         `;
 
         try {
-            await this.transporter.sendMail({
-                from: `"QR Menu" <${config.smtpFrom}>`,
-                to: email,
+            await brevo.transactionalEmails.sendTransacEmail({
+                sender: { name: 'QR Menu', email: config.emailFrom },
+                to: [{ email, name }],
                 subject: `${otp} is your QR Menu verification code`,
-                text: `Hello ${name},\n\nYour QR Menu verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not create a QR Menu account, please ignore this email.\n\n— The QR Menu Team`,
-                html,
-                headers: {
-                    'X-Priority': '1',
-                    'X-MSMail-Priority': 'High',
-                    'Importance': 'high',
-                },
+                textContent: `Hello ${name},\n\nYour QR Menu verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not create a QR Menu account, please ignore this email.\n\n— The QR Menu Team`,
+                htmlContent: html,
             });
             return true;
         } catch (error) {
-            console.error('Failed to send verification email via SMTP:', error);
-            // In case SMTP delivery fails, log the OTP to the console so user testing is not blocked
+            console.error('Failed to send verification email via Brevo:', error);
             console.log(`[FALLBACK DEV OTP] Code for ${email}: ${otp}`);
             return false;
         }
@@ -113,3 +94,5 @@ export class EmailService {
 }
 
 export const emailService = new EmailService();
+
+
