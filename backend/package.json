@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "prisma generate && tsc",
-    "start": "prisma migrate deploy && node dist/app.js",
+    "start": "node dist/app.js",
     "lint": "tsc --noEmit",
     "test": "echo \"No tests specified\" && exit 0",
     "db:migrate": "prisma migrate dev",
