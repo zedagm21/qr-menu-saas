@@ -139,7 +139,7 @@ export class PublicMenuService {
                         imageUrl: item.imageUrl,
                         isAvailable: item.isAvailable, // Always returned — customers see "unavailable" label
                         isFeatured: item.isFeatured,
-                        isSpicy: item.isSpicy,
+                        isFasting: item.isFasting,
                         displayOrder: item.displayOrder,
                         ingredients: itemTranslation?.ingredients ?? null,
                         allergens: itemTranslation?.allergens ?? null,

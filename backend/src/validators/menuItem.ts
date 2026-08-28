@@ -16,7 +16,7 @@ export const createMenuItemSchema = z.object({
     imageUrl: z.string().optional().nullable(),
     isAvailable: z.boolean().optional().default(true),
     isFeatured: z.boolean().optional().default(false),
-    isSpicy: z.boolean().optional().default(false),
+    isFasting: z.boolean().optional().default(true),
     displayOrder: z.number().int().min(0).optional(),
     translations: z.array(translationSchema).min(1, 'At least one translation required'),
 }).refine((data) => {
@@ -37,7 +37,7 @@ export const updateMenuItemSchema = z.object({
     imageUrl: z.string().optional().nullable(),
     isAvailable: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
-    isSpicy: z.boolean().optional(),
+    isFasting: z.boolean().optional(),
     displayOrder: z.number().int().min(0).optional(),
     translations: z.array(translationSchema).optional(),
 }).refine((data) => {

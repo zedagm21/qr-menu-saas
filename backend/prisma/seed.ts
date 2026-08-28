@@ -160,6 +160,7 @@ async function main() {
             price: 180,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Full English Breakfast', description: 'Eggs, bacon, sausage, baked beans, toast, and grilled tomato' },
                 { language: Language.AM, name: 'ሙሉ የእንግሊዝ ቁርስ', description: 'እንቁላል፣ ቤከን፣ ሶሴጅ፣ ቶስት እና የተጠበሰ ቲማቲም' },
@@ -170,6 +171,7 @@ async function main() {
             price: 120,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Chechebsa', description: 'Traditional Ethiopian breakfast — shredded injera with honey, spiced butter and berbere' },
                 { language: Language.AM, name: 'ጨጨብሳ', description: 'ባህላዊ ኢትዮጵያዊ ቁርስ — ቆረጣ እንጀራ ከንብ ማር፣ ቤቀቤ ቅቤ እና በርበሬ ጋር' },
@@ -180,6 +182,7 @@ async function main() {
             price: 90,
             displayOrder: 2,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Scrambled Eggs & Toast', description: 'Creamy scrambled eggs with buttered whole-wheat toast' },
                 { language: Language.AM, name: 'የተቀላቀለ እንቁላልና ቶስት', description: 'ቅቤ ያለው የስንዴ ቶስት ከዕንቁላል ጋር' },
@@ -191,6 +194,7 @@ async function main() {
             price: 280,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Kitfo', description: 'Minced raw lean beef marinated in mitmita spice and spiced butter — served with ayib and gomen' },
                 { language: Language.AM, name: 'ክትፎ', description: 'ከሚጥሚጣ እና ቅቤ ጋር የተዘጋጀ ጥሬ ሥጋ — ከጎጆ ቤዛና ጎመን ጋር' },
@@ -201,6 +205,7 @@ async function main() {
             price: 250,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Doro Wat', description: 'Slow-cooked chicken in rich berbere sauce with boiled egg — served with injera' },
                 { language: Language.AM, name: 'ዶሮ ወጥ', description: 'ቀስ ብሎ የተዘጋጀ ዶሮ ከሀብሃብ በርበሬ ወጥ ጋር — ከእንቁላልና እንጀራ ጋር' },
@@ -211,6 +216,7 @@ async function main() {
             price: 200,
             displayOrder: 2,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Tibs', description: 'Tender sautéed beef or lamb with rosemary, garlic and onions — served with injera' },
                 { language: Language.AM, name: 'ጥብስ', description: 'ለስላሳ የተጠበሰ ሥጋ ከቃሪያ፣ ሽንኩርት እና ነጭ ሽንኩርት ጋር' },
@@ -221,6 +227,7 @@ async function main() {
             price: 180,
             displayOrder: 3,
             isAvailable: false, // Unavailable — shows label
+            isFasting: true,
             translations: [
                 { language: Language.EN, name: 'Shiro Wat', description: 'Smooth chickpea stew seasoned with berbere and spiced butter — vegan-friendly' },
                 { language: Language.AM, name: 'ሽሮ ወጥ', description: 'ቀለጠ አተር ከበርበሬ እና ቅቤ ጋር — ቪጋን ምርጫ' },
@@ -232,6 +239,7 @@ async function main() {
             price: 320,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Grilled Salmon', description: 'Atlantic salmon fillet with lemon butter sauce, asparagus and roasted potatoes' },
                 { language: Language.AM, name: 'የተጠበሰ ሳልሞን', description: 'ሳልሞን ፊሌ ከሎሚ ቅቤ ሾርባ እና ድንቾ ጋር' },
@@ -242,6 +250,7 @@ async function main() {
             price: 380,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Beef Tenderloin', description: '300g prime beef tenderloin with peppercorn sauce, seasonal vegetables and mashed potato' },
                 { language: Language.AM, name: 'የዳቦ ሥጋ', description: '300 ግ የምርጥ ሥጋ ከቁሬ ሾርባ፣ አትክልቶች እና ደቀቀ ድንቾ ጋር' },
@@ -252,6 +261,7 @@ async function main() {
             price: 270,
             displayOrder: 2,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Pasta Alfredo', description: 'Fettuccine pasta in creamy parmesan sauce with mushrooms and garlic bread' },
                 { language: Language.AM, name: 'ፓስታ አልፍሬዶ', description: 'ፌቱቺን ፓስታ ከፓርሜዛን ሾርባ እና ማሽሩም ጋር' },
@@ -263,6 +273,7 @@ async function main() {
             price: 280,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Margherita Pizza', description: 'Classic tomato sauce, fresh mozzarella, basil and extra virgin olive oil' },
                 { language: Language.AM, name: 'ማርጋሪታ ፒዛ', description: 'ክላሲክ ቲማቲም ሾርባ፣ ሞዛሬላ ቺዝ እና ቅዝቃዜ ዘይት' },
@@ -273,6 +284,7 @@ async function main() {
             price: 320,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'BBQ Chicken Pizza', description: 'Smoky BBQ sauce, grilled chicken, red onion, mozzarella and coriander' },
                 { language: Language.AM, name: 'BBQ ዶሮ ፒዛ', description: 'ቢቢኪው ሾርባ፣ የተጠበሰ ዶሮ፣ ሞዛሬላ ቺዝ' },
@@ -283,6 +295,7 @@ async function main() {
             price: 350,
             displayOrder: 2,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Meat Lover Pizza', description: 'Beef, chicken, pepperoni, sausage, mozzarella on rich tomato base' },
                 { language: Language.AM, name: 'ሥጋ ወዳጅ ፒዛ', description: 'ሥጋ፣ ዶሮ፣ ሶሴጅ፣ ሞዛሬላ ቺዝ ከቲማቲም ሾርባ ጋር' },
@@ -294,6 +307,7 @@ async function main() {
             price: 240,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Classic Beef Burger', description: '180g beef patty, lettuce, tomato, cheese, pickles and special sauce on brioche bun' },
                 { language: Language.AM, name: 'ክላሲክ ሥጋ በርገር', description: '180 ግ ሥጋ፣ ሊቲስ፣ ቲማቲም፣ ቺዝ እና ምርጥ ሾርባ' },
@@ -304,6 +318,7 @@ async function main() {
             price: 220,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Chicken Burger', description: 'Grilled chicken breast with avocado, crispy lettuce, tomato and lemon mayo' },
                 { language: Language.AM, name: 'ዶሮ በርገር', description: 'የተጠበሰ ዶሮ ደረት ከአቮካዶ፣ ሊቲስ እና ሎሚ ማዮ ጋር' },
@@ -315,6 +330,7 @@ async function main() {
             price: 80,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: true,
             translations: [
                 { language: Language.EN, name: 'Ethiopian Coffee', description: 'Traditionally roasted and brewed Ethiopian Yirgacheffe coffee — served in jebena' },
                 { language: Language.AM, name: 'ኢትዮጵያዊ ቡና', description: 'ዕቃ ይርጋጨፌ ቡና — ጀበና ቡና' },
@@ -325,6 +341,7 @@ async function main() {
             price: 90,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: true,
             translations: [
                 { language: Language.EN, name: 'Fresh Mango Juice', description: 'Cold-pressed fresh mango juice with no added sugar' },
                 { language: Language.AM, name: 'ትኩስ ማንጎ ጭማቂ', description: 'ስኳር ያልተጨመረ ትኩስ ማንጎ ጭማቂ' },
@@ -335,6 +352,7 @@ async function main() {
             price: 70,
             displayOrder: 2,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Avocado Smoothie', description: 'Creamy blended avocado with milk and a touch of honey' },
                 { language: Language.AM, name: 'አቮካዶ ስሙዝ', description: 'ቅቤ አቮካዶ ከወተት እና ማር ጋር' },
@@ -346,6 +364,7 @@ async function main() {
             price: 130,
             displayOrder: 0,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Chocolate Lava Cake', description: 'Warm dark chocolate cake with molten centre, served with vanilla ice cream' },
                 { language: Language.AM, name: 'ቸኮሌት ኬክ', description: 'ሙቅ ጨለማ ቸኮሌት ኬክ ከቫኒላ አይስ ክሪም ጋር' },
@@ -356,6 +375,7 @@ async function main() {
             price: 100,
             displayOrder: 1,
             isAvailable: true,
+            isFasting: false,
             translations: [
                 { language: Language.EN, name: 'Tiramisu', description: 'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone cream' },
                 { language: Language.AM, name: 'ቲራሚሱ', description: 'ክላሲክ ጣሊያናዊ ጣፋጭ ምግብ ከቡና እና ማስካርፖን ክሬም ጋር' },
@@ -371,6 +391,7 @@ async function main() {
                 price: item.price,
                 currency: 'ETB',
                 isAvailable: item.isAvailable,
+                isFasting: (item as any).isFasting ?? true,
                 displayOrder: item.displayOrder,
                 translations: { create: item.translations },
             },

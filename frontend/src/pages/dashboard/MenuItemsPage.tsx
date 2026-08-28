@@ -26,7 +26,7 @@ import { CSS } from '@dnd-kit/utilities';
 import toast from 'react-hot-toast';
 import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
-    Star, Tag, UtensilsCrossed, Flame, Search, UploadCloud,
+    Star, Tag, UtensilsCrossed, Beef, Search, UploadCloud,
     Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
     Smartphone, Loader2
 } from 'lucide-react';
@@ -93,7 +93,7 @@ interface ItemForm {
     nameEn: string; descEn: string; ingredientsEn: string; allergensEn: string;
     nameAm: string; descAm: string; ingredientsAm: string; allergensAm: string;
     price: string; discountPrice: string; currency: string; categoryId: string;
-    isAvailable: boolean; isFeatured: boolean; isSpicy: boolean;
+    isAvailable: boolean; isFeatured: boolean; isNotFasting: boolean;
     imageUrl?: string | null;
 }
 
@@ -133,7 +133,7 @@ const ItemFormPanel: React.FC<{
         imageUrl: initial?.imageUrl ?? null,
         isAvailable: initial?.isAvailable ?? true,
         isFeatured: initial?.isFeatured ?? false,
-        isSpicy: initial?.isSpicy ?? false,
+        isNotFasting: !(initial?.isFasting ?? true),
     });
 
     const [hasDiscountToggle, setHasDiscountToggle] = useState<boolean>(Boolean(initial?.discountPrice));
@@ -609,27 +609,27 @@ const ItemFormPanel: React.FC<{
                         </span>
                     </button>
 
-                    {/* Spicy */}
+                    {/* Not Fasting */}
                     <button
                         type="button"
-                        onClick={() => set('isSpicy', !form.isSpicy)}
+                        onClick={() => set('isNotFasting', !form.isNotFasting)}
                         className={cn(
                             'relative flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all duration-200 active:scale-95 gap-2',
-                            form.isSpicy
-                                ? 'border-red-500 bg-red-50/90 dark:bg-red-500/10 text-red-900 dark:text-red-400 shadow-sm'
+                            form.isNotFasting
+                                ? 'border-orange-500 bg-orange-50/90 dark:bg-orange-500/10 text-orange-900 dark:text-orange-400 shadow-sm'
                                 : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-600'
                         )}
                     >
                         <div className={cn(
                             'w-7 h-7 rounded-lg flex items-center justify-center transition-transform',
-                            form.isSpicy
-                                ? 'bg-red-600 text-white shadow-xs'
+                            form.isNotFasting
+                                ? 'bg-orange-500 text-white shadow-xs'
                                 : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'
                         )}>
-                            <Flame className={cn('w-4 h-4', form.isSpicy && 'fill-white')} />
+                            <Beef className={cn('w-4 h-4', form.isNotFasting && 'fill-white')} />
                         </div>
                         <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                            {t('menu_items.spicy')}
+                            {t('menu_items.not_fasting')}
                         </span>
                     </button>
                 </div>
@@ -781,12 +781,6 @@ const MenuItemCardBase: React.FC<{
                         {item.isFeatured && (
                             <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
                                 <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
-                            </span>
-                        )}
-
-                        {item.isSpicy && (
-                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 border border-red-200/80 dark:border-red-500/20">
-                                <Flame className="w-2.5 h-2.5 text-red-600 fill-red-600 dark:text-red-400" /> {t('menu_items.spicy')}
                             </span>
                         )}
                     </div>
@@ -1019,7 +1013,7 @@ export default function MenuItemsPage() {
             categoryId: form.categoryId,
             isAvailable: form.isAvailable,
             isFeatured: form.isFeatured,
-            isSpicy: form.isSpicy,
+            isFasting: !form.isNotFasting,
         };
 
         // If a photo was received via Phone Camera companion (already stored) or cleared

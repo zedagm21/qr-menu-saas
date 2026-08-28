@@ -174,7 +174,7 @@ model MenuItem {
   isAvailable   Boolean               @default(true)
   displayOrder  Int                   @default(0)
   isFeatured    Boolean               @default(false)
-  isSpicy       Boolean               @default(false)
+  isFasting     Boolean               @default(true)
   translations  MenuItemTranslation[]
   clicks        MenuItemClick[]
   createdAt     DateTime              @default(now())

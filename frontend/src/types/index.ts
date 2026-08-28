@@ -112,7 +112,7 @@ export interface MenuItem {
     imageUrl: string | null;
     isAvailable: boolean;
     isFeatured: boolean;
-    isSpicy: boolean;
+    isFasting: boolean;
     displayOrder: number;
     translations: MenuItemTranslation[];
     category?: Category;
@@ -142,7 +142,7 @@ export interface PublicMenuItem {
     imageUrl: string | null;
     isAvailable: boolean;
     isFeatured: boolean;
-    isSpicy: boolean;
+    isFasting: boolean;
     displayOrder: number;
 }
 
@@ -196,7 +196,7 @@ export interface CreateMenuItemInput {
     currency?: string;
     isAvailable?: boolean;
     isFeatured?: boolean;
-    isSpicy?: boolean;
+    isFasting?: boolean;
     translations: TranslationInput[];
 }
 
