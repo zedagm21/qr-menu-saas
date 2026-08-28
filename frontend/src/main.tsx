@@ -8,8 +8,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardThemeProvider } from './contexts/DashboardThemeContext';
 import App from './App';
+import { registerSW } from 'virtual:pwa-register';
 import './i18n';
 import './styles/globals.css';
+
+// Automatically register service worker for offline caching and PWA functionality
+registerSW({ immediate: true });
 
 const queryClient = new QueryClient({
     defaultOptions: {

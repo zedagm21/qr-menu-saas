@@ -744,5 +744,10 @@
   "admin": {
     "title": "የሲስተም አስተዳዳሪ",
     "back_to_restaurant": "ወደ ምግብ ቤቱ ዳሽቦርድ ተመለስ"
+  },
+  "offline": {
+    "status": "ከመስመር ውጭ",
+    "cached_notice": "ከመስመር ውጭ • የተቀመጠው ሜኑ እየታየ ነው",
+    "online_restored": "የኢንተርኔት ግንኙነት ተመልሷል • ሜኑ ታድሷል"
   }
 }

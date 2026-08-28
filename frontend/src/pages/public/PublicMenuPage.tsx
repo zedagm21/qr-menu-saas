@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -16,7 +16,9 @@ import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
+import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
 
 export default function PublicMenuPage() {
@@ -57,12 +59,16 @@ export default function PublicMenuPage() {
         localStorage.setItem('ui-language', nextLang.toLowerCase());
     };
 
+    const queryClient = useQueryClient();
+    const { isOnline, wasOffline } = useNetworkStatus();
+
     const { data: restaurant, isLoading: restaurantLoading, isError, error } = useQuery<Restaurant>({
         queryKey: ['public-restaurant', slug, lang],
         queryFn: () => publicApi.getRestaurant(slug!, lang),
         enabled: !!slug,
         staleTime: 60_000,
-        retry: false,
+        networkMode: 'offlineFirst',
+        retry: 1,
     });
 
     const { data: categories = [], isLoading: menuLoading } = useQuery<PublicCategory[]>({
@@ -70,8 +76,50 @@ export default function PublicMenuPage() {
         queryFn: () => publicApi.getMenu(slug!, lang),
         enabled: !!slug && !!restaurant,
         staleTime: 30_000,
-        retry: false,
+        networkMode: 'offlineFirst',
+        retry: 1,
     });
+
+    // When connection is restored after being offline, automatically re-sync latest menu changes
+    useEffect(() => {
+        if (isOnline && wasOffline && slug) {
+            queryClient.invalidateQueries({ queryKey: ['public-restaurant', slug] });
+            queryClient.invalidateQueries({ queryKey: ['public-menu', slug] });
+        }
+    }, [isOnline, wasOffline, slug, queryClient]);
+
+    // Pre-warm the browser / Workbox image cache in the background for dish photos, logo, and cover
+    useEffect(() => {
+        if (categories && categories.length > 0) {
+            const urlsToCache = new Set<string>();
+            if (restaurant?.logoUrl) urlsToCache.add(restaurant.logoUrl);
+            if (restaurant?.coverImageUrl) urlsToCache.add(restaurant.coverImageUrl);
+
+            categories.forEach(cat => {
+                cat.menuItems?.forEach(item => {
+                    if (item.imageUrl) urlsToCache.add(item.imageUrl);
+                });
+            });
+
+            // Delay pre-warming to avoid competing with critical initial load network requests
+            const timer = setTimeout(() => {
+                const loadImages = () => {
+                    urlsToCache.forEach(url => {
+                        const img = new Image();
+                        img.src = url;
+                    });
+                };
+
+                if ('requestIdleCallback' in window) {
+                    window.requestIdleCallback(loadImages);
+                } else {
+                    loadImages();
+                }
+            }, 2000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [categories, restaurant]);
 
     // When restaurant theme data loads, if visitor has NOT explicitly saved a theme in localStorage:
     // check if restaurant configured a forced theme (DARK / LIGHT), else stay with device Auto
@@ -304,6 +352,7 @@ export default function PublicMenuPage() {
             </Helmet>
 
             <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111111] transition-colors" dir="ltr">
+                <OfflineNotice isOnline={isOnline} wasOffline={wasOffline} isAm={lang === 'AM'} />
 
                 {/* ─── Sticky Top Bar ─── */}
                 <div className="sticky top-0 z-50 bg-neutral-900/40 dark:bg-neutral-950/50 backdrop-blur-md border-b border-white/10 dark:border-neutral-800/50 h-14 px-4 flex items-center justify-between">

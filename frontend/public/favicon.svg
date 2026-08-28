@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="50%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <!-- Inner White Plate Circle -->
+  <circle cx="256" cy="256" r="180" fill="#ffffff" opacity="0.12"/>
+  <g filter="url(#shadow)" fill="#ffffff">
+    <!-- Left: Fork -->
+    <path d="M140 160 v60 c0 18 14 32 32 32 v110 c0 6.6 5.4 12 12 12 s12-5.4 12-12 V252 c18 0 32-14 32-32 v-60 c0-4.4-3.6-8-8-8 s-8 3.6-8 8 v52 c0 6.6-5.4 12-12 12 s-12-5.4-12-12 v-52 c0-4.4-3.6-8-8-8 s-8 3.6-8 8 v52 c0 6.6-5.4 12-12 12 s-12-5.4-12-12 v-52 c0-4.4-3.6-8-8-8 s-8 3.6-8 8z"/>
+    <!-- Right: Knife -->
+    <path d="M340 152 c-2 0-24 4-24 50 v50 c0 18 14 32 32 32 v88 c0 6.6 5.4 12 12 12 s12-5.4 12-12 V164 c0-6.6-14-12-32-12z"/>
+    <!-- Center: QR Code & Dining element -->
+    <rect x="228" y="176" width="56" height="56" rx="10" fill="#ffffff"/>
+    <rect x="240" y="188" width="32" height="32" rx="6" fill="#D97706"/>
+    <rect x="228" y="248" width="56" height="56" rx="10" fill="#ffffff"/>
+    <circle cx="256" cy="276" r="16" fill="#D97706"/>
+    <!-- Base Platter -->
+    <rect x="206" y="324" width="100" height="16" rx="8" fill="#ffffff"/>
+  </g>
+</svg>

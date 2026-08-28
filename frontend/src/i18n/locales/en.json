@@ -744,5 +744,10 @@
   "admin": {
     "title": "SaaS Platform Admin",
     "back_to_restaurant": "Restaurant Dashboard"
+  },
+  "offline": {
+    "status": "Offline Mode",
+    "cached_notice": "Offline Mode • Browsing cached menu",
+    "online_restored": "Connection restored • Menu updated"
   }
 }
