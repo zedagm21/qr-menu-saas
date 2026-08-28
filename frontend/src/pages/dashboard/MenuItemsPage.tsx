@@ -783,12 +783,6 @@ const MenuItemCardBase: React.FC<{
                                 <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
                             </span>
                         )}
-
-                        {item.isFasting === false && (
-                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-500/10 text-orange-800 dark:text-orange-400 border border-orange-200/80 dark:border-orange-500/20">
-                                <Beef className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" /> {t('menu_items.not_fasting')}
-                            </span>
-                        )}
                     </div>
 
                     {/* Category & Price */}
