@@ -709,20 +709,67 @@ const MenuItemCardBase: React.FC<{
 }> = ({ item, cats, onEdit, onDelete, onToggleAvailability, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
     const [showDropdown, setShowDropdown] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number } | null>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const dropdownPortalRef = useRef<HTMLDivElement>(null);
 
     const catName = getTranslation(cats.find(c => c.id === item.categoryId)?.translations ?? [], i18n.language);
     const name = getTranslation(item.translations, i18n.language);
 
+    const handleToggleDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        if (showDropdown) {
+            setShowDropdown(false);
+            return;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        const DROPDOWN_HEIGHT = 160;
+        const DROPDOWN_WIDTH = 192; // w-48 = 192px
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const openUpward = spaceBelow < DROPDOWN_HEIGHT + 16 && spaceAbove > spaceBelow;
+
+        let left = rect.right - DROPDOWN_WIDTH;
+        if (left < 10) left = 10;
+        if (left + DROPDOWN_WIDTH > window.innerWidth - 10) {
+            left = window.innerWidth - DROPDOWN_WIDTH - 10;
+        }
+
+        const top = openUpward
+            ? Math.max(10, rect.top - DROPDOWN_HEIGHT - 6)
+            : Math.min(window.innerHeight - DROPDOWN_HEIGHT - 10, rect.bottom + 6);
+
+        setDropdownCoords({ top, left });
+        setShowDropdown(true);
+    };
+
     useEffect(() => {
         if (!showDropdown) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setShowDropdown(false);
+        const handleDismiss = (e: MouseEvent | TouchEvent) => {
+            if (
+                dropdownPortalRef.current?.contains(e.target as Node) ||
+                buttonRef.current?.contains(e.target as Node)
+            ) {
+                return;
             }
+            setShowDropdown(false);
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+
+        const handleScrollOrResize = () => {
+            setShowDropdown(false);
+        };
+
+        document.addEventListener('mousedown', handleDismiss, true);
+        document.addEventListener('touchstart', handleDismiss, true);
+        window.addEventListener('scroll', handleScrollOrResize, true);
+        window.addEventListener('resize', handleScrollOrResize);
+
+        return () => {
+            document.removeEventListener('mousedown', handleDismiss, true);
+            document.removeEventListener('touchstart', handleDismiss, true);
+            window.removeEventListener('scroll', handleScrollOrResize, true);
+            window.removeEventListener('resize', handleScrollOrResize);
+        };
     }, [showDropdown]);
 
     return (
@@ -730,8 +777,7 @@ const MenuItemCardBase: React.FC<{
             ref={setNodeRef}
             style={style}
             className={cn(
-                'group relative flex items-stretch',
-                showDropdown ? 'z-30 overflow-visible' : 'overflow-hidden',
+                'group relative flex items-stretch overflow-hidden',
                 'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[22px]',
                 !dragOverlay && 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
                 dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
@@ -740,7 +786,7 @@ const MenuItemCardBase: React.FC<{
             {/* Left status accent strip */}
             <div
                 className={cn(
-                    'w-1.5 rounded-l-[21px] flex-shrink-0 transition-colors duration-300',
+                    'w-1.5 flex-shrink-0 transition-colors duration-300',
                     item.isAvailable
                         ? item.isFeatured
                             ? 'bg-gradient-to-b from-amber-400 to-amber-600'
@@ -866,72 +912,87 @@ const MenuItemCardBase: React.FC<{
                     </button>
                 </div>
 
-                {/* Mobile Kebab Menu Button & Dropdown (sm:hidden) */}
-                <div className="relative sm:hidden shrink-0 pl-1" ref={dropdownRef}>
+                {/* Mobile Kebab Menu Button (sm:hidden) */}
+                <div className="sm:hidden shrink-0 pl-1">
+                    <button
+                        ref={buttonRef}
+                        type="button"
+                        onClick={handleToggleDropdown}
+                        aria-label="More options"
+                        className={cn(
+                            "w-9 h-9 flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white border transition-all shadow-xs active:scale-95",
+                            showDropdown
+                                ? "bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/20 border-[color:var(--color-brand-500)]/50 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]"
+                                : "bg-neutral-100 dark:bg-neutral-800 border-neutral-200/80 dark:border-neutral-700/80"
+                        )}
+                    >
+                        <MoreVertical className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Dropdown Portal (Rendered at document.body level with smart positioning) */}
+            {showDropdown && dropdownCoords && createPortal(
+                <div
+                    ref={dropdownPortalRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownCoords.top}px`,
+                        left: `${dropdownCoords.left}px`,
+                        zIndex: 9999,
+                    }}
+                    className="w-48 bg-white/98 dark:bg-neutral-900/98 backdrop-blur-xl rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-700 py-1.5 animate-in fade-in zoom-in-95 duration-100"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Toggle Availability */}
                     <button
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
-                            setShowDropdown(prev => !prev);
+                            setShowDropdown(false);
+                            onToggleAvailability();
                         }}
-                        aria-label="More options"
-                        className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 active:scale-95 transition-all shadow-xs"
+                        className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
                     >
-                        <MoreVertical className="w-4 h-4" />
+                        <div className={cn(
+                            'w-3 h-3 rounded-full shrink-0',
+                            item.isAvailable ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-neutral-400 dark:bg-neutral-600'
+                        )} />
+                        <span>{item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}</span>
                     </button>
 
-                    {showDropdown && (
-                        <div className="absolute right-0 top-full mt-1.5 w-48 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
-                            {/* Toggle Availability */}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDropdown(false);
-                                    onToggleAvailability();
-                                }}
-                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
-                            >
-                                <div className={cn(
-                                    'w-3 h-3 rounded-full shrink-0',
-                                    item.isAvailable ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-neutral-400 dark:bg-neutral-600'
-                                )} />
-                                <span>{item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}</span>
-                            </button>
+                    {/* Edit */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDropdown(false);
+                            onEdit();
+                        }}
+                        className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
+                    >
+                        <Pencil className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+                        <span>{t('menu_items.edit')}</span>
+                    </button>
 
-                            {/* Edit */}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDropdown(false);
-                                    onEdit();
-                                }}
-                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
-                            >
-                                <Pencil className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
-                                <span>{t('menu_items.edit')}</span>
-                            </button>
+                    <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
 
-                            <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
-
-                            {/* Delete */}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDropdown(false);
-                                    onDelete();
-                                }}
-                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20 transition-colors"
-                            >
-                                <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
-                                <span>{t('menu_items.delete')}</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+                    {/* Delete */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDropdown(false);
+                            onDelete();
+                        }}
+                        className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20 transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
+                        <span>{t('menu_items.delete')}</span>
+                    </button>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
