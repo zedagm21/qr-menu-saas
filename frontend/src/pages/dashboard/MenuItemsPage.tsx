@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -28,7 +28,7 @@ import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Beef, Search, UploadCloud,
     Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
-    Smartphone, Loader2
+    Smartphone, Loader2, MoreVertical
 } from 'lucide-react';
 import { PhoneCameraModal } from '../../components/dashboard/PhoneCameraModal';
 import { isHeicFile } from '../../lib/imageCompression';
@@ -708,15 +708,30 @@ const MenuItemCardBase: React.FC<{
     style?: React.CSSProperties;
 }> = ({ item, cats, onEdit, onDelete, onToggleAvailability, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     const catName = getTranslation(cats.find(c => c.id === item.categoryId)?.translations ?? [], i18n.language);
     const name = getTranslation(item.translations, i18n.language);
+
+    useEffect(() => {
+        if (!showDropdown) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showDropdown]);
 
     return (
         <div
             ref={setNodeRef}
             style={style}
             className={cn(
-                'group relative flex items-stretch overflow-hidden',
+                'group relative flex items-stretch',
+                showDropdown ? 'z-30 overflow-visible' : 'overflow-hidden',
                 'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[22px]',
                 !dragOverlay && 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
                 dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
@@ -725,7 +740,7 @@ const MenuItemCardBase: React.FC<{
             {/* Left status accent strip */}
             <div
                 className={cn(
-                    'w-1.5 flex-shrink-0 transition-colors duration-300',
+                    'w-1.5 rounded-l-[21px] flex-shrink-0 transition-colors duration-300',
                     item.isAvailable
                         ? item.isFeatured
                             ? 'bg-gradient-to-b from-amber-400 to-amber-600'
@@ -812,44 +827,110 @@ const MenuItemCardBase: React.FC<{
                     </div>
                 </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                {/* Sliding Toggle Switch */}
-                <button
-                    type="button"
-                    onClick={onToggleAvailability}
-                    title={item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}
-                    className={cn(
-                        'w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
-                        item.isAvailable
-                            ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30 border-transparent'
-                            : 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+                {/* Desktop Action Buttons (sm:flex) */}
+                <div className="hidden sm:flex items-center gap-1.5 shrink-0 pl-1">
+                    {/* Sliding Toggle Switch */}
+                    <button
+                        type="button"
+                        onClick={onToggleAvailability}
+                        title={item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}
+                        className={cn(
+                            'w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
+                            item.isAvailable
+                                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30 border-transparent'
+                                : 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600'
+                        )}
+                    >
+                        <div className={cn(
+                            'bg-white w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-sm transition-transform duration-200 ease-out',
+                            item.isAvailable ? 'translate-x-[16px] sm:translate-x-[18px]' : 'translate-x-0'
+                        )} />
+                    </button>
+
+                    {/* Edit */}
+                    <button
+                        onClick={onEdit}
+                        title={t('menu_items.edit')}
+                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-[color:var(--color-brand-600)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 hover:border-[color:var(--color-brand-200)] dark:hover:border-[color:var(--color-brand-500)]/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
+                    >
+                        <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                        onClick={onDelete}
+                        title={t('menu_items.delete')}
+                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
+                    >
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                </div>
+
+                {/* Mobile Kebab Menu Button & Dropdown (sm:hidden) */}
+                <div className="relative sm:hidden shrink-0 pl-1" ref={dropdownRef}>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDropdown(prev => !prev);
+                        }}
+                        aria-label="More options"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 active:scale-95 transition-all shadow-xs"
+                    >
+                        <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {showDropdown && (
+                        <div className="absolute right-0 top-full mt-1.5 w-48 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                            {/* Toggle Availability */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDropdown(false);
+                                    onToggleAvailability();
+                                }}
+                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
+                            >
+                                <div className={cn(
+                                    'w-3 h-3 rounded-full shrink-0',
+                                    item.isAvailable ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-neutral-400 dark:bg-neutral-600'
+                                )} />
+                                <span>{item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}</span>
+                            </button>
+
+                            {/* Edit */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDropdown(false);
+                                    onEdit();
+                                }}
+                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 active:bg-neutral-100 dark:active:bg-neutral-800 transition-colors"
+                            >
+                                <Pencil className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+                                <span>{t('menu_items.edit')}</span>
+                            </button>
+
+                            <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
+
+                            {/* Delete */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDropdown(false);
+                                    onDelete();
+                                }}
+                                className="w-full min-h-[44px] px-3.5 py-2.5 flex items-center gap-3 text-left text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
+                                <span>{t('menu_items.delete')}</span>
+                            </button>
+                        </div>
                     )}
-                >
-                    <div className={cn(
-                        'bg-white w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-sm transition-transform duration-200 ease-out',
-                        item.isAvailable ? 'translate-x-[16px] sm:translate-x-[18px]' : 'translate-x-0'
-                    )} />
-                </button>
-
-                {/* Edit */}
-                <button
-                    onClick={onEdit}
-                    title={t('menu_items.edit')}
-                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-[color:var(--color-brand-600)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 hover:border-[color:var(--color-brand-200)] dark:hover:border-[color:var(--color-brand-500)]/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                >
-                    <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-
-                {/* Delete */}
-                <button
-                    onClick={onDelete}
-                    title={t('menu_items.delete')}
-                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                >
-                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-            </div>
+                </div>
             </div>
         </div>
     );
