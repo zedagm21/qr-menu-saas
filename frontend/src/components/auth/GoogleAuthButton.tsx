@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
+import { useDashboardTheme } from '../../contexts/DashboardThemeContext';
 import toast from 'react-hot-toast';
 
 interface GoogleAuthButtonProps {
@@ -16,15 +17,42 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
     text = 'continue_with',
 }) => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const [isDark, setIsDark] = useState(false);
+    const { theme } = useDashboardTheme();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [buttonWidth, setButtonWidth] = useState<number>(368);
 
+    const isDark =
+        theme === 'dark' ||
+        (theme === 'auto' &&
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    // Measure exact container width dynamically to pass a valid pixel integer to Google Identity Services
     useEffect(() => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-        const observer = new MutationObserver(() => {
-            setIsDark(document.documentElement.classList.contains('dark'));
-        });
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        return () => observer.disconnect();
+        const updateWidth = () => {
+            if (containerRef.current) {
+                const measured = Math.floor(containerRef.current.getBoundingClientRect().width);
+                if (measured > 0) {
+                    // Google GSI renderButton accepts widths between 200 and 400 pixels
+                    const clamped = Math.min(Math.max(measured, 200), 400);
+                    setButtonWidth(clamped);
+                }
+            }
+        };
+
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+
+        let observer: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+            observer = new ResizeObserver(() => updateWidth());
+            observer.observe(containerRef.current);
+        }
+
+        return () => {
+            window.removeEventListener('resize', updateWidth);
+            observer?.disconnect();
+        };
     }, []);
 
     // Fallback UI when VITE_GOOGLE_CLIENT_ID is not configured in environment
@@ -64,26 +92,29 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
     }
 
     return (
-        <div className={`w-full flex justify-center ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-            <div className="w-full max-w-[400px]">
-                <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                        if (credentialResponse.credential) {
-                            onSuccess(credentialResponse.credential);
-                        } else {
-                            onError?.('No credential returned from Google');
-                        }
-                    }}
-                    onError={() => {
-                        onError?.('Google Sign-In failed');
-                    }}
-                    text={text}
-                    shape="rectangular"
-                    theme={isDark ? 'filled_black' : 'outline'}
-                    size="large"
-                    width="100%"
-                />
-            </div>
+        <div
+            ref={containerRef}
+            className={`w-full flex justify-center items-center min-h-[44px] ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+        >
+            <GoogleLogin
+                key={`${isDark ? 'dark' : 'light'}-${buttonWidth}`}
+                onSuccess={(credentialResponse) => {
+                    if (credentialResponse.credential) {
+                        onSuccess(credentialResponse.credential);
+                    } else {
+                        onError?.('No credential returned from Google');
+                    }
+                }}
+                onError={() => {
+                    onError?.('Google Sign-In failed');
+                }}
+                text={text}
+                shape="rectangular"
+                theme={isDark ? 'filled_black' : 'outline'}
+                size="large"
+                width={`${buttonWidth}`}
+                logo_alignment="left"
+            />
         </div>
     );
 };
