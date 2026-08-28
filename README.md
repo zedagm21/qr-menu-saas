@@ -15,7 +15,7 @@ A production-ready, high-performance, multi-tenant QR Menu SaaS platform designe
   * **Elegant:** Editorial full-width imagery with serif styling.
   * **Minimal:** Clean, distraction-free typographic list.
 * **🔍 Instant Search & Category Filtering:** Sticky category pills and instant client-side search across names, descriptions, and ingredients.
-* **🏷️ Dietary & Item Badges:** Visual indicators for Featured ⭐, Spicy 🌶️, and Sold Out states.
+* **🏷️ Dietary & Item Badges:** Visual indicators for Featured ⭐ and Sold Out states, with comprehensive Fasting / Non-Fasting filtering.
 
 ### 🏢 Restaurant Management Dashboard
 * **📊 Live Overview & Analytics:** Interactive stats counters, onboarding checklist, and category distribution charts.

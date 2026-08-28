@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Flame, Star, AlertCircle, Info } from 'lucide-react';
+import { X, Star, AlertCircle, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, cn } from '../../lib/utils';
 
@@ -65,11 +65,6 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
                             {hasDiscount && (
                                 <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[12px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 uppercase tracking-widest">
                                     <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                                </span>
-                            )}
-                            {item.isSpicy && (
-                                <span className="bg-red-500/90 backdrop-blur-md text-white text-[12px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-red-500/20 uppercase tracking-widest">
-                                    <Flame className="w-4 h-4 fill-white" /> {t('public.spicy')}
                                 </span>
                             )}
                         </div>

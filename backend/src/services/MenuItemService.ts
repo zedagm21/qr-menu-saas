@@ -45,7 +45,7 @@ export class MenuItemService {
                 imageUrl: data.imageUrl ?? null,
                 isAvailable: data.isAvailable ?? true,
                 isFeatured: data.isFeatured ?? false,
-                isSpicy: data.isSpicy ?? false,
+                isFasting: data.isFasting ?? true,
                 displayOrder: data.displayOrder ?? 0,
                 translations: {
                     create: data.translations,
@@ -79,7 +79,7 @@ export class MenuItemService {
                     ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
                     ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
                     ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
-                    ...(data.isSpicy !== undefined && { isSpicy: data.isSpicy }),
+                    ...(data.isFasting !== undefined && { isFasting: data.isFasting }),
                     ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
                 },
             });

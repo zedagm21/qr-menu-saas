@@ -6,7 +6,6 @@ import { Helmet } from 'react-helmet-async';
 import {
     Search,
     X,
-    Flame,
     UtensilsCrossed,
     Star,
     SlidersHorizontal
@@ -181,9 +180,9 @@ export default function PublicMenuPage() {
 
         // Fasting filter
         if (filters.fasting === 'fasting') {
-            if (!isFastingItem(item)) return false;
+            if (item.isFasting !== true) return false;
         } else if (filters.fasting === 'non-fasting') {
-            if (isFastingItem(item)) return false;
+            if (item.isFasting !== false) return false;
         }
 
         return true;
@@ -611,7 +610,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                             </span>
                         )}
-                        {item.isSpicy && <span title={t('public.spicy')} className="bg-red-500 text-white px-1.5 py-0.5 rounded-sm shrink-0 flex items-center justify-center"><Flame className="w-2.5 h-2.5" /></span>}
                     </div>
 
                     <h3 className={cn("text-base sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
@@ -681,11 +679,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {hasDiscount && (
                                 <div className={cn("bg-emerald-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                     <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                                </div>
-                            )}
-                            {item.isSpicy && (
-                                <div title={t('public.spicy')} className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
-                                    <Flame className="w-3 h-3 fill-white text-white" />
                                 </div>
                             )}
                         </div>
@@ -763,7 +756,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                         {item.isFeatured && <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{t('public.featured')}</div>}
                         {hasDiscount && <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}</div>}
-                        {item.isSpicy && <div title={t('public.spicy')} className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg"><Flame className="w-2.5 h-2.5 fill-white text-white" /></div>}
                     </div>
                 ) : (
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-amber-100/50 dark:bg-amber-900/30 flex items-center justify-center shadow-inner border border-amber-900/5 dark:border-amber-100/5">
@@ -829,11 +821,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     {hasDiscount && (
                         <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                        </div>
-                    )}
-                    {item.isSpicy && (
-                        <div title={t('public.spicy')} className="absolute top-1 right-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg">
-                            <Flame className="w-2.5 h-2.5 fill-white text-white" />
                         </div>
                     )}
                 </div>
