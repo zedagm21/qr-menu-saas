@@ -6,7 +6,8 @@ import {
     DndContext,
     closestCenter,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     DragEndEvent,
@@ -800,7 +801,7 @@ const MenuItemCardBase: React.FC<{
                 {...attributes}
                 {...listeners}
                 className={cn(
-                    "flex items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                    "touch-none flex items-center justify-center w-11 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
                     (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
                 )}
             >
@@ -1076,7 +1077,8 @@ export default function MenuItemsPage() {
         });
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
