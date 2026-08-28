@@ -44,6 +44,10 @@ export const authApi = {
     me: () => api.get('/auth/me').then(r => r.data),
     updatePassword: (data: { currentPassword: string; newPassword: string }) =>
         api.post('/auth/password', data).then(r => r.data),
+    forgotPassword: (data: { email: string }): Promise<{ success: boolean; message: string }> =>
+        api.post('/auth/forgot-password', data).then(r => r.data),
+    resetPassword: (data: { email: string; otp: string; password: string }): Promise<{ success: boolean; message: string }> =>
+        api.post('/auth/reset-password', data).then(r => r.data),
 };
 
 // ─── Restaurant ───────────────────────────────────────────────────────────────

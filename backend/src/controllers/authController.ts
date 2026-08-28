@@ -7,6 +7,8 @@ import {
     resendOtpSchema,
     googleAuthSchema,
     updatePasswordSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
 } from '../validators/auth';
 import { config } from '../config/env';
 
@@ -99,6 +101,26 @@ export const updatePassword = async (req: Request, res: Response, next: NextFunc
         const data = updatePasswordSchema.parse(req.body);
         await authService.updatePassword(req.user!.userId, data);
         res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = forgotPasswordSchema.parse(req.body);
+        const result = await authService.forgotPassword(data.email);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const data = resetPasswordSchema.parse(req.body);
+        const result = await authService.resetPassword(data);
+        res.json(result);
     } catch (error) {
         next(error);
     }

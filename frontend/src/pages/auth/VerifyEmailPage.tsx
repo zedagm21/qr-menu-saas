@@ -39,13 +39,44 @@ const VerifyEmailPage: React.FC = () => {
         inputsRef.current[0]?.focus();
     }, []);
 
+    // Helper to distribute multiple digits across the OTP inputs (supports mobile paste and autofill)
+    const distributeDigits = (rawText: string, startIndex: number = 0) => {
+        setApiError('');
+        const cleanDigits = rawText.replace(/\D/g, '');
+        if (!cleanDigits) return;
+
+        const newDigits = [...digits];
+        const effectiveStart = cleanDigits.length === OTP_LENGTH ? 0 : startIndex;
+        const chars = cleanDigits.slice(0, OTP_LENGTH - effectiveStart).split('');
+
+        chars.forEach((c, i) => {
+            if (effectiveStart + i < OTP_LENGTH) {
+                newDigits[effectiveStart + i] = c;
+            }
+        });
+
+        setDigits(newDigits);
+
+        const nextIndex = Math.min(effectiveStart + chars.length, OTP_LENGTH - 1);
+        inputsRef.current[nextIndex]?.focus();
+
+        if (newDigits.every(d => d !== '')) {
+            submitCode(newDigits.join(''));
+        }
+    };
+
     // Handle digit input change
     const handleChange = (index: number, value: string) => {
         setApiError('');
-        const char = value.slice(-1); // Take the latest character
+        const clean = value.replace(/\D/g, '');
 
-        if (!/^\d*$/.test(char)) return; // Digits only
+        // If multiple digits pasted or autofilled by mobile keyboard
+        if (clean.length > 1) {
+            distributeDigits(clean, index);
+            return;
+        }
 
+        const char = clean.slice(-1);
         const newDigits = [...digits];
         newDigits[index] = char;
         setDigits(newDigits);
@@ -81,27 +112,11 @@ const VerifyEmailPage: React.FC = () => {
     };
 
     // Handle full paste
-    const handlePaste = (e: React.ClipboardEvent) => {
+    const handlePaste = (e: React.ClipboardEvent, index: number = 0) => {
         e.preventDefault();
         setApiError('');
-        const pasteData = e.clipboardData.getData('text').trim();
-        const cleanDigits = pasteData.replace(/\D/g, '').slice(0, OTP_LENGTH).split('');
-
-        if (cleanDigits.length === 0) return;
-
-        const newDigits = Array(OTP_LENGTH).fill('');
-        cleanDigits.forEach((digit, i) => {
-            newDigits[i] = digit;
-        });
-        setDigits(newDigits);
-
-        // Focus the next empty input or last input
-        const nextIndex = Math.min(cleanDigits.length, OTP_LENGTH - 1);
-        inputsRef.current[nextIndex]?.focus();
-
-        if (cleanDigits.length === OTP_LENGTH) {
-            submitCode(newDigits.join(''));
-        }
+        const pasteData = e.clipboardData?.getData('text') || '';
+        distributeDigits(pasteData, index);
     };
 
     const submitCode = async (code: string) => {
@@ -179,7 +194,7 @@ const VerifyEmailPage: React.FC = () => {
                         )}
 
                         {/* 6-Digit OTP Inputs */}
-                        <div className="flex justify-center items-center gap-2 sm:gap-3 mb-6" onPaste={handlePaste}>
+                        <div className="flex justify-center items-center gap-2 sm:gap-3 mb-6" onPaste={(e) => handlePaste(e, 0)}>
                             {digits.map((digit, index) => (
                                 <input
                                     key={index}
@@ -187,8 +202,11 @@ const VerifyEmailPage: React.FC = () => {
                                     type="text"
                                     inputMode="numeric"
                                     pattern="[0-9]*"
-                                    maxLength={1}
+                                    maxLength={OTP_LENGTH}
+                                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
                                     value={digit}
+                                    onFocus={e => e.target.select()}
+                                    onPaste={e => handlePaste(e, index)}
                                     onChange={e => handleChange(index, e.target.value)}
                                     onKeyDown={e => handleKeyDown(index, e)}
                                     className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-2xl font-bold rounded-xl border transition-all shadow-sm focus:outline-none focus:ring-[3px] ${

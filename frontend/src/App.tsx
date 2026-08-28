@@ -6,6 +6,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
 
 // Dashboard pages
 const OverviewPage = lazy(() => import('./pages/dashboard/OverviewPage'));
@@ -47,6 +48,8 @@ const App: React.FC = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ForgotPasswordPage />} />
 
             {/* Restaurant Owner Dashboard */}
             <Route path="/dashboard" element={<DashboardLayout />}>

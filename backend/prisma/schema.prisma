@@ -66,6 +66,10 @@ model User {
   emailVerificationExpires DateTime?
   resendAttemptsCount      Int         @default(0)
   lastResendAttemptAt      DateTime?
+  resetPasswordOtp         String?
+  resetPasswordExpires     DateTime?
+  resetPasswordAttempts    Int         @default(0)
+  lastResetAttemptAt       DateTime?
   role                     Role        @default(OWNER)
   restaurantId             String?
   restaurant               Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)

@@ -15,6 +15,8 @@ interface AuthContextType {
     logout: () => Promise<void>;
     refreshAuth: () => Promise<void>;
     updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+    forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+    resetPassword: (data: { email: string; otp: string; password: string }) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -79,6 +81,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authApi.updatePassword({ currentPassword, newPassword });
     };
 
+    const forgotPassword = async (email: string) => {
+        return await authApi.forgotPassword({ email });
+    };
+
+    const resetPassword = async (data: { email: string; otp: string; password: string }) => {
+        return await authApi.resetPassword(data);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -94,6 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 logout,
                 refreshAuth,
                 updatePassword,
+                forgotPassword,
+                resetPassword,
             }}
         >
             {children}

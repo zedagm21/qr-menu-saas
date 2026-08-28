@@ -30,9 +30,21 @@ export const updatePasswordSchema = z.object({
     newPassword: z.string().min(6, 'New password must be at least 6 characters'),
 });
 
+export const forgotPasswordSchema = z.object({
+    email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+    email: z.string().email('Invalid email address'),
+    otp: z.string().regex(/^\d{6}$/, 'Reset code must be exactly 6 digits'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export type ResendOtpInput = z.infer<typeof resendOtpSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

@@ -8,7 +8,7 @@ import { generateSlug, ensureUniqueSlug } from '../utils/slug';
 import { createError } from '../middleware/errorHandler';
 import { emailService } from './EmailService';
 import { auditService } from './AuditService';
-import type { RegisterInput, LoginInput, UpdatePasswordInput } from '../validators/auth';
+import type { RegisterInput, LoginInput, UpdatePasswordInput, ForgotPasswordInput, ResetPasswordInput } from '../validators/auth';
 import type { AuthPayload } from '../middleware/auth';
 
 const googleClient = new OAuth2Client(config.googleClientId);
@@ -452,6 +452,128 @@ export class AuthService {
         });
     }
 
+    /**
+     * Initiates password reset for a user.
+     * Generates a 6-digit OTP and sends it via email.
+     * Rate-limited to 60s cooldown and 5 requests per hour.
+     */
+    async forgotPassword(email: string) {
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+        });
+
+        // Anti-enumeration: If user does not exist, return generic success
+        if (!user) {
+            return {
+                success: true,
+                message: 'If an account exists with this email address, a password reset code has been sent.',
+            };
+        }
+
+        // If user only registered with Google (no password)
+        if (!user.passwordHash && user.googleId) {
+            throw createError('This account was created with Google. Please use "Continue with Google" to sign in.', 400);
+        }
+
+        const now = new Date();
+        const lastAttempt = user.lastResetAttemptAt;
+
+        // 1. Check 60-second cooldown
+        if (lastAttempt && now.getTime() - lastAttempt.getTime() < 60 * 1000) {
+            const secondsLeft = Math.ceil((60 * 1000 - (now.getTime() - lastAttempt.getTime())) / 1000);
+            throw createError(`Please wait ${secondsLeft} seconds before requesting another code.`, 429);
+        }
+
+        // 2. Check 1-hour rate limit (max 5 requests per hour)
+        let attemptsCount = user.resetPasswordAttempts + 1;
+        if (lastAttempt && now.getTime() - lastAttempt.getTime() > 60 * 60 * 1000) {
+            // An hour has passed, reset counter
+            attemptsCount = 1;
+        } else if (user.resetPasswordAttempts >= 5) {
+            throw createError('Too many password reset requests. Please wait an hour before trying again.', 429);
+        }
+
+        // Generate 6-digit OTP code and 15-minute expiration
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                resetPasswordOtp: otp,
+                resetPasswordExpires: otpExpires,
+                resetPasswordAttempts: attemptsCount,
+                lastResetAttemptAt: now,
+            },
+        });
+
+        // Audit log
+        auditService.logAction({
+            action: 'PASSWORD_RESET_REQUESTED',
+            userId: user.id,
+            restaurantId: user.restaurantId,
+            details: { email: user.email },
+        });
+
+        // Dispatch email in background
+        emailService.sendPasswordResetOtp(user.email, otp, user.name).catch((err) => {
+            console.error('Failed to send password reset OTP:', err);
+        });
+
+        return {
+            success: true,
+            message: 'Password reset code sent to your email.',
+        };
+    }
+
+    /**
+     * Resets the user's password using the 6-digit OTP code.
+     */
+    async resetPassword(input: ResetPasswordInput) {
+        const normalizedEmail = input.email.toLowerCase().trim();
+        const user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+        });
+
+        if (!user) {
+            throw createError('Invalid email or reset code.', 400);
+        }
+
+        if (!user.resetPasswordOtp || user.resetPasswordOtp !== input.otp.trim()) {
+            throw createError('Invalid reset code. Please check the code and try again.', 400);
+        }
+
+        if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+            throw createError('Reset code has expired. Please request a new code.', 400);
+        }
+
+        const passwordHash = await bcrypt.hash(input.password, 12);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                passwordHash,
+                resetPasswordOtp: null,
+                resetPasswordExpires: null,
+                resetPasswordAttempts: 0,
+                emailVerified: true, // Proving email ownership marks email verified
+            },
+        });
+
+        auditService.logAction({
+            action: 'PASSWORD_RESET_COMPLETED',
+            userId: user.id,
+            restaurantId: user.restaurantId,
+            details: { email: user.email },
+        });
+
+        return {
+            success: true,
+            message: 'Password reset successfully. You can now sign in with your new password.',
+        };
+    }
+
     private signToken(payload: AuthPayload): string {
         return jwt.sign(payload as object, config.jwtSecret, {
             expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
@@ -470,8 +592,9 @@ export class AuthService {
         updatedAt: Date;
         passwordHash?: string | null;
         emailVerificationOtp?: string | null;
+        resetPasswordOtp?: string | null;
     }) {
-        const { passwordHash: _, emailVerificationOtp: __, ...safe } = user as any;
+        const { passwordHash: _, emailVerificationOtp: __, resetPasswordOtp: ___, ...safe } = user as any;
         return safe;
     }
 }

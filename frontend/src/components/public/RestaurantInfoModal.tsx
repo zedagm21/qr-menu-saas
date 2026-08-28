@@ -92,6 +92,37 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
         return <Link2 className="w-4 h-4 text-[color:var(--color-brand-500)]" />;
     };
 
+    const resolveSocialHref = (platform: string, url: string) => {
+        const trimmed = url.trim();
+        if (!trimmed) return '#';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        const p = platform.toLowerCase();
+        if (p.includes('telegram')) {
+            return `https://t.me/${trimmed.replace(/^@/, '')}`;
+        }
+        if (p.includes('instagram')) {
+            return `https://instagram.com/${trimmed.replace(/^@/, '')}`;
+        }
+        if (p.includes('tiktok')) {
+            return `https://tiktok.com/@${trimmed.replace(/^@/, '')}`;
+        }
+        if (p.includes('whatsapp')) {
+            const digits = trimmed.replace(/\D/g, '');
+            if (digits.startsWith('09')) return `https://wa.me/251${digits.slice(1)}`;
+            return `https://wa.me/${digits}`;
+        }
+        if (p.includes('facebook')) {
+            return `https://facebook.com/${trimmed.replace(/^@/, '')}`;
+        }
+        if (p.includes('youtube')) {
+            return `https://youtube.com/@${trimmed.replace(/^@/, '')}`;
+        }
+        if (p.includes('twitter') || p.includes('x')) {
+            return `https://x.com/${trimmed.replace(/^@/, '')}`;
+        }
+        return `https://${trimmed}`;
+    };
+
     return (
         <div
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -291,7 +322,7 @@ export const RestaurantInfoModal: React.FC<RestaurantInfoModalProps> = ({
                                 {socialList.map((item, idx) => (
                                     <a
                                         key={idx}
-                                        href={item.url}
+                                        href={resolveSocialHref(item.platform, item.url)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => onSocialClick?.(item.platform)}

@@ -17,6 +17,7 @@ import { SkeletonList } from '../../components/ui/Skeleton';
 import { useQueryClient } from '@tanstack/react-query';
 import { getTranslation, cn } from '../../lib/utils';
 import type { SocialMediaEntry } from '../../types';
+import { SocialLinksManager, PLATFORMS } from '../../components/dashboard/SocialLinksManager';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -318,18 +319,6 @@ const RestaurantPage: React.FC = () => {
         clearTimeout(logoTimer.current); clearTimeout(coverTimer.current);
     }, []);
 
-    const handleAddSocial = () => {
-        setSocialLinks(prev => [...prev, { platform: 'Instagram', url: '' }]);
-    };
-
-    const handleRemoveSocial = (index: number) => {
-        setSocialLinks(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSocialChange = (index: number, field: 'platform' | 'url', value: string) => {
-        setSocialLinks(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
-    };
-
     const onSubmit = (data: FormData) => {
         const translations = [
             {
@@ -348,6 +337,16 @@ const RestaurantPage: React.FC = () => {
             },
         ];
 
+        const normalizedSocial = socialLinks
+            .filter(l => l.url.trim() !== '')
+            .map(l => {
+                const platformCfg = PLATFORMS.find(p => p.id.toLowerCase() === l.platform.toLowerCase());
+                return {
+                    platform: l.platform,
+                    url: platformCfg ? platformCfg.normalizeUrl(l.url) : l.url.trim()
+                };
+            });
+
         const payload = {
             name: data.nameEn.trim(),
             description: data.descEn.trim() || null,
@@ -362,13 +361,14 @@ const RestaurantPage: React.FC = () => {
             wifiName: data.wifiName?.trim() || null,
             wifiPassword: data.wifiPassword?.trim() || null,
             paymentInfo: data.paymentInfo?.trim() || null,
-            socialMedia: socialLinks.filter(l => l.url.trim() !== ''),
+            socialMedia: normalizedSocial,
             translations,
         };
 
         update(payload, {
             onSuccess: () => {
-                initialSocialJson.current = JSON.stringify(payload.socialMedia);
+                setSocialLinks(normalizedSocial);
+                initialSocialJson.current = JSON.stringify(normalizedSocial);
                 reset(data);
                 if (pendingNavHref) {
                     const target = pendingNavHref;
@@ -748,69 +748,10 @@ const RestaurantPage: React.FC = () => {
                             </div>
 
                             {/* C. Social Media Dynamic List */}
-                            <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
-                                        <Share2 className="w-4 h-4 text-[color:var(--color-brand-500)]" />
-                                        <span>{t('restaurant.social_media', { defaultValue: 'Social Media Links' })}</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleAddSocial}
-                                        className="min-h-[44px] px-3.5 py-1.5 rounded-xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] text-[12px] font-bold hover:bg-[color:var(--color-brand-100)] transition-all flex items-center gap-1.5 cursor-pointer"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        <span>{t('restaurant.add_social_media', { defaultValue: 'Add Social Media' })}</span>
-                                    </button>
-                                </div>
-                                <p className="text-[12px] text-neutral-500 dark:text-neutral-400">
-                                    {t('restaurant.social_media_desc', { defaultValue: 'Connect your social channels to display clickable links to guests.' })}
-                                </p>
-
-                                {socialLinks.length === 0 ? (
-                                    <div className="py-6 px-4 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 text-center">
-                                        <p className="text-[13px] text-neutral-400">{t('restaurant.no_social_added', { defaultValue: 'No social media accounts linked yet.' })}</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {socialLinks.map((item, idx) => (
-                                            <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 rounded-2xl bg-neutral-50/60 dark:bg-neutral-800/40 border border-neutral-200/60 dark:border-neutral-700/50">
-                                                <select
-                                                    value={item.platform}
-                                                    onChange={(e) => handleSocialChange(idx, 'platform', e.target.value)}
-                                                    className="h-11 sm:w-44 px-3 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[13px] font-medium text-neutral-900 dark:text-neutral-100 focus:ring-1 focus:ring-[color:var(--color-brand-500)]"
-                                                >
-                                                    <option value="Facebook">Facebook</option>
-                                                    <option value="Instagram">Instagram</option>
-                                                    <option value="TikTok">TikTok</option>
-                                                    <option value="Telegram">Telegram</option>
-                                                    <option value="YouTube">YouTube</option>
-                                                    <option value="LinkedIn">LinkedIn</option>
-                                                    <option value="Twitter/X">Twitter/X</option>
-                                                    <option value="WhatsApp">WhatsApp</option>
-                                                </select>
-
-                                                <input
-                                                    type="url"
-                                                    value={item.url}
-                                                    onChange={(e) => handleSocialChange(idx, 'url', e.target.value)}
-                                                    placeholder="https://..."
-                                                    className="flex-1 h-11 px-3.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[13px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:ring-1 focus:ring-[color:var(--color-brand-500)]"
-                                                />
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveSocial(idx)}
-                                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
-                                                    aria-label={t('restaurant.remove_social', { defaultValue: 'Remove link' })}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <SocialLinksManager
+                                links={socialLinks}
+                                onChange={setSocialLinks}
+                            />
                         </div>
                     </SectionCard>
 
