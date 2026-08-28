@@ -362,7 +362,7 @@ export default function PublicMenuPage() {
                             {restaurant.name}
                         </h1>
                         {restaurant.description && (
-                            <p className={cn("text-white/80 text-sm sm:text-base max-w-md mx-auto mt-1", lang === 'AM' && 'font-ethiopic')}>
+                            <p className={cn("text-white/80 text-sm sm:text-base max-w-md mx-auto mt-1 line-clamp-2", lang === 'AM' && 'font-ethiopic')}>
                                 {restaurant.description}
                             </p>
                         )}
@@ -373,8 +373,8 @@ export default function PublicMenuPage() {
                             </span>
                             <span className="flex items-center gap-1.5">
                                 📍 {lang === 'AM'
-                                    ? [restaurant.city, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
-                                    : [restaurant.city, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
+                                    ? [restaurant.address, restaurant.city, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
+                                    : [restaurant.address, restaurant.city, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
                             </span>
                         </div>
                     </div>
