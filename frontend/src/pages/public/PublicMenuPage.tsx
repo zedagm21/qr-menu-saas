@@ -16,7 +16,7 @@ import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
-import { QuickActionBar, QuickActionPanel, type QuickAction } from '../../components/public/QuickActions';
+import { QuickActionBar, QuickActionModal, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -402,7 +402,7 @@ export default function PublicMenuPage() {
                 </div>
 
                 {/* ─── Hero Section ─── */}
-                <header className="relative min-h-[190px] sm:min-h-[220px] aspect-[21/9] sm:aspect-[3/1] animate-fade-in-up delay-0 overflow-hidden">
+                <header className="relative w-full min-h-[190px] sm:min-h-[220px] aspect-[21/9] sm:aspect-[3/1] animate-fade-in-up delay-0 overflow-hidden">
                     {/* Cover image as background */}
                     {restaurant.coverImageUrl ? (
                         <div className="absolute inset-0">
@@ -443,18 +443,6 @@ export default function PublicMenuPage() {
                         isAm={lang === 'AM'}
                     />
                 </header>
-
-                {/* ─── Quick Action Expandable Panel (Immediately below Hero in normal document flow) ─── */}
-                {activeQuickAction && (
-                    <QuickActionPanel
-                        activeAction={activeQuickAction}
-                        restaurant={restaurant}
-                        onClose={() => setActiveQuickAction(null)}
-                        isAm={lang === 'AM'}
-                        onCallClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
-                        onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
-                    />
-                )}
 
                 {/* ─── Sticky Navigation ─── */}
                 <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-sm py-2">
@@ -695,6 +683,19 @@ export default function PublicMenuPage() {
                     onSocialClick={(platform) => slug && publicApi.recordInteraction(slug, 'SOCIAL_CLICK', platform)}
                     onCallClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
                     onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
+                />
+
+                {/* ─── Quick Action Pop-up Modal / Bottom-Sheet (Info, Payment, Wi-Fi) ─── */}
+                <QuickActionModal
+                    isOpen={!!activeQuickAction}
+                    activeAction={activeQuickAction || 'info'}
+                    onChangeAction={(action) => setActiveQuickAction(action)}
+                    onClose={() => setActiveQuickAction(null)}
+                    restaurant={restaurant}
+                    isAm={lang === 'AM'}
+                    onCallClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
+                    onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
+                    onSocialClick={(platform) => slug && publicApi.recordInteraction(slug, 'SOCIAL_CLICK', platform)}
                 />
             </div>
         </ThemeProvider>
