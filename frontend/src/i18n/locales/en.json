@@ -182,9 +182,17 @@
       "badge": "Install App",
       "desc": "Install on your device for quick offline access and standalone management.",
       "ios_desc": "Install on your home screen for quick 1-tap restaurant access.",
+      "ios_other_desc": "To install on your iPhone, open this page in Safari, tap the Share button, and choose 'Add to Home Screen'.",
+      "android_fallback_desc": "Install this app on your phone for quick 1-tap access and offline menu editing.",
       "install_button": "Install App",
       "how_to_install": "How to Install",
-      "hide_guide": "Hide Steps"
+      "hide_guide": "Hide Steps",
+      "ios_step1": "Tap the Share button at the bottom of Safari.",
+      "ios_step2": "Scroll down and select 'Add to Home Screen'.",
+      "ios_step3": "Tap 'Add' in the top-right corner to finish.",
+      "android_step1": "Tap the browser menu (⋮) in the top or bottom corner.",
+      "android_step2": "Select 'Install app' or 'Add to Home screen'.",
+      "android_step3": "Confirm when prompted to add the app to your device."
     },
     "live_badge": "LIVE & PUBLISHED",
     "draft_badge": "DRAFT MODE",

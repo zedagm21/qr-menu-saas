@@ -15,6 +15,19 @@ import './styles/globals.css';
 // Automatically register service worker for offline caching and PWA functionality
 registerSW({ immediate: true });
 
+// Global PWA beforeinstallprompt capture (before React renders)
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.__pwaDeferredPrompt = e as any;
+    window.dispatchEvent(new Event('pwa-prompt-ready'));
+});
+
+window.addEventListener('appinstalled', () => {
+    window.__pwaDeferredPrompt = null;
+    sessionStorage.removeItem('pwa_install_banner_dismissed');
+    window.dispatchEvent(new Event('pwa-installed'));
+});
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
