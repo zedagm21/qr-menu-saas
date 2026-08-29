@@ -1,4 +1,5 @@
-﻿import prisma from '../src/config/database';
+import process from 'node:process';
+import prisma from '../src/config/database';
 
 async function main() {
     const email = process.argv[2]?.toLowerCase().trim();

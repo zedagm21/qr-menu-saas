@@ -605,7 +605,21 @@
     "copy_password": "የይለፍ ቃል ቅዳ",
     "phone": "ስልክ",
     "email": "ኢሜይል",
-    "address": "አድራሻ"
+    "address": "አድራሻ",
+    "quick_info": "መረጃ",
+    "quick_payment": "ክፍያ",
+    "quick_wifi": "ዋይፋይ",
+    "restaurant_info": "የምግብ ቤቱ መረጃ",
+    "payment_methods": "የክፍያ አማራጮች",
+    "wifi_network": "የዋይፋይ ስም",
+    "wifi_password": "የዋይፋይ የይለፍ ቃል",
+    "show_password": "የይለፍ ቃል አሳይ",
+    "hide_password": "የይለፍ ቃል ደብቅ",
+    "copy_all": "ዝርዝሩን ቅዳ",
+    "copied_details": "መረጃው ተቀድቷል!",
+    "no_payment_info": "የክፍያ መረጃ አልተዘጋጀም።",
+    "no_wifi_info": "የዋይፋይ መረጃ አልተዘጋጀም።",
+    "no_info": "ምንም መረጃ አልተዘጋጀም።"
   },
   "errors": {
     "required": "ይህ መስክ መሞላት አለበት",

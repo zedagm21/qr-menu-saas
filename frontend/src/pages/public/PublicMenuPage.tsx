@@ -16,6 +16,7 @@ import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
+import { QuickActionBar, QuickActionPanel, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -39,6 +40,7 @@ export default function PublicMenuPage() {
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [showRestaurantInfo, setShowRestaurantInfo] = useState(false);
+    const [activeQuickAction, setActiveQuickAction] = useState<QuickAction>(null);
     const [filters, setFilters] = useState<FilterState>({
         minPrice: '',
         maxPrice: '',
@@ -344,6 +346,14 @@ export default function PublicMenuPage() {
         ? `'${fontFamily}', 'Noto Serif Ethiopic', 'Noto Sans Ethiopic', 'Nyala', serif`
         : `'${fontFamily}', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', sans-serif`;
 
+    const translations = restaurant.translations ?? [];
+    const displayDesc = getTranslation(translations, lang, 'description') || restaurant.description || '';
+    const displayAddress = getTranslation(translations, lang, 'address') || restaurant.address || '';
+    const displayCity = getTranslation(translations, lang, 'city') || restaurant.city || '';
+    const hasInfo = Boolean(displayDesc || restaurant.phone || restaurant.email || displayAddress || displayCity || restaurant.country);
+    const hasPayment = Boolean(restaurant.paymentInfo && restaurant.paymentInfo.trim());
+    const hasWifi = Boolean(restaurant.wifiName || restaurant.wifiPassword);
+
     return (
         <ThemeProvider theme={restaurant.theme}>
             <Helmet>
@@ -392,7 +402,7 @@ export default function PublicMenuPage() {
                 </div>
 
                 {/* ─── Hero Section ─── */}
-                <header className="relative aspect-[21/9] sm:aspect-[3/1] animate-fade-in-up delay-0 overflow-hidden">
+                <header className="relative min-h-[190px] sm:min-h-[220px] aspect-[21/9] sm:aspect-[3/1] animate-fade-in-up delay-0 overflow-hidden">
                     {/* Cover image as background */}
                     {restaurant.coverImageUrl ? (
                         <div className="absolute inset-0">
@@ -406,28 +416,45 @@ export default function PublicMenuPage() {
                     )}
 
                     {/* Content overlays the image */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-20">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pb-12 sm:pb-10 z-10">
                         <h1 className={cn("text-2xl sm:text-3xl font-black text-white", lang === 'AM' && 'font-ethiopic')}>
                             {restaurant.name}
                         </h1>
-                        {restaurant.description && (
-                            <p className={cn("text-white/80 text-sm sm:text-base max-w-md mx-auto mt-1 line-clamp-2", lang === 'AM' && 'font-ethiopic')}>
-                                {restaurant.description}
-                            </p>
-                        )}
-                        <div className="flex items-center justify-center gap-4 text-white/70 text-xs sm:text-sm mt-3">
+                        <div className="flex items-center justify-center gap-4 text-white/70 text-xs sm:text-sm mt-2 sm:mt-2.5">
                             <span className="flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                                 {t("public.open_now")}
                             </span>
                             <span className="flex items-center gap-1.5">
                                 📍 {lang === 'AM'
-                                    ? [restaurant.address, restaurant.city, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
-                                    : [restaurant.address, restaurant.city, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
+                                    ? [displayAddress, displayCity, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
+                                    : [displayAddress, displayCity, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
                             </span>
                         </div>
                     </div>
+
+                    {/* ─── Quick Action Bar (Overlaid at bottom-left inside cover image) ─── */}
+                    <QuickActionBar
+                        activeAction={activeQuickAction}
+                        onToggleAction={(action) => setActiveQuickAction(prev => prev === action ? null : action)}
+                        hasInfo={hasInfo}
+                        hasPayment={hasPayment}
+                        hasWifi={hasWifi}
+                        isAm={lang === 'AM'}
+                    />
                 </header>
+
+                {/* ─── Quick Action Expandable Panel (Immediately below Hero in normal document flow) ─── */}
+                {activeQuickAction && (
+                    <QuickActionPanel
+                        activeAction={activeQuickAction}
+                        restaurant={restaurant}
+                        onClose={() => setActiveQuickAction(null)}
+                        isAm={lang === 'AM'}
+                        onCallClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
+                        onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
+                    />
+                )}
 
                 {/* ─── Sticky Navigation ─── */}
                 <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-sm py-2">

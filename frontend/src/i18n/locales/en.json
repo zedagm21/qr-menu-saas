@@ -605,7 +605,21 @@
     "copy_password": "Copy Password",
     "phone": "Phone",
     "email": "Email",
-    "address": "Address"
+    "address": "Address",
+    "quick_info": "Info",
+    "quick_payment": "Payment",
+    "quick_wifi": "Wi-Fi",
+    "restaurant_info": "Restaurant Info",
+    "payment_methods": "Payment Methods",
+    "wifi_network": "Wi-Fi Network",
+    "wifi_password": "Wi-Fi Password",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "copy_all": "Copy Details",
+    "copied_details": "Copied to clipboard!",
+    "no_payment_info": "No payment methods configured.",
+    "no_wifi_info": "No Wi-Fi credentials configured.",
+    "no_info": "No information provided."
   },
   "errors": {
     "required": "This field is required",
