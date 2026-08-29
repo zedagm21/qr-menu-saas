@@ -17,15 +17,15 @@ export default defineConfig({
                 'pwa-maskable-512x512.png',
             ],
             manifest: {
-                name: 'QR Menu — Digital Restaurant Menu',
-                short_name: 'QR Menu',
-                description: 'Browse restaurant menus offline with instant loading and seamless dining.',
+                name: 'QR Menu Manager',
+                short_name: 'QR Manager',
+                description: 'Manage your digital menu, categories, QR codes, and analytics on the go.',
                 theme_color: '#D97706',
                 background_color: '#111111',
                 display: 'standalone',
                 scope: '/',
-                start_url: '/',
-                orientation: 'portrait',
+                start_url: '/dashboard',
+                orientation: 'portrait-primary',
                 icons: [
                     {
                         src: '/pwa-192x192.png',
@@ -77,7 +77,7 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 3. Public diner restaurant & menu API responses
+                        // 3. Public diner restaurant & menu API responses (Passive cache)
                         urlPattern: /\/api\/public\/restaurants\/[^\/]+(?:\/menu)?(?:\?.*)?$/i,
                         method: 'GET',
                         handler: 'NetworkFirst',
@@ -94,7 +94,24 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 4. Dish photos, logos, covers (local /uploads/ or remote CDN / Cloudflare R2 / Unsplash)
+                        // 4. Restaurant Owner Dashboard APIs (Offline access)
+                        urlPattern: /\/api\/(?:restaurant(?:s)?|categories|menu-items|qr)(?:\/.*)?$/i,
+                        method: 'GET',
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'dashboard-api-cache',
+                            networkTimeoutSeconds: 3,
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            },
+                            expiration: {
+                                maxEntries: 50,
+                                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days (604800 seconds)
+                            },
+                        },
+                    },
+                    {
+                        // 5. Dish photos, logos, covers (local /uploads/ or remote CDN / Cloudflare R2 / Unsplash)
                         urlPattern: /(?:\/uploads\/|\.(?:png|jpg|jpeg|svg|webp|avif|gif)(?:\?.*)?$|r2\.cloudflarestorage|images\.unsplash)/i,
                         method: 'GET',
                         handler: 'StaleWhileRevalidate',
@@ -110,7 +127,7 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 5. Background Sync for Analytics (POST requests)
+                        // 6. Background Sync for Analytics (POST requests)
                         urlPattern: /\/api\/public\/restaurants\/[^\/]+\/(?:scan|item-click|search|interaction)$/i,
                         method: 'POST',
                         handler: 'NetworkOnly',
