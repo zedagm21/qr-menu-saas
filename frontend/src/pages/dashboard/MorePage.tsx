@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Store, List, Palette, Settings, LogOut, ExternalLink, ChevronRight, BarChart3, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { InstallAppBanner } from '../../components/ui/InstallAppBanner';
 import { cn } from '../../lib/utils';
 
 const MorePage: React.FC = () => {
@@ -37,6 +38,9 @@ const MorePage: React.FC = () => {
             </div>
 
             <div className="flex-1 px-4 space-y-4 max-w-md mx-auto w-full">
+                {/* PWA Install Banner */}
+                <InstallAppBanner />
+
                 {/* Profile Widget */}
                 <div className="animate-fade-in-up delay-75 backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[24px] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.2)] flex items-center gap-4">
                     {restaurant?.logoUrl ? (

@@ -178,6 +178,14 @@
     "publish": "Publish Menu",
     "unpublish": "Unpublish",
     "view_public_menu": "View Live Menu",
+    "pwa": {
+      "badge": "Install App",
+      "desc": "Install on your device for quick offline access and standalone management.",
+      "ios_desc": "Install on your home screen for quick 1-tap restaurant access.",
+      "install_button": "Install App",
+      "how_to_install": "How to Install",
+      "hide_guide": "Hide Steps"
+    },
     "live_badge": "LIVE & PUBLISHED",
     "draft_badge": "DRAFT MODE",
     "live_desc": "Your digital menu is published and accessible to customers scanning your QR code.",
