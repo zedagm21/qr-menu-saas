@@ -1,3 +1,4 @@
+import process from 'node:process';
 import prisma from '../src/config/database';
 import { adminService } from '../src/services/AdminService';
 import { analyticsService } from '../src/services/AnalyticsService';
