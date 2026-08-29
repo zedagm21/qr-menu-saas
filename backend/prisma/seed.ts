@@ -32,6 +32,15 @@ async function main() {
             defaultLanguage: Language.EN,
             currency: 'ETB',
             status: MenuStatus.PUBLISHED,
+            wifiName: 'BlueNile_Guest_5G',
+            wifiPassword: 'BlueNile@Addis2026',
+            paymentInfo: 'Commercial Bank of Ethiopia (CBE):\nAccount: 1000123456789 (Blue Nile Rest.)\n\nTelebirr / CBE Birr:\nPhone: +251 91 123 4567\n\nBank of Abyssinia:\nAccount: 887654321',
+            socialMedia: [
+                { platform: 'Instagram', url: 'https://instagram.com/bluenile_et' },
+                { platform: 'Telegram', url: 'https://t.me/bluenile_et' },
+                { platform: 'Facebook', url: 'https://facebook.com/bluenileaddis' },
+                { platform: 'TikTok', url: 'https://tiktok.com/@bluenile_et' }
+            ],
             translations: {
                 create: [
                     {
