@@ -14,7 +14,6 @@ import {
     Info,
     CreditCard,
     Wifi,
-    Phone,
     Share2
 } from 'lucide-react';
 import { publicApi } from '../../services/api';
@@ -24,6 +23,7 @@ import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
+import { SocialMediaModal } from '../../components/public/SocialMediaModal';
 import { QuickActionBar, QuickActionModal, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -38,8 +38,11 @@ export default function PublicMenuPage() {
     const qrParam = searchParams.get('qr');
 
     const [lang, setLang] = useState<'EN' | 'AM'>(() => {
-        const current = i18n.language?.toUpperCase();
-        return current === 'AM' ? 'AM' : 'EN';
+        const publicSaved = localStorage.getItem('public-menu-lang');
+        if (publicSaved) {
+            return publicSaved.toUpperCase() === 'AM' ? 'AM' : 'EN';
+        }
+        return 'EN';
     });
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 700);
@@ -50,6 +53,7 @@ export default function PublicMenuPage() {
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [showRestaurantInfo, setShowRestaurantInfo] = useState(false);
+    const [showSocialMedia, setShowSocialMedia] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<QuickAction>(null);
     const [filters, setFilters] = useState<FilterState>({
         minPrice: '',
@@ -88,7 +92,7 @@ export default function PublicMenuPage() {
         const nextLang = lang === 'EN' ? 'AM' : 'EN';
         setLang(nextLang);
         i18n.changeLanguage(nextLang.toLowerCase());
-        localStorage.setItem('ui-language', nextLang.toLowerCase());
+        localStorage.setItem('public-menu-lang', nextLang.toLowerCase());
     };
 
     const queryClient = useQueryClient();
@@ -220,12 +224,19 @@ export default function PublicMenuPage() {
         }
     }, [restaurant]);
 
+    // Synchronize language for public menu without polluting owner dashboard language
     useEffect(() => {
-        if (restaurant?.defaultLanguage && !localStorage.getItem('ui-language')) {
-            const initialLang = restaurant.defaultLanguage === 'AM' ? 'AM' : 'EN';
-            setLang(initialLang);
-            i18n.changeLanguage(initialLang.toLowerCase());
-        }
+        const publicSaved = localStorage.getItem('public-menu-lang');
+        const initial = publicSaved || (restaurant?.defaultLanguage ? restaurant.defaultLanguage.toLowerCase() : 'en');
+        const initialUpper = initial.toUpperCase() === 'AM' ? 'AM' : 'EN';
+        setLang(initialUpper);
+        i18n.changeLanguage(initialUpper.toLowerCase());
+
+        return () => {
+            // Restore owner dashboard language upon leaving the public menu
+            const dashboardLang = localStorage.getItem('ui-language') || 'en';
+            i18n.changeLanguage(dashboardLang);
+        };
     }, [restaurant?.defaultLanguage, i18n]);
 
     const activeFilterCount = useMemo(() => {
@@ -449,13 +460,18 @@ export default function PublicMenuPage() {
                     </div>
                 </div>
 
-                {/* ─── Hero Section (20% Viewport Height on Mobile) ─── */}
-                <header className="relative -mt-14 pt-14 pb-2 px-4 h-[20vh] min-h-[160px] sm:min-h-[190px] sm:h-[22vh] flex items-center justify-center animate-fade-in-up delay-0 overflow-hidden">
+                {/* ─── Hero Section (20% Viewport Height on Mobile, Spacious on Desktop) ─── */}
+                <header className="relative -mt-14 pt-14 pb-2 sm:pt-20 sm:pb-10 px-4 h-[20vh] min-h-[160px] sm:h-auto sm:min-h-[250px] md:min-h-[290px] flex items-center justify-center animate-fade-in-up delay-0 overflow-hidden">
                     {/* Cover image as background spanning top-0 behind top bar */}
                     {restaurant.coverImageUrl ? (
                         <div className="absolute inset-0">
                             <img src={restaurant.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35" />
+                            {/* Gentle top shadow for top-bar contrast */}
+                            <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none" />
+                            {/* Gentle bottom shadow for smooth page transition */}
+                            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/70 via-black/15 to-transparent pointer-events-none" />
+                            {/* Subtle ambient contrast */}
+                            <div className="absolute inset-0 bg-black/10 pointer-events-none" />
                         </div>
                     ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black overflow-hidden">
@@ -468,20 +484,20 @@ export default function PublicMenuPage() {
 
                     {/* Content overlays the image */}
                     <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto">
-                        <h1 className={cn("text-xl sm:text-2xl font-black text-white tracking-tight leading-tight", lang === 'AM' && 'font-ethiopic')}>
+                        <h1 className={cn("text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] filter", lang === 'AM' && 'font-ethiopic')}>
                             {restaurant.name}
                         </h1>
 
-                        {/* Quick action utility badges (Payment, WiFi, Socials, Phone) */}
-                        {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '')) || restaurant.phone) && (
-                            <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap mt-2.5">
+                        {/* Quick action utility badges (Payment, WiFi, Socials) */}
+                        {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap mt-2.5 sm:mt-3.5">
                                 {restaurant.paymentInfo && (
                                     <button
                                         type="button"
                                         onClick={handleOpenRestaurantInfo}
-                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
                                     >
-                                        <CreditCard className="w-3 h-3" />
+                                        <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
                                     </button>
                                 )}
@@ -490,9 +506,9 @@ export default function PublicMenuPage() {
                                     <button
                                         type="button"
                                         onClick={handleOpenRestaurantInfo}
-                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
                                     >
-                                        <Wifi className="w-3 h-3" />
+                                        <Wifi className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
                                     </button>
                                 )}
@@ -500,23 +516,15 @@ export default function PublicMenuPage() {
                                 {Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '') && (
                                     <button
                                         type="button"
-                                        onClick={handleOpenRestaurantInfo}
-                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                        onClick={() => {
+                                            setShowSocialMedia(true);
+                                            if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
+                                        }}
+                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
                                     >
-                                        <Share2 className="w-3 h-3" />
+                                        <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
                                     </button>
-                                )}
-
-                                {restaurant.phone && (
-                                    <a
-                                        href={`tel:${restaurant.phone}`}
-                                        onClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
-                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
-                                    >
-                                        <Phone className="w-3 h-3" />
-                                        <span>{restaurant.phone}</span>
-                                    </a>
                                 )}
                             </div>
                         )}
@@ -580,22 +588,22 @@ export default function PublicMenuPage() {
                                 {!isCategoriesExpanded ? (
                                     /* ─── Compact Horizontal Scrolling View with Expand Button ─── */
                                     <div className="flex items-center gap-1.5 min-w-0">
-                                        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 min-w-0 -mx-1 px-1">
+                                        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 min-w-0 -mx-1 px-1">
                                             <button
                                                 onClick={() => setActiveCategory(null)}
                                                 className={cn(
-                                                    "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                    "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
                                                     !activeCategory
                                                         ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
                                                         : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
                                                     lang === 'AM' && 'font-ethiopic'
                                                 )}
                                             >
-                                                <span className="text-sm leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                                <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">🍽️</span>
                                                 <span>{t("public.all_items", { defaultValue: "All" })}</span>
                                                 <span
                                                     className={cn(
-                                                        "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                        "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                         !activeCategory
                                                             ? "bg-white/25 text-white"
                                                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
@@ -614,18 +622,18 @@ export default function PublicMenuPage() {
                                                         key={cat.id}
                                                         onClick={() => setActiveCategory(isActive ? null : cat.id)}
                                                         className={cn(
-                                                            "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                            "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
                                                             isActive
                                                                 ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
                                                                 : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
                                                             lang === 'AM' && 'font-ethiopic'
                                                         )}
                                                     >
-                                                        <span className="text-sm leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                                        <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">{icon}</span>
                                                         <span>{cat.name}</span>
                                                         <span
                                                             className={cn(
-                                                                "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                                "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                                 isActive
                                                                     ? "bg-white/25 text-white"
                                                                     : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
@@ -645,7 +653,7 @@ export default function PublicMenuPage() {
                                                 onClick={() => setIsCategoriesExpanded(true)}
                                                 aria-label={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
                                                 title={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
-                                                className="shrink-0 h-8 px-2 sm:px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold shadow-2xs select-none cursor-pointer"
+                                                className="shrink-0 h-8 sm:h-9 px-2 sm:px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-xs font-bold shadow-2xs select-none cursor-pointer"
                                             >
                                                 <ChevronDown className="w-3.5 h-3.5" />
                                                 <span className="hidden xs:inline">{categories.length}</span>
@@ -656,39 +664,39 @@ export default function PublicMenuPage() {
                                     /* ─── Expanded Multi-Row Grid View with Collapse Button ─── */
                                     <div className="space-y-2 animate-fade-in">
                                         <div className="flex items-center justify-between px-0.5">
-                                            <span className={cn("text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500", lang === 'AM' && 'font-ethiopic')}>
+                                            <span className={cn("text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500", lang === 'AM' && 'font-ethiopic')}>
                                                 {lang === 'AM' ? `ምድቦች (${categories.length})` : `Categories (${categories.length})`}
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={() => setIsCategoriesExpanded(false)}
                                                 aria-label={lang === 'AM' ? 'አሳጥር' : 'Collapse'}
-                                                className="h-7 px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold select-none cursor-pointer"
+                                                className="h-7 sm:h-8 px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-xs font-bold select-none cursor-pointer"
                                             >
                                                 <ChevronUp className="w-3.5 h-3.5" />
                                                 <span>{lang === 'AM' ? 'አሳጥር' : 'Collapse'}</span>
                                             </button>
                                         </div>
 
-                                        <div className="flex flex-wrap gap-1.5 max-h-[45vh] overflow-y-auto hide-scrollbar pt-0.5">
+                                        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[45vh] overflow-y-auto hide-scrollbar pt-0.5">
                                             <button
                                                 onClick={() => {
                                                     setActiveCategory(null);
                                                     setIsCategoriesExpanded(false);
                                                 }}
                                                 className={cn(
-                                                    "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                    "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
                                                     !activeCategory
                                                         ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
                                                         : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
                                                     lang === 'AM' && 'font-ethiopic'
                                                 )}
                                             >
-                                                <span className="text-sm leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                                <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">🍽️</span>
                                                 <span>{t("public.all_items", { defaultValue: "All" })}</span>
                                                 <span
                                                     className={cn(
-                                                        "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                        "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                         !activeCategory
                                                             ? "bg-white/25 text-white"
                                                             : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
@@ -710,18 +718,18 @@ export default function PublicMenuPage() {
                                                             setIsCategoriesExpanded(false);
                                                         }}
                                                         className={cn(
-                                                            "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                            "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
                                                             isActive
                                                                 ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
                                                                 : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
                                                             lang === 'AM' && 'font-ethiopic'
                                                         )}
                                                     >
-                                                        <span className="text-sm leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                                        <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">{icon}</span>
                                                         <span>{cat.name}</span>
                                                         <span
                                                             className={cn(
-                                                                "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                                "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                                 isActive
                                                                     ? "bg-white/25 text-white"
                                                                     : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
@@ -765,13 +773,8 @@ export default function PublicMenuPage() {
                                         </p>
                                     </div>
 
-                                    {/* Responsive Showcase Grid */}
-                                    <div className={cn(
-                                        "grid",
-                                        (menuStyle === 'MODERN' || menuStyle === 'CLASSIC') && "grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5",
-                                        menuStyle === 'ELEGANT' && "grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6",
-                                        menuStyle === 'MINIMAL' && "grid-cols-1 gap-3 sm:gap-4"
-                                    )}>
+                                    {/* Responsive Showcase Grid (2 Columns on Mobile) */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                                         {featuredItems.map((item, idx) => (
                                             <div
                                                 key={`featured-${item.id}`}
@@ -800,13 +803,8 @@ export default function PublicMenuPage() {
                                         <div className="flex-grow border-t border-neutral-200 dark:border-[#2A2A2A]" />
                                     </div>
 
-                                    {/* DYNAMIC GRID LAYOUT */}
-                                    <div className={cn(
-                                        "grid",
-                                        (menuStyle === 'MODERN' || menuStyle === 'CLASSIC') && "grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5",
-                                        menuStyle === 'ELEGANT' && "grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6",
-                                        menuStyle === 'MINIMAL' && "grid-cols-1 gap-3 sm:gap-4"
-                                    )}>
+                                    {/* DYNAMIC 2-COL MOBILE GRID LAYOUT */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
                                         {cat.menuItems.map((item: PublicMenuItem, idx: number) => (
                                             <div
                                                 key={item.id}
@@ -895,6 +893,15 @@ export default function PublicMenuPage() {
                     onDirectionsClick={() => slug && publicApi.recordInteraction(slug, 'DIRECTIONS_CLICK')}
                 />
 
+                {/* ─── Dedicated Social Media Modal ─── */}
+                <SocialMediaModal
+                    isOpen={showSocialMedia}
+                    onClose={() => setShowSocialMedia(false)}
+                    restaurant={restaurant}
+                    isAm={lang === 'AM'}
+                    onSocialClick={(platform) => slug && publicApi.recordInteraction(slug, 'SOCIAL_CLICK', platform)}
+                />
+
                 {/* ─── Quick Action Pop-up Modal / Bottom-Sheet (Info, Payment, Wi-Fi) ─── */}
                 <QuickActionModal
                     isOpen={!!activeQuickAction}
@@ -931,75 +938,69 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full flex flex-row items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
-                    "border shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                    "w-full h-full flex flex-col items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
+                    "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]",
                     item.isFeatured
                         ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
                         : "border-neutral-200/80 dark:border-neutral-800/80",
-                    "overflow-hidden min-h-[140px]",
+                    "overflow-hidden",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
-                {/* Image Section (Left, Half Width, Full Height) */}
-                <div className="w-1/2 flex-[0_0_50%] h-auto relative overflow-hidden shrink-0">
+                {/* Image Section */}
+                <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                     {hasImage ? (
                         <img
                             src={item.imageUrl}
                             alt={name}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                     ) : (
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 border-r border-black/5 dark:border-white/5 flex flex-col items-center justify-center">
-                            <span className="text-4xl mb-1 filter drop-shadow-sm">🍽️</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                            <span className="text-3xl filter drop-shadow-sm">🍽️</span>
                         </div>
+                    )}
+                    {item.isFeatured && (
+                        <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
+                            <Star className="w-2.5 h-2.5 fill-white text-white" /> {t('public.featured')}
+                        </span>
+                    )}
+                    {hasDiscount && (
+                        <span className={cn("absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
+                            <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                        </span>
                     )}
                 </div>
 
-                {/* Text Section (Right, Remaining Width) */}
-                <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        {item.isFeatured && (
-                            <span className={cn("bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0 flex items-center gap-1", isAm && 'font-ethiopic')}>
-                                <Star className="w-2.5 h-2.5 fill-white text-white" /> {t('public.featured')}
-                            </span>
-                        )}
-                        {hasDiscount && (
-                            <span className={cn("bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
-                                <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </span>
-                        )}
-                    </div>
-
-                    <h3 className={cn("text-base sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
+                {/* Text Section */}
+                <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
+                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
                         {name}
                     </h3>
 
                     {desc && (
-                        <p className={cn("text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2 mb-3 leading-snug w-full", isAm && "font-ethiopic")}>
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mb-2 leading-snug w-full", isAm && "font-ethiopic")}>
                             {desc}
                         </p>
                     )}
 
-                    <div className="mt-auto flex items-center justify-between pt-1">
+                    <div className="mt-auto pt-1 flex items-center justify-between">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                                <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
+                                <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-xs sm:text-sm font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
+                                <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
                                     {regularPriceFormatted}
-                                </span>
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             </div>
                         ) : (
-                            <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] leading-none">
+                            <p className="text-sm sm:text-lg font-black text-[color:var(--color-brand-500)] leading-none">
                                 {regularPriceFormatted}
                             </p>
                         )}
                         {!item.isAvailable && (
-                            <span className={cn("text-[10px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
                         )}
@@ -1024,64 +1025,61 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 )}
             >
                 {hasImage ? (
-                    <div className="w-full aspect-[3/2] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
+                    <div className="w-full aspect-[4/3] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none" />
 
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-2 pr-12 z-10">
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1 pr-8 z-10">
                             {item.isFeatured && (
-                                <div className={cn("bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                    <Star className="w-3 h-3 fill-white text-white" /> {t('public.featured')}
+                                <div className={cn("bg-amber-500 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                    <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-white text-white" /> {t('public.featured')}
                                 </div>
                             )}
                             {hasDiscount && (
-                                <div className={cn("bg-emerald-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                <div className={cn("bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                     <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </div>
                             )}
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full aspect-[3/2] bg-neutral-50 dark:bg-[#111111] shrink-0 border-b border-neutral-100 dark:border-[#2A2A2A] flex items-center justify-center relative">
-                        <UtensilsCrossed className="w-8 h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                    <div className="w-full aspect-[4/3] bg-neutral-50 dark:bg-[#111111] shrink-0 border-b border-neutral-100 dark:border-[#2A2A2A] flex items-center justify-center relative">
+                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
                         {hasDiscount && (
-                            <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
+                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
                                 <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                             </div>
                         )}
                     </div>
                 )}
 
-                <div className="p-5 sm:p-6 flex flex-col flex-grow">
-                    <h3 className={cn("text-lg sm:text-xl font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-2 truncate", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
+                <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                    <h3 className={cn("text-xs sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
                         {name}
                     </h3>
                     {desc && (
-                        <p className={cn("text-[13px] sm:text-sm text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 leading-relaxed mb-4", isAm && "font-ethiopic")}>
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 leading-snug mb-2", isAm && "font-ethiopic")}>
                             {desc}
                         </p>
                     )}
 
-                    <div className="mt-auto pt-2 flex items-center justify-between border-t border-black/5 dark:border-[#2A2A2A]">
+                    <div className="mt-auto pt-1 flex items-center justify-between border-t border-black/5 dark:border-[#2A2A2A]">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap pt-3">
-                                <span className={cn("text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400", elegantFontClass)}>
+                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap pt-1.5">
+                                <span className={cn("text-sm sm:text-lg font-bold text-emerald-600 dark:text-emerald-400", elegantFontClass)}>
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-xs sm:text-sm font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
+                                <span className="text-[10px] sm:text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
                                     {regularPriceFormatted}
-                                </span>
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             </div>
                         ) : (
-                            <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] pt-3", elegantFontClass)}>
+                            <p className={cn("text-sm sm:text-lg font-bold text-[color:var(--color-brand-500)] pt-1.5", elegantFontClass)}>
                                 {regularPriceFormatted}
                             </p>
                         )}
                         {!item.isAvailable && (
-                            <span className={cn("text-[10px] font-bold px-2 py-1 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-3", isAm && 'font-ethiopic')}>
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
                         )}
@@ -1103,46 +1101,43 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         ? "border-2 border-amber-500/50 dark:border-amber-500/40 shadow-md"
                         : "border border-amber-900/5 dark:border-amber-100/5",
                     "hover:-translate-y-1 active:scale-[0.98]",
-                    "flex flex-col items-center justify-start p-4 sm:p-5 group",
+                    "flex flex-col items-center justify-start p-3 sm:p-5 group",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
                 {hasImage ? (
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-amber-900/5 dark:border-amber-100/5 shadow-inner">
+                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-amber-900/5 dark:border-amber-100/5 shadow-inner">
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
 
-                        {item.isFeatured && <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{t('public.featured')}</div>}
-                        {hasDiscount && <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}</div>}
+                        {item.isFeatured && <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{t('public.featured')}</div>}
+                        {hasDiscount && <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}</div>}
                     </div>
                 ) : (
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-amber-100/50 dark:bg-amber-900/30 flex items-center justify-center shadow-inner border border-amber-900/5 dark:border-amber-100/5">
-                        <UtensilsCrossed className="w-8 h-8 text-amber-700/30 dark:text-amber-200/20" />
+                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-amber-100/50 dark:bg-amber-900/30 flex items-center justify-center shadow-inner border border-amber-900/5 dark:border-amber-100/5">
+                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-amber-700/30 dark:text-amber-200/20" />
                     </div>
                 )}
 
-                <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
-                    <h3 className={cn("text-sm sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", classicFontClass, isAm && 'font-ethiopic')}>
+                <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-4">
+                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", classicFontClass, isAm && 'font-ethiopic')}>
                         {name}
                     </h3>
-                    {desc && <p className={cn("text-xs text-neutral-600 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>{desc}</p>}
-                    <div className="mt-auto w-full pt-1.5 flex flex-col items-center">
+                    {desc && <p className={cn("text-[11px] sm:text-xs text-neutral-600 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>{desc}</p>}
+                    <div className="mt-auto w-full pt-1 flex flex-col items-center">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1.5 flex-wrap justify-center mt-1">
-                                <span className={cn("text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400", classicFontClass)}>
+                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center mt-1">
+                                <span className={cn("text-sm sm:text-lg font-bold text-emerald-600 dark:text-emerald-400", classicFontClass)}>
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
+                                <span className="text-[10px] sm:text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
                                     {regularPriceFormatted}
-                                </span>
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                                    -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             </div>
                         ) : (
-                            <p className={cn("text-lg sm:text-xl font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{regularPriceFormatted}</p>
+                            <p className={cn("text-sm sm:text-lg font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{regularPriceFormatted}</p>
                         )}
-                        {!item.isAvailable && <span className={cn("text-[9px] font-bold px-2 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>{t('public.sold_out')}</span>}
+                        {!item.isAvailable && <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>{t('public.sold_out')}</span>}
                     </div>
                 </div>
             </button>
@@ -1159,12 +1154,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
                     : "border border-black/5 dark:border-[#2A2A2A]",
                 "hover:-translate-y-1 active:scale-[0.98]",
-                "flex flex-col items-center justify-start p-5 sm:p-6 group",
+                "flex flex-col items-center justify-start p-3 sm:p-5 group",
                 !item.isAvailable && "opacity-60 grayscale-[50%]"
             )}
         >
             {hasImage ? (
-                <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-black/5 dark:border-white/5">
+                <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-black/5 dark:border-white/5">
                     <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
 
                     {/* Dark gradient for badges */}
@@ -1172,59 +1167,56 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                     {/* Badges container */}
                     {item.isFeatured && (
-                        <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                        <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {t('public.featured')}
                         </div>
                     )}
                     {hasDiscount && (
-                        <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                        <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                         </div>
                     )}
                 </div>
             ) : (
-                <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center relative">
-                    <UtensilsCrossed className="w-8 h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center relative">
+                    <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
                     {hasDiscount && (
-                        <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
+                        <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
                             {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                         </div>
                     )}
                 </div>
             )}
 
-            <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
-                <h3 className={cn("text-sm sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
+            <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-4">
+                <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
                     {name}
                 </h3>
 
                 {desc && (
-                    <p className={cn("text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>
+                    <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>
                         {desc}
                     </p>
                 )}
 
                 <div className="mt-auto w-full pt-1 flex flex-col items-center">
                     {hasDiscount ? (
-                        <div className="flex items-baseline gap-1.5 flex-wrap justify-center mt-1">
-                            <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                        <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center mt-1">
+                            <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
                                 {discountPriceFormatted}
                             </span>
-                            <span className="text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
+                            <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
                                 {regularPriceFormatted}
-                            </span>
-                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                                -{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                             </span>
                         </div>
                     ) : (
-                        <p className="text-lg sm:text-xl font-black text-[color:var(--color-brand-500)] text-center mt-1">
+                        <p className="text-sm sm:text-lg font-black text-[color:var(--color-brand-500)] text-center mt-1">
                             {regularPriceFormatted}
                         </p>
                     )}
 
                     {!item.isAvailable && (
-                        <span className={cn("text-[9px] font-bold px-2 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>
+                        <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
                     )}
