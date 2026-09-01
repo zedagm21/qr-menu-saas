@@ -482,7 +482,7 @@ const CustomizePage: React.FC = () => {
                                                     <div className="p-2 flex flex-col flex-1 min-w-0">
                                                         <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight">{name}</p>
                                                         <p className="text-[9px] sm:text-[10px] opacity-60 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
-                                                        <div className="mt-auto pt-1 flex items-center justify-between">
+                                                        <div className="mt-auto pt-1.5 flex items-center justify-between">
                                                             <span className="text-[11px] sm:text-[12px] font-black transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                         </div>
                                                     </div>
@@ -493,16 +493,16 @@ const CustomizePage: React.FC = () => {
                                             return (
                                                 <div
                                                     key={item.id ?? i}
-                                                    className="flex flex-col items-center text-center p-2 rounded-xl border shadow-2xs transition-all duration-300"
+                                                    className="flex flex-col items-center text-center p-2.5 rounded-2xl border shadow-2xs transition-all duration-300"
                                                     style={{ borderColor: cardBorder, backgroundColor: cardBg }}
                                                 >
-                                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/5 mt-0.5">
+                                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 ring-2 ring-black/5 dark:ring-white/10 shadow-sm mt-0.5">
                                                         {imgNode}
                                                     </div>
                                                     <div className="w-full mt-1.5 flex flex-col flex-1 min-w-0">
                                                         <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight w-full">{name}</p>
                                                         <p className="text-[9px] sm:text-[10px] opacity-60 truncate mt-0.5 w-full">{desc || t('customize.prepared_fresh_daily')}</p>
-                                                        <div className="mt-auto pt-1 flex items-center justify-center">
+                                                        <div className="mt-auto pt-1.5 flex items-center justify-center">
                                                             <span className="text-[11px] sm:text-[12px] font-black transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                         </div>
                                                     </div>
@@ -511,26 +511,27 @@ const CustomizePage: React.FC = () => {
                                         }
                                         if (watched.menuStyle === 'ELEGANT') {
                                             return (
-                                                <div key={item.id ?? i} className="flex flex-col gap-2 pb-3 mb-1 border-b transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: 'transparent' }}>
-                                                    <div className="w-full h-24 sm:h-28 rounded-lg overflow-hidden shadow-sm">{imgNode}</div>
-                                                    <div className="flex justify-between items-start gap-2 pt-1" style={{ fontFamily: 'Georgia, serif' }}>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[13px] sm:text-[14px] font-bold truncate tracking-wide">{name}</p>
-                                                            <p className="text-[10px] sm:text-[11px] opacity-70 line-clamp-2 mt-0.5 leading-relaxed" style={{ fontFamily: watched.fontFamily }}>{desc || t('customize.prepared_fresh_daily')}</p>
+                                                <div key={item.id ?? i} className="flex flex-col rounded-xl overflow-hidden border shadow-2xs transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: cardBg }}>
+                                                    <div className="w-full aspect-[16/10] bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0">{imgNode}</div>
+                                                    <div className="p-2.5 flex flex-col flex-1" style={{ fontFamily: 'Georgia, serif' }}>
+                                                        <div className="flex justify-between items-baseline gap-2">
+                                                            <p className="text-[12px] sm:text-[13px] font-bold truncate tracking-wide">{name}</p>
+                                                            <span className="text-[12px] sm:text-[13px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                         </div>
-                                                        <span className="text-[13px] sm:text-[14px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                        <p className="text-[9px] sm:text-[10px] opacity-70 line-clamp-1 mt-0.5 leading-relaxed" style={{ fontFamily: watched.fontFamily }}>{desc || t('customize.prepared_fresh_daily')}</p>
                                                     </div>
                                                 </div>
                                             );
                                         }
                                         if (watched.menuStyle === 'MINIMAL') {
                                             return (
-                                                <div key={item.id ?? i} className="flex justify-between items-center py-2.5 border-b transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: 'transparent' }}>
-                                                    <div className="flex-1 min-w-0 pr-2">
-                                                        <p className="text-[12px] sm:text-[13px] font-medium truncate">{name}</p>
-                                                        <p className="text-[10px] sm:text-[11px] opacity-50 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                <div key={item.id ?? i} className="flex items-center gap-2.5 p-2 rounded-xl border shadow-2xs transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: cardBg }}>
+                                                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">{imgNode}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[11px] sm:text-[12px] font-bold truncate">{name}</p>
+                                                        <p className="text-[9px] opacity-50 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
                                                     </div>
-                                                    <span className="text-[12px] sm:text-[13px] font-medium flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                    <span className="text-[11px] sm:text-[12px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                 </div>
                                             );
                                         }

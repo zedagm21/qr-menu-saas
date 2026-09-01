@@ -434,6 +434,20 @@ export default function PublicMenuPage() {
     const hasPayment = Boolean(restaurant.paymentInfo && restaurant.paymentInfo.trim());
     const hasWifi = Boolean(restaurant.wifiName || restaurant.wifiPassword);
 
+    const getGridClass = (style: string) => {
+        switch (style) {
+            case 'ELEGANT':
+                return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6';
+            case 'MINIMAL':
+                return 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5';
+            case 'MODERN':
+                return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4';
+            case 'CLASSIC':
+            default:
+                return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4';
+        }
+    };
+
     return (
         <ThemeProvider theme={restaurant.theme}>
             <Helmet>
@@ -823,7 +837,7 @@ export default function PublicMenuPage() {
                                     </div>
 
                                     {/* Responsive Showcase Grid (2 Columns on Mobile) */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
+                                    <div className={getGridClass(menuStyle)}>
                                         {featuredItems.map((item, idx) => (
                                             <div
                                                 key={`featured-${item.id}`}
@@ -868,8 +882,8 @@ export default function PublicMenuPage() {
                                             <div className="flex-grow border-t border-neutral-200/80 dark:border-[#2A2A2A]" />
                                         </div>
 
-                                        {/* DYNAMIC 2-COL MOBILE GRID LAYOUT */}
-                                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
+                                        {/* DYNAMIC GRID LAYOUT */}
+                                        <div className={getGridClass(menuStyle)}>
                                             {cat.menuItems.map((item: PublicMenuItem, idx: number) => (
                                                 <div
                                                     key={item.id}
@@ -1014,138 +1028,115 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
     const discountPriceFormatted = hasDiscount ? formatCurrency(item.discountPrice, item.currency) : '';
     const discountPercent = hasDiscount ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100) : 0;
 
-    /* ── MINIMAL STYLE ── */
+    /* ── MINIMAL STYLE: Sleek Horizontal Row ── */
     if (menuStyle === 'MINIMAL') {
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full flex flex-col items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
-                    "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]",
+                    "w-full flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-200",
+                    "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] text-left",
                     item.isFeatured
                         ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
                         : "border-neutral-200/80 dark:border-neutral-800/80",
-                    "overflow-hidden",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
-                <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
-                    {hasImage ? (
-                        <img
-                            src={item.imageUrl}
-                            alt={name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center">
-                            <span className="text-3xl filter drop-shadow-sm">🍽️</span>
-                        </div>
-                    )}
-                    {item.isFeatured && (
-                        <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
-                            <Star className="w-2.5 h-2.5 fill-white text-white" /> {t('public.featured')}
-                        </span>
-                    )}
-                    {hasDiscount && (
-                        <span className={cn("absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
-                            <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                        </span>
-                    )}
-                </div>
-
-                <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
-                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
-                        {name}
-                    </h3>
-
-                    {desc && (
-                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mb-2 leading-snug w-full", isAm && "font-ethiopic")}>
-                            {desc}
-                        </p>
-                    )}
-
-                    <div className="mt-auto pt-1 flex items-center justify-between">
-                        {hasDiscount ? (
-                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
-                                <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                                    {discountPriceFormatted}
-                                </span>
-                                <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
-                                    {regularPriceFormatted}
-                                </span>
-                            </div>
-                        ) : (
-                            <p className="text-sm sm:text-lg font-black text-amber-600 dark:text-amber-400 leading-none" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
-                                {regularPriceFormatted}
-                            </p>
-                        )}
-                        {!item.isAvailable && (
-                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                {t('public.sold_out')}
+                {hasImage ? (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 relative">
+                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        {item.isFeatured && (
+                            <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase">
+                                ⭐
                             </span>
                         )}
                     </div>
+                ) : null}
+
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className={cn("text-xs sm:text-sm font-bold text-neutral-900 dark:text-[#F5F5F5] truncate", isAm && 'font-ethiopic font-bold')}>
+                            {name}
+                        </h3>
+                        {hasDiscount && (
+                            <span className="bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </span>
+                        )}
+                    </div>
+                    {desc && (
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5", isAm && "font-ethiopic")}>
+                            {desc}
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex flex-col items-end shrink-0 pl-1">
+                    {hasDiscount ? (
+                        <div className="flex flex-col items-end">
+                            <span className="text-xs sm:text-base font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                                {discountPriceFormatted}
+                            </span>
+                            <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500 mt-0.5">
+                                {regularPriceFormatted}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="text-xs sm:text-base font-black text-amber-600 dark:text-amber-400 leading-none" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
+                            {regularPriceFormatted}
+                        </span>
+                    )}
+                    {!item.isAvailable && (
+                        <span className={cn("text-[8px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
+                            {t('public.sold_out')}
+                        </span>
+                    )}
                 </div>
             </button>
         );
     }
 
-    /* ── ELEGANT STYLE ── */
+    /* ── ELEGANT STYLE: Editorial Luxury Cards ── */
     if (menuStyle === 'ELEGANT') {
         const elegantFontClass = 'font-serif';
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full text-left bg-white/90 dark:bg-neutral-900/90 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl dark:hover:shadow-none group flex flex-col",
+                    "w-full h-full text-left bg-white dark:bg-neutral-900/90 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-none group flex flex-col border",
                     item.isFeatured
-                        ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
-                        : "border border-black/5 dark:border-[#2A2A2A]",
+                        ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
+                        : "border-neutral-200/80 dark:border-[#2A2A2A]",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
                 {hasImage ? (
-                    <div className="w-full aspect-[4/3] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
+                    <div className="w-full aspect-[16/10] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none" />
 
-                        <div className="absolute top-2 left-2 flex flex-wrap gap-1 pr-8 z-10">
+                        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 pr-8 z-10">
                             {item.isFeatured && (
-                                <div className={cn("bg-amber-500 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                <div className={cn("bg-amber-500 text-white text-[8px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                     <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-white text-white" /> {t('public.featured')}
                                 </div>
                             )}
                             {hasDiscount && (
-                                <div className={cn("bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                <div className={cn("bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                     <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </div>
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="w-full aspect-[4/3] bg-neutral-50 dark:bg-[#111111] shrink-0 border-b border-neutral-100 dark:border-[#2A2A2A] flex items-center justify-center relative">
-                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
-                        {hasDiscount && (
-                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider">
-                                <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </div>
-                        )}
-                    </div>
-                )}
+                ) : null}
 
-                <div className="p-3 sm:p-5 flex flex-col flex-grow">
-                    <h3 className={cn("text-xs sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
-                        {name}
-                    </h3>
-                    {desc && (
-                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 leading-snug mb-2", isAm && "font-ethiopic")}>
-                            {desc}
-                        </p>
-                    )}
-
-                    <div className="mt-auto pt-1 flex items-center justify-between border-t border-black/5 dark:border-[#2A2A2A]">
+                <div className="p-4 sm:p-5 flex flex-col flex-grow">
+                    <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                        <h3 className={cn("text-sm sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
+                            {name}
+                        </h3>
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap pt-1.5">
+                            <div className="flex items-baseline gap-1.5 shrink-0">
                                 <span className={cn("text-sm sm:text-lg font-bold text-emerald-600 dark:text-emerald-400", elegantFontClass)}>
                                     {discountPriceFormatted}
                                 </span>
@@ -1154,38 +1145,47 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 </span>
                             </div>
                         ) : (
-                            <p className={cn("text-sm sm:text-lg font-bold pt-1.5 text-amber-600 dark:text-amber-400", elegantFontClass)} style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
+                            <p className={cn("text-sm sm:text-lg font-bold text-amber-600 dark:text-amber-400 shrink-0", elegantFontClass)} style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                 {regularPriceFormatted}
                             </p>
                         )}
-                        {!item.isAvailable && (
-                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1.5", isAm && 'font-ethiopic')}>
+                    </div>
+
+                    {desc && (
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 leading-relaxed mb-2", elegantFontClass, isAm && "font-ethiopic")}>
+                            {desc}
+                        </p>
+                    )}
+
+                    {!item.isAvailable && (
+                        <div className="mt-auto pt-2">
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </button>
         );
     }
 
-    /* ── MODERN STYLE: Multi-grid with Circular Images ── */
+    /* ── MODERN STYLE: Multi-grid with Enlarged Circular Images ── */
     if (menuStyle === 'MODERN') {
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300",
+                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-3xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-300",
                     item.isFeatured
                         ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-xs"
                         : "border border-neutral-200/80 dark:border-neutral-800/80",
-                    "hover:-translate-y-0.5 active:scale-[0.98]",
-                    "flex flex-col items-center justify-start p-3 sm:p-4 group",
+                    "hover:-translate-y-1 active:scale-[0.98]",
+                    "flex flex-col items-center justify-start p-3.5 sm:p-5 group",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
                 {hasImage ? (
-                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-0.5 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-black/5 dark:border-white/5">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 shadow-md">
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
 
                         {/* Badges */}
@@ -1201,8 +1201,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                         )}
                     </div>
                 ) : (
-                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-0.5 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center">
-                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center shadow-inner">
+                        <UtensilsCrossed className="w-8 h-8 sm:w-10 sm:h-10 text-neutral-300 dark:text-[#2A2A2A]" />
                         {hasDiscount && (
                             <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
                                 {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
@@ -1211,18 +1211,18 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </div>
                 )}
 
-                <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-3.5">
+                <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
                     <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
                         {name}
                     </h3>
 
                     {desc && (
-                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>
                             {desc}
                         </p>
                     )}
 
-                    <div className="mt-auto w-full pt-1.5 flex flex-col items-center">
+                    <div className="mt-auto w-full pt-2 flex flex-col items-center">
                         {hasDiscount ? (
                             <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center">
                                 <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
