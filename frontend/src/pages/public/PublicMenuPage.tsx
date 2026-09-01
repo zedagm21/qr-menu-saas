@@ -8,10 +8,18 @@ import {
     X,
     UtensilsCrossed,
     Star,
-    SlidersHorizontal
+    SlidersHorizontal,
+    ChevronDown,
+    ChevronUp,
+    Info,
+    CreditCard,
+    Wifi,
+    Phone,
+    Share2
 } from 'lucide-react';
 import { publicApi } from '../../services/api';
 import { formatCurrency, applyRestaurantTheme, getTranslation, isFastingItem, cn } from '../../lib/utils';
+import { getCategoryIcon } from '../../lib/categoryIcons';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
@@ -37,6 +45,8 @@ export default function PublicMenuPage() {
     const debouncedSearch = useDebounce(search, 700);
 
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
+    const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(true);
+    const [isScrolled, setIsScrolled] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [showRestaurantInfo, setShowRestaurantInfo] = useState(false);
@@ -53,6 +63,26 @@ export default function PublicMenuPage() {
         // Default for visitor is device Auto
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
+
+    // Auto-collapse when scrolling down past the 20% category header, re-expand when at top
+    useEffect(() => {
+        let lastScrollY = window.scrollY;
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            setIsScrolled(currentScrollY > 10);
+            if (currentScrollY > 140) {
+                if (currentScrollY > lastScrollY && isCategoriesExpanded) {
+                    setIsCategoriesExpanded(false);
+                }
+            } else {
+                setIsCategoriesExpanded(true);
+            }
+            lastScrollY = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isCategoriesExpanded]);
 
     const handleLanguageToggle = () => {
         const nextLang = lang === 'EN' ? 'AM' : 'EN';
@@ -261,6 +291,10 @@ export default function PublicMenuPage() {
             .filter(cat => cat.menuItems.length > 0 || (!search && activeFilterCount === 0));
     }, [categories, search, activeCategory, filters, activeFilterCount]);
 
+    const totalItemCount = useMemo(() => {
+        return categories.reduce((sum, cat) => sum + (cat.menuItems?.length || 0), 0);
+    }, [categories]);
+
     // ─── Analytics Tracking ──────────────────────────────────────────────────
     // 1. Record QR scan once per session
     useEffect(() => {
@@ -364,14 +398,19 @@ export default function PublicMenuPage() {
             <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111111] transition-colors" dir="ltr">
                 <OfflineNotice isOnline={isOnline} wasOffline={wasOffline} isAm={lang === 'AM'} />
 
-                {/* ─── Sticky Top Bar ─── */}
-                <div className="sticky top-0 z-50 bg-neutral-900/40 dark:bg-neutral-950/50 backdrop-blur-md border-b border-white/10 dark:border-neutral-800/50 h-14 px-4 flex items-center justify-between">
+                {/* ─── Sticky Top Bar (Hovering over cover at top, frosted glass when scrolled) ─── */}
+                <div className={cn(
+                    "sticky top-0 z-50 h-14 px-4 flex items-center justify-between transition-all duration-200",
+                    isScrolled
+                        ? "bg-neutral-900/85 dark:bg-neutral-950/90 backdrop-blur-md border-b border-white/10 shadow-sm"
+                        : "bg-transparent border-b border-transparent"
+                )}>
                     {/* Left side: Logo + MENU text (Clickable -> Opens Restaurant Info Modal) */}
                     <button
                         type="button"
                         onClick={handleOpenRestaurantInfo}
                         aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer group"
+                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/15 active:scale-95 transition-all cursor-pointer group"
                     >
                         {restaurant.logoUrl ? (
                             <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-white/30 shadow-sm object-cover group-hover:border-white transition-colors" />
@@ -383,65 +422,105 @@ export default function PublicMenuPage() {
                         <span className="text-white/90 group-hover:text-white font-bold text-sm tracking-[0.2em] uppercase transition-colors">{t("public.menu_label")}</span>
                     </button>
 
-                    {/* Right side: Language + Theme Toggle */}
-                    <div className="flex items-center gap-2">
+                    {/* Right side: Info + Language + Theme Toggle */}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        <button
+                            type="button"
+                            onClick={handleOpenRestaurantInfo}
+                            aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                            title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                        >
+                            <Info className="w-4 h-4" />
+                        </button>
                         <button
                             onClick={handleLanguageToggle}
                             aria-label={t("public.language_switch")}
-                            className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white/80 text-xs font-bold"
+                            className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white/90 text-xs font-bold border border-white/10"
                         >
                             {lang === 'EN' ? 'አማ' : 'EN'}
                         </button>
                         <button
                             onClick={toggleDarkMode}
-                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-white/80"
+                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 border border-white/10"
                         >
                             {isDark ? '☀️' : '🌙'}
                         </button>
                     </div>
                 </div>
 
-                {/* ─── Hero Section ─── */}
-                <header className="relative w-full min-h-[190px] sm:min-h-[220px] aspect-[21/9] sm:aspect-[3/1] animate-fade-in-up delay-0 overflow-hidden">
-                    {/* Cover image as background */}
+                {/* ─── Hero Section (20% Viewport Height on Mobile) ─── */}
+                <header className="relative -mt-14 pt-14 pb-2 px-4 h-[20vh] min-h-[160px] sm:min-h-[190px] sm:h-[22vh] flex items-center justify-center animate-fade-in-up delay-0 overflow-hidden">
+                    {/* Cover image as background spanning top-0 behind top bar */}
                     {restaurant.coverImageUrl ? (
                         <div className="absolute inset-0">
                             <img src={restaurant.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35" />
                         </div>
                     ) : (
-                        <div className="absolute inset-0 bg-neutral-800 dark:bg-[#1A1A1A]">
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black overflow-hidden">
+                            {/* Subtle Ambient Brand Glow */}
+                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-[120%] h-48 bg-gradient-to-b from-[color:var(--color-brand-500)]/30 via-[color:var(--color-brand-600)]/15 to-transparent rounded-full blur-2xl pointer-events-none" />
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[color:var(--color-brand-500)]/20 via-transparent to-black/80 pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
                         </div>
                     )}
 
                     {/* Content overlays the image */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pb-12 sm:pb-10 z-10">
-                        <h1 className={cn("text-2xl sm:text-3xl font-black text-white", lang === 'AM' && 'font-ethiopic')}>
+                    <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto">
+                        <h1 className={cn("text-xl sm:text-2xl font-black text-white tracking-tight leading-tight", lang === 'AM' && 'font-ethiopic')}>
                             {restaurant.name}
                         </h1>
-                        <div className="flex items-center justify-center gap-4 text-white/70 text-xs sm:text-sm mt-2 sm:mt-2.5">
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                {t("public.open_now")}
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                📍 {lang === 'AM'
-                                    ? [displayAddress, displayCity, restaurant.country === 'Ethiopia' ? 'ኢትዮጵያ' : restaurant.country].filter(Boolean).join('፣ ') || 'ኢትዮጵያ'
-                                    : [displayAddress, displayCity, restaurant.country].filter(Boolean).join(', ') || 'Ethiopia'}
-                            </span>
-                        </div>
-                    </div>
 
-                    {/* ─── Quick Action Bar (Overlaid at bottom-left inside cover image) ─── */}
-                    <QuickActionBar
-                        activeAction={activeQuickAction}
-                        onToggleAction={(action) => setActiveQuickAction(prev => prev === action ? null : action)}
-                        hasInfo={hasInfo}
-                        hasPayment={hasPayment}
-                        hasWifi={hasWifi}
-                        isAm={lang === 'AM'}
-                    />
+                        {/* Quick action utility badges (Payment, WiFi, Socials, Phone) */}
+                        {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '')) || restaurant.phone) && (
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap mt-2.5">
+                                {restaurant.paymentInfo && (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenRestaurantInfo}
+                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                    >
+                                        <CreditCard className="w-3 h-3" />
+                                        <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
+                                    </button>
+                                )}
+
+                                {(restaurant.wifiName || restaurant.wifiPassword) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenRestaurantInfo}
+                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                    >
+                                        <Wifi className="w-3 h-3" />
+                                        <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
+                                    </button>
+                                )}
+
+                                {Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '') && (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenRestaurantInfo}
+                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                    >
+                                        <Share2 className="w-3 h-3" />
+                                        <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
+                                    </button>
+                                )}
+
+                                {restaurant.phone && (
+                                    <a
+                                        href={`tel:${restaurant.phone}`}
+                                        onClick={() => slug && publicApi.recordInteraction(slug, 'CALL_CLICK')}
+                                        className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
+                                    >
+                                        <Phone className="w-3 h-3" />
+                                        <span>{restaurant.phone}</span>
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </header>
 
                 {/* ─── Sticky Navigation ─── */}
@@ -496,35 +575,166 @@ export default function PublicMenuPage() {
                             </button>
                         </div>
 
-                        {categories.length > 1 && (
-                            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 -mx-2 px-2">
-                                <button
-                                    onClick={() => setActiveCategory(null)}
-                                    className={cn(
-                                        "px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 border",
-                                        !activeCategory
-                                            ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-sm"
-                                            : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]",
-                                        lang === 'AM' && 'font-ethiopic'
-                                    )}
-                                >
-                                    {t("public.all_items")}
-                                </button>
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)}
-                                        className={cn(
-                                            "px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-200 border",
-                                            activeCategory === cat.id
-                                                ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-sm"
-                                                : "bg-white dark:bg-[#222222] text-neutral-600 dark:text-[#A3A3A3] border-neutral-200 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A]",
-                                            lang === 'AM' && 'font-ethiopic'
+                        {categories.length > 0 && (
+                            <div className="pt-0.5">
+                                {!isCategoriesExpanded ? (
+                                    /* ─── Compact Horizontal Scrolling View with Expand Button ─── */
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 min-w-0 -mx-1 px-1">
+                                            <button
+                                                onClick={() => setActiveCategory(null)}
+                                                className={cn(
+                                                    "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                    !activeCategory
+                                                        ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                        : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                    lang === 'AM' && 'font-ethiopic'
+                                                )}
+                                            >
+                                                <span className="text-sm leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                                <span>{t("public.all_items", { defaultValue: "All" })}</span>
+                                                <span
+                                                    className={cn(
+                                                        "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                        !activeCategory
+                                                            ? "bg-white/25 text-white"
+                                                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                    )}
+                                                >
+                                                    {totalItemCount}
+                                                </span>
+                                            </button>
+
+                                            {categories.map(cat => {
+                                                const isActive = activeCategory === cat.id;
+                                                const count = cat.menuItems?.length || 0;
+                                                const icon = getCategoryIcon(cat.name);
+                                                return (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                                                        className={cn(
+                                                            "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                            isActive
+                                                                ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                                : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                            lang === 'AM' && 'font-ethiopic'
+                                                        )}
+                                                    >
+                                                        <span className="text-sm leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                                        <span>{cat.name}</span>
+                                                        <span
+                                                            className={cn(
+                                                                "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                                isActive
+                                                                    ? "bg-white/25 text-white"
+                                                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                            )}
+                                                        >
+                                                            {count}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Expand Toggle Button */}
+                                        {categories.length > 2 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCategoriesExpanded(true)}
+                                                aria-label={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
+                                                title={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
+                                                className="shrink-0 h-8 px-2 sm:px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold shadow-2xs select-none cursor-pointer"
+                                            >
+                                                <ChevronDown className="w-3.5 h-3.5" />
+                                                <span className="hidden xs:inline">{categories.length}</span>
+                                            </button>
                                         )}
-                                    >
-                                        {cat.name}
-                                    </button>
-                                ))}
+                                    </div>
+                                ) : (
+                                    /* ─── Expanded Multi-Row Grid View with Collapse Button ─── */
+                                    <div className="space-y-2 animate-fade-in">
+                                        <div className="flex items-center justify-between px-0.5">
+                                            <span className={cn("text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500", lang === 'AM' && 'font-ethiopic')}>
+                                                {lang === 'AM' ? `ምድቦች (${categories.length})` : `Categories (${categories.length})`}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCategoriesExpanded(false)}
+                                                aria-label={lang === 'AM' ? 'አሳጥር' : 'Collapse'}
+                                                className="h-7 px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold select-none cursor-pointer"
+                                            >
+                                                <ChevronUp className="w-3.5 h-3.5" />
+                                                <span>{lang === 'AM' ? 'አሳጥር' : 'Collapse'}</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-1.5 max-h-[45vh] overflow-y-auto hide-scrollbar pt-0.5">
+                                            <button
+                                                onClick={() => {
+                                                    setActiveCategory(null);
+                                                    setIsCategoriesExpanded(false);
+                                                }}
+                                                className={cn(
+                                                    "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                    !activeCategory
+                                                        ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                        : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                    lang === 'AM' && 'font-ethiopic'
+                                                )}
+                                            >
+                                                <span className="text-sm leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                                <span>{t("public.all_items", { defaultValue: "All" })}</span>
+                                                <span
+                                                    className={cn(
+                                                        "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                        !activeCategory
+                                                            ? "bg-white/25 text-white"
+                                                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                    )}
+                                                >
+                                                    {totalItemCount}
+                                                </span>
+                                            </button>
+
+                                            {categories.map(cat => {
+                                                const isActive = activeCategory === cat.id;
+                                                const count = cat.menuItems?.length || 0;
+                                                const icon = getCategoryIcon(cat.name);
+                                                return (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => {
+                                                            setActiveCategory(isActive ? null : cat.id);
+                                                            setIsCategoriesExpanded(false);
+                                                        }}
+                                                        className={cn(
+                                                            "group inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full text-xs sm:text-[13px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                            isActive
+                                                                ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                                : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                            lang === 'AM' && 'font-ethiopic'
+                                                        )}
+                                                    >
+                                                        <span className="text-sm leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                                        <span>{cat.name}</span>
+                                                        <span
+                                                            className={cn(
+                                                                "px-1.5 py-0.2 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                                isActive
+                                                                    ? "bg-white/25 text-white"
+                                                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                            )}
+                                                        >
+                                                            {count}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

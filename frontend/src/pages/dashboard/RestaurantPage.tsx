@@ -750,7 +750,10 @@ const RestaurantPage: React.FC = () => {
                             {/* C. Social Media Dynamic List */}
                             <SocialLinksManager
                                 links={socialLinks}
-                                onChange={setSocialLinks}
+                                onChange={(updated) => {
+                                    setSocialLinks(updated);
+                                    initialSocialJson.current = JSON.stringify(updated);
+                                }}
                             />
                         </div>
                     </SectionCard>

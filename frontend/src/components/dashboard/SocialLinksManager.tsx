@@ -1,12 +1,14 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Share2, Plus, Trash2, ExternalLink, Link2,
     Instagram, Facebook, Youtube, Linkedin, Twitter,
-    Send, MessageCircle, Globe, Sparkles
+    Send, MessageCircle, Globe, Sparkles, Save, Check,
+    ChevronUp, X
 } from 'lucide-react';
 import type { SocialMediaEntry } from '../../types';
 import { cn } from '../../lib/utils';
+import { useUpdateRestaurant } from '../../hooks/useRestaurant';
 import toast from 'react-hot-toast';
 
 export interface SocialPlatformConfig {
@@ -177,47 +179,86 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
     onChange,
 }) => {
     const { t } = useTranslation();
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const { mutateAsync: updateRestaurant, isPending } = useUpdateRestaurant();
+    const [activePlatform, setActivePlatform] = useState<string | null>(null);
+    const [inputValue, setInputValue] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const getPlatformConfig = (platformName: string): SocialPlatformConfig => {
         const found = PLATFORMS.find(p => p.id.toLowerCase() === platformName.toLowerCase());
         return found || PLATFORMS[PLATFORMS.length - 1]; // default to Website
     };
 
-    const handleAddPlatform = (platformId: string) => {
-        const newLink: SocialMediaEntry = { platform: platformId, url: '' };
-        const updated = [...links, newLink];
-        onChange(updated);
+    // When activePlatform changes, populate inputValue with existing link if any
+    useEffect(() => {
+        if (activePlatform) {
+            const existing = links.find(l => l.platform.toLowerCase() === activePlatform.toLowerCase());
+            setInputValue(existing?.url || '');
+            setTimeout(() => inputRef.current?.focus(), 80);
+        } else {
+            setInputValue('');
+        }
+    }, [activePlatform, links]);
 
-        // Auto-focus new input after render
-        setTimeout(() => {
-            const lastIdx = updated.length - 1;
-            inputRefs.current[lastIdx]?.focus();
-        }, 80);
+    const handlePlatformClick = (platformId: string) => {
+        if (activePlatform === platformId) {
+            setActivePlatform(null);
+        } else {
+            setActivePlatform(platformId);
+        }
     };
 
-    const handleRemove = (index: number) => {
-        const updated = links.filter((_, i) => i !== index);
-        onChange(updated);
-    };
+    const handleSaveCurrent = async () => {
+        if (!activePlatform) return;
+        const config = getPlatformConfig(activePlatform);
+        const trimmed = inputValue.trim();
 
-    const handlePlatformChange = (index: number, newPlatform: string) => {
-        const updated = links.map((item, i) => i === index ? { ...item, platform: newPlatform } : item);
-        onChange(updated);
-    };
-
-    const handleUrlChange = (index: number, newUrl: string) => {
-        const updated = links.map((item, i) => i === index ? { ...item, url: newUrl } : item);
-        onChange(updated);
-    };
-
-    const handleTestLink = (item: SocialMediaEntry) => {
-        if (!item.url.trim()) {
+        if (!trimmed) {
             toast.error(t('restaurant.enter_url_first', { defaultValue: 'Please enter a username or link first.' }));
             return;
         }
-        const config = getPlatformConfig(item.platform);
-        const resolved = config.normalizeUrl(item.url);
+
+        const normalizedUrl = config.normalizeUrl(trimmed);
+
+        // Update links list: update existing or append
+        let updatedLinks = [...links];
+        const existingIdx = updatedLinks.findIndex(l => l.platform.toLowerCase() === activePlatform.toLowerCase());
+        if (existingIdx >= 0) {
+            updatedLinks[existingIdx] = { platform: activePlatform, url: normalizedUrl };
+        } else {
+            updatedLinks.push({ platform: activePlatform, url: normalizedUrl });
+        }
+
+        // Clean any invalid / empty
+        const cleanLinks = updatedLinks.filter(l => l.url.trim() !== '');
+
+        try {
+            await updateRestaurant({ socialMedia: cleanLinks });
+            onChange(cleanLinks);
+            toast.success(t('toast.saved', { defaultValue: 'Social link saved!' }), { id: `social-${activePlatform}` });
+            // Collapse the add/edit interface after saving
+            setActivePlatform(null);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || t('toast.error', { defaultValue: 'Failed to save social link' }));
+        }
+    };
+
+    const handleRemoveCurrent = async (platformId: string) => {
+        const cleanLinks = links.filter(l => l.platform.toLowerCase() !== platformId.toLowerCase());
+        try {
+            await updateRestaurant({ socialMedia: cleanLinks });
+            onChange(cleanLinks);
+            toast.success(t('toast.saved', { defaultValue: 'Link removed' }));
+            setActivePlatform(null);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || t('toast.error'));
+        }
+    };
+
+    const handleTestLink = () => {
+        if (!activePlatform || !inputValue.trim()) return;
+        const config = getPlatformConfig(activePlatform);
+        const resolved = config.normalizeUrl(inputValue);
         window.open(resolved, '_blank', 'noopener,noreferrer');
     };
 
@@ -232,7 +273,7 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                             {t('restaurant.social_media', { defaultValue: 'Social Media Links' })}
                         </span>
                         {links.length > 0 && (
-                            <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]">
+                            <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                                 {links.length}
                             </span>
                         )}
@@ -243,34 +284,41 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                 </div>
             </div>
 
-            {/* ── Quick Add Platform Pills Bar ── */}
+            {/* ── Social Media Icon List (Top Bar) ── */}
             <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
                     <Sparkles className="w-3 h-3 text-[color:var(--color-brand-500)]" />
-                    <span>{t('restaurant.quick_add', { defaultValue: 'Quick Add Platform' })}</span>
+                    <span>{t('restaurant.quick_add', { defaultValue: 'Social Platforms' })}</span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                     {PLATFORMS.map((platform) => {
-                        const count = links.filter(l => l.platform.toLowerCase() === platform.id.toLowerCase()).length;
+                        const existing = links.find(l => l.platform.toLowerCase() === platform.id.toLowerCase() && l.url.trim() !== '');
+                        const isConfigured = Boolean(existing);
+                        const isSelected = activePlatform?.toLowerCase() === platform.id.toLowerCase();
+
                         return (
                             <button
                                 key={platform.id}
                                 type="button"
-                                onClick={() => handleAddPlatform(platform.id)}
+                                onClick={() => handlePlatformClick(platform.id)}
                                 className={cn(
-                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shadow-xs active:scale-[0.97]",
-                                    count > 0
-                                        ? "bg-neutral-50 dark:bg-neutral-800/90 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-[color:var(--color-brand-500)] hover:text-[color:var(--color-brand-600)] dark:hover:text-[color:var(--color-brand-400)]"
-                                        : "bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10 hover:text-[color:var(--color-brand-600)] dark:hover:text-[color:var(--color-brand-400)]"
+                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs active:scale-[0.97] select-none",
+                                    isConfigured
+                                        ? "bg-blue-600 border-blue-600 text-white shadow-blue-500/20 hover:bg-blue-700"
+                                        : isSelected
+                                            ? "bg-neutral-100 dark:bg-neutral-800 border-neutral-400 dark:border-neutral-500 text-neutral-900 dark:text-white ring-2 ring-blue-500/30"
+                                            : "bg-white dark:bg-neutral-800/90 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-blue-400 hover:bg-blue-50/30 dark:hover:bg-blue-500/10"
                                 )}
                             >
-                                <span className="shrink-0">{platform.icon}</span>
+                                <span className={cn("shrink-0", isConfigured && "brightness-0 invert")}>
+                                    {platform.icon}
+                                </span>
                                 <span>{platform.name}</span>
-                                {count > 0 ? (
-                                    <span className="w-4 h-4 rounded-full bg-neutral-200 dark:bg-neutral-700 text-[10px] flex items-center justify-center font-bold">
-                                        {count}
-                                    </span>
+                                {isConfigured ? (
+                                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                                ) : isSelected ? (
+                                    <ChevronUp className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
                                 ) : (
                                     <Plus className="w-3 h-3 opacity-50" />
                                 )}
@@ -280,108 +328,97 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                 </div>
             </div>
 
-            {/* ── Active Links List ── */}
-            {links.length === 0 ? (
-                /* Empty state */
-                <div className="py-8 px-4 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 bg-neutral-50/40 dark:bg-neutral-800/20 text-center space-y-3">
-                    <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500">
-                        <Share2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                            {t('restaurant.no_social_added', { defaultValue: 'No social media accounts linked yet.' })}
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-                            {t('restaurant.no_social_added_desc', { defaultValue: 'Tap any platform above to quickly add your profile link.' })}
-                        </p>
-                    </div>
-                </div>
-            ) : (
-                /* Dynamic items list */
-                <div className="space-y-2.5">
-                    {links.map((item, idx) => {
-                        const config = getPlatformConfig(item.platform);
-                        const hasValue = Boolean(item.url.trim());
-
-                        return (
-                            <div
-                                key={idx}
-                                className="group relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-neutral-200/90 dark:border-neutral-700/80 shadow-xs hover:border-neutral-300 dark:hover:border-neutral-600 transition-all"
-                            >
-                                {/* Platform Selector with Brand Icon Badge */}
-                                <div className="relative shrink-0 flex items-center">
-                                    <div className="flex items-center gap-2 h-11 px-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
-                                        <div className="shrink-0 flex items-center justify-center">
-                                            {config.icon}
-                                        </div>
-                                        <select
-                                            value={item.platform}
-                                            onChange={(e) => handlePlatformChange(idx, e.target.value)}
-                                            className="bg-transparent text-[13px] font-semibold text-neutral-900 dark:text-neutral-100 focus:outline-none cursor-pointer pr-1"
-                                        >
-                                            {PLATFORMS.map(p => (
-                                                <option key={p.id} value={p.id} className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
-                                                    {p.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* URL / Username Input */}
-                                <div className="relative flex-1">
-                                    <input
-                                        ref={el => (inputRefs.current[idx] = el)}
-                                        type="text"
-                                        value={item.url}
-                                        onChange={(e) => handleUrlChange(idx, e.target.value)}
-                                        placeholder={config.placeholder}
-                                        className="w-full h-11 px-3.5 rounded-xl bg-neutral-50/70 dark:bg-neutral-900/70 border border-neutral-200/90 dark:border-neutral-700/80 text-[13.5px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all font-mono text-[13px]"
-                                    />
-                                </div>
-
-                                {/* Action Buttons: Test Link & Remove */}
-                                <div className="flex items-center justify-end gap-1 shrink-0">
-                                    {/* Test Link Button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => handleTestLink(item)}
-                                        disabled={!hasValue}
-                                        title={hasValue ? t('restaurant.test_link', { defaultValue: 'Test link in new tab' }) : ''}
-                                        className={cn(
-                                            "min-w-[40px] h-11 px-2.5 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer",
-                                            hasValue
-                                                ? "text-neutral-600 dark:text-neutral-300 hover:text-[color:var(--color-brand-600)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10"
-                                                : "text-neutral-300 dark:text-neutral-600 opacity-40 cursor-not-allowed"
-                                        )}
-                                    >
-                                        <ExternalLink className="w-4 h-4" />
-                                        <span className="hidden md:inline text-[11px] font-medium">{t('restaurant.test_link', { defaultValue: 'Test' })}</span>
-                                    </button>
-
-                                    {/* Remove Button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemove(idx)}
-                                        className="min-w-[40px] h-11 px-2.5 flex items-center justify-center rounded-xl text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
-                                        aria-label={t('restaurant.remove_social', { defaultValue: 'Remove link' })}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+            {/* ── Collapsible Add / Edit Interface ── */}
+            {activePlatform && (
+                <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/90 border-2 border-blue-500/30 dark:border-blue-500/20 shadow-sm space-y-3 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center">
+                                {getPlatformConfig(activePlatform).icon}
                             </div>
-                        );
-                    })}
+                            <span className="text-[13.5px] font-bold text-neutral-900 dark:text-neutral-100">
+                                {getPlatformConfig(activePlatform).name}
+                            </span>
+                            {links.some(l => l.platform.toLowerCase() === activePlatform.toLowerCase() && l.url.trim() !== '') && (
+                                <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                                    Connected
+                                </span>
+                            )}
+                        </div>
 
-                    {/* Bottom Add Link Button */}
-                    <button
-                        type="button"
-                        onClick={() => handleAddPlatform('Instagram')}
-                        className="w-full h-11 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 hover:border-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>{t('restaurant.add_another_social', { defaultValue: 'Add Another Social Link' })}</span>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setActivePlatform(null)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-200/50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        {/* URL input */}
+                        <div className="relative flex-1">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSaveCurrent();
+                                    }
+                                }}
+                                placeholder={getPlatformConfig(activePlatform).placeholder}
+                                className="w-full h-11 px-3.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[13.5px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-mono text-[13px]"
+                            />
+                        </div>
+
+                        {/* Action buttons: Save, Test, Remove */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                                type="button"
+                                onClick={handleSaveCurrent}
+                                disabled={isPending || !inputValue.trim()}
+                                className={cn(
+                                    "h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs",
+                                    inputValue.trim()
+                                        ? "bg-blue-600 hover:bg-blue-700 active:scale-95 text-white"
+                                        : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
+                                )}
+                            >
+                                {isPending ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <Save className="w-4 h-4" />
+                                )}
+                                <span>{t('actions.save', { defaultValue: 'Save' })}</span>
+                            </button>
+
+                            {Boolean(inputValue.trim()) && (
+                                <button
+                                    type="button"
+                                    onClick={handleTestLink}
+                                    title={t('restaurant.test_link', { defaultValue: 'Test link in new tab' })}
+                                    className="h-11 px-3 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <span className="hidden xs:inline">{t('restaurant.test_link', { defaultValue: 'Test' })}</span>
+                                </button>
+                            )}
+
+                            {links.some(l => l.platform.toLowerCase() === activePlatform.toLowerCase()) && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveCurrent(activePlatform)}
+                                    title={t('restaurant.remove_social', { defaultValue: 'Remove link' })}
+                                    className="h-11 w-11 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center cursor-pointer"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
