@@ -106,7 +106,7 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
                                     </span>
                                 </>
                             ) : (
-                                <span className="text-[28px] font-black text-[color:var(--color-brand-500)] leading-none">
+                                <span className="text-[28px] font-black text-amber-600 dark:text-amber-400 leading-none" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                     {formatCurrency(item.price, item.currency)}
                                 </span>
                             )}

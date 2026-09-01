@@ -13,12 +13,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode; theme?: Restau
     theme,
 }) => {
     useEffect(() => {
-        if (!theme) return;
-        applyRestaurantTheme(theme.primaryColor, theme.accentColor);
+        const primary = theme?.primaryColor || '#D97706';
+        const accent = theme?.accentColor || '#F59E0B';
+        applyRestaurantTheme(primary, accent);
     }, [theme]);
 
     const applyTheme = (t: RestaurantTheme | null) => {
-        if (t) applyRestaurantTheme(t.primaryColor, t.accentColor);
+        const primary = t?.primaryColor || '#D97706';
+        const accent = t?.accentColor || '#F59E0B';
+        applyRestaurantTheme(primary, accent);
     };
 
     return <ThemeContext.Provider value={{ applyTheme }}>{children}</ThemeContext.Provider>;

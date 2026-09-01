@@ -39,10 +39,10 @@ const DEFAULTS: ThemeForm = {
 // Constants
 // ─────────────────────────────────────────────
 const STYLES: { value: MenuStyle; label: string; desc: string; emoji: string }[] = [
-    { value: 'CLASSIC', label: 'Classic', desc: 'Traditional grid with warm tones', emoji: '🍽️' },
-    { value: 'MODERN', label: 'Modern', desc: 'Card-based with bold typography', emoji: '✨' },
-    { value: 'ELEGANT', label: 'Elegant', desc: 'Full-width images with serif fonts', emoji: '🌿' },
-    { value: 'MINIMAL', label: 'Minimal', desc: 'Clean list focused on content', emoji: '⬜' },
+    { value: 'CLASSIC', label: 'Classic', desc: 'Traditional multi-grid with rectangular cards', emoji: '🍽️' },
+    { value: 'MODERN', label: 'Modern', desc: 'Clean multi-grid with circular dish images', emoji: '✨' },
+    { value: 'ELEGANT', label: 'Elegant', desc: 'Editorial serif typography and layout', emoji: '🌿' },
+    { value: 'MINIMAL', label: 'Minimal', desc: 'Ultra-clean compact presentation', emoji: '⬜' },
 ];
 
 const PRESETS: { label: string; primary: string; accent: string }[] = [

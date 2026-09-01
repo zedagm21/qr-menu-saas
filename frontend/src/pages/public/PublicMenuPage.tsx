@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +50,7 @@ export default function PublicMenuPage() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 700);
 
+    const sentinelRef = useRef<HTMLDivElement>(null);
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -73,20 +74,19 @@ export default function PublicMenuPage() {
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
 
-    // Auto-collapse when scrolling down past the 20% category header, re-expand when at top
+    // Auto-collapse when scrolling down once categories slide under the sticky search header, remain collapsed
     useEffect(() => {
-        let lastScrollY = window.scrollY;
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
             setIsScrolled(currentScrollY > 10);
-            if (currentScrollY > 140) {
-                if (currentScrollY > lastScrollY && isCategoriesExpanded) {
+
+            if (isCategoriesExpanded && sentinelRef.current) {
+                const rect = sentinelRef.current.getBoundingClientRect();
+                // When the bottom of the category grid slides under the sticky search header (110px = 56px topbar + 54px searchbar)
+                if (rect.top <= 110) {
                     setIsCategoriesExpanded(false);
                 }
-            } else {
-                setIsCategoriesExpanded(true);
             }
-            lastScrollY = currentScrollY;
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -526,58 +526,58 @@ export default function PublicMenuPage() {
                         </div>
                     )}
 
-                    {/* Content overlays the image */}
-                    <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto">
+                    {/* Restaurant Title Centered */}
+                    <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto pb-6 sm:pb-8">
                         <h1 className={cn("text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] filter", lang === 'AM' && 'font-ethiopic')}>
                             {restaurant.name}
                         </h1>
-
-                        {/* Quick action utility badges (Payment, WiFi, Socials) */}
-                        {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
-                            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap mt-2.5 sm:mt-3.5">
-                                {restaurant.paymentInfo && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPayment(true)}
-                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
-                                    >
-                                        <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
-                                    </button>
-                                )}
-
-                                {(restaurant.wifiName || restaurant.wifiPassword) && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowWifi(true)}
-                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
-                                    >
-                                        <Wifi className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
-                                    </button>
-                                )}
-
-                                {Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '') && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowSocialMedia(true);
-                                            if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
-                                        }}
-                                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
-                                    >
-                                        <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                        <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
                     </div>
+
+                    {/* Quick action utility badges (Payment, WiFi, Socials) anchored at the bottom end of the cover image */}
+                    {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
+                        <div className="absolute bottom-2 sm:bottom-3 inset-x-4 flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap z-20">
+                            {restaurant.paymentInfo && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPayment(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                >
+                                    <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
+                                </button>
+                            )}
+
+                            {(restaurant.wifiName || restaurant.wifiPassword) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowWifi(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                >
+                                    <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
+                                </button>
+                            )}
+
+                            {Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== '') && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowSocialMedia(true);
+                                        if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                >
+                                    <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </header>
 
-                {/* ─── Sticky Navigation ─── */}
-                <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-sm py-2">
-                    <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 space-y-2.5">
+                {/* ─── Sticky Search Header (z-30 so category grid slides smoothly under it) ─── */}
+                <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-xs py-2">
+                    <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 space-y-2">
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
@@ -627,170 +627,175 @@ export default function PublicMenuPage() {
                             </button>
                         </div>
 
-                        {categories.length > 0 && (
-                            <div className="pt-0.5">
-                                {!isCategoriesExpanded ? (
-                                    /* ─── Compact Horizontal Scrolling View with Expand Button ─── */
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-1 min-w-0 -mx-1 px-1">
-                                            <button
-                                                onClick={() => setActiveCategory(null)}
+                        {/* Compact single-row horizontal capsule bar (Active only when collapsed) */}
+                        {categories.length > 0 && !isCategoriesExpanded && (
+                            <div className="pt-0.5 animate-fade-in">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 min-w-0 -mx-1 px-1">
+                                        <button
+                                            onClick={() => setActiveCategory(null)}
+                                            className={cn(
+                                                "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                !activeCategory
+                                                    ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                    : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                lang === 'AM' && 'font-ethiopic'
+                                            )}
+                                        >
+                                            <span className="text-sm sm:text-base leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                            <span>{t("public.all_items", { defaultValue: "All" })}</span>
+                                            <span
                                                 className={cn(
-                                                    "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                    "px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                     !activeCategory
-                                                        ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
-                                                        : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
-                                                    lang === 'AM' && 'font-ethiopic'
+                                                        ? "bg-white/25 text-white"
+                                                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
                                                 )}
                                             >
-                                                <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">🍽️</span>
-                                                <span>{t("public.all_items", { defaultValue: "All" })}</span>
-                                                <span
-                                                    className={cn(
-                                                        "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
-                                                        !activeCategory
-                                                            ? "bg-white/25 text-white"
-                                                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
-                                                    )}
-                                                >
-                                                    {totalItemCount}
-                                                </span>
-                                            </button>
-
-                                            {categories.map(cat => {
-                                                const isActive = activeCategory === cat.id;
-                                                const count = cat.menuItems?.length || 0;
-                                                const icon = getCategoryIcon(cat.name);
-                                                return (
-                                                    <button
-                                                        key={cat.id}
-                                                        onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                                                        className={cn(
-                                                            "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
-                                                            isActive
-                                                                ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
-                                                                : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
-                                                            lang === 'AM' && 'font-ethiopic'
-                                                        )}
-                                                    >
-                                                        <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">{icon}</span>
-                                                        <span>{cat.name}</span>
-                                                        <span
-                                                            className={cn(
-                                                                "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
-                                                                isActive
-                                                                    ? "bg-white/25 text-white"
-                                                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
-                                                            )}
-                                                        >
-                                                            {count}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Expand Toggle Button */}
-                                        {categories.length > 2 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCategoriesExpanded(true)}
-                                                aria-label={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
-                                                title={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
-                                                className="shrink-0 h-8 sm:h-9 px-2 sm:px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-xs font-bold shadow-2xs select-none cursor-pointer"
-                                            >
-                                                <ChevronDown className="w-3.5 h-3.5" />
-                                                <span className="hidden xs:inline">{categories.length}</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    /* ─── Expanded Multi-Row Grid View with Collapse Button ─── */
-                                    <div className="space-y-2 animate-fade-in">
-                                        <div className="flex items-center justify-between px-0.5">
-                                            <span className={cn("text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500", lang === 'AM' && 'font-ethiopic')}>
-                                                {lang === 'AM' ? `ምድቦች (${categories.length})` : `Categories (${categories.length})`}
+                                                {totalItemCount}
                                             </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCategoriesExpanded(false)}
-                                                aria-label={lang === 'AM' ? 'አሳጥር' : 'Collapse'}
-                                                className="h-7 sm:h-8 px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-xs font-bold select-none cursor-pointer"
-                                            >
-                                                <ChevronUp className="w-3.5 h-3.5" />
-                                                <span>{lang === 'AM' ? 'አሳጥር' : 'Collapse'}</span>
-                                            </button>
-                                        </div>
+                                        </button>
 
-                                        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[45vh] overflow-y-auto hide-scrollbar pt-0.5">
-                                            <button
-                                                onClick={() => {
-                                                    setActiveCategory(null);
-                                                    setIsCategoriesExpanded(false);
-                                                }}
-                                                className={cn(
-                                                    "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
-                                                    !activeCategory
-                                                        ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
-                                                        : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
-                                                    lang === 'AM' && 'font-ethiopic'
-                                                )}
-                                            >
-                                                <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">🍽️</span>
-                                                <span>{t("public.all_items", { defaultValue: "All" })}</span>
-                                                <span
+                                        {categories.map(cat => {
+                                            const isActive = activeCategory === cat.id;
+                                            const count = cat.menuItems?.length || 0;
+                                            const icon = getCategoryIcon(cat.name);
+                                            return (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => setActiveCategory(isActive ? null : cat.id)}
                                                     className={cn(
-                                                        "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
-                                                        !activeCategory
-                                                            ? "bg-white/25 text-white"
-                                                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                        "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
+                                                        isActive
+                                                            ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                            : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                        lang === 'AM' && 'font-ethiopic'
                                                     )}
                                                 >
-                                                    {totalItemCount}
-                                                </span>
-                                            </button>
-
-                                            {categories.map(cat => {
-                                                const isActive = activeCategory === cat.id;
-                                                const count = cat.menuItems?.length || 0;
-                                                const icon = getCategoryIcon(cat.name);
-                                                return (
-                                                    <button
-                                                        key={cat.id}
-                                                        onClick={() => {
-                                                            setActiveCategory(isActive ? null : cat.id);
-                                                            setIsCategoriesExpanded(false);
-                                                        }}
+                                                    <span className="text-sm sm:text-base leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                                    <span>{cat.name}</span>
+                                                    <span
                                                         className={cn(
-                                                            "group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[13.5px] sm:text-[15px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                            "px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
                                                             isActive
-                                                                ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
-                                                                : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
-                                                            lang === 'AM' && 'font-ethiopic'
+                                                                ? "bg-white/25 text-white"
+                                                                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
                                                         )}
                                                     >
-                                                        <span className="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">{icon}</span>
-                                                        <span>{cat.name}</span>
-                                                        <span
-                                                            className={cn(
-                                                                "px-1.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
-                                                                isActive
-                                                                    ? "bg-white/25 text-white"
-                                                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
-                                                            )}
-                                                        >
-                                                            {count}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                                        {count}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                )}
+
+                                    {/* Expand Toggle Button */}
+                                    {categories.length > 2 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCategoriesExpanded(true)}
+                                            aria-label={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
+                                            title={lang === 'AM' ? 'ሁሉንም ምድቦች አሳይ' : 'Expand all categories'}
+                                            className="shrink-0 h-7 sm:h-8 px-2 sm:px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold shadow-2xs select-none cursor-pointer"
+                                        >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                            <span className="hidden xs:inline">{categories.length}</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* ─── Inline Expanded Category Grid (z-20 in document flow, smoothly slides under sticky search bar) ─── */}
+                {categories.length > 0 && isCategoriesExpanded && (
+                    <div className="relative z-20 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] py-2.5 shadow-2xs">
+                        <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 space-y-2 animate-fade-in">
+                            <div className="flex items-center justify-between px-0.5">
+                                <span className={cn("text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500", lang === 'AM' && 'font-ethiopic')}>
+                                    {lang === 'AM' ? `ምድቦች (${categories.length})` : `Categories (${categories.length})`}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCategoriesExpanded(false)}
+                                    aria-label={lang === 'AM' ? 'አሳጥር' : 'Collapse'}
+                                    className="h-6 sm:h-7 px-2.5 rounded-full bg-neutral-100 dark:bg-[#222222] border border-neutral-200/80 dark:border-[#2A2A2A] text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/80 dark:hover:bg-[#2e2e2e] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold select-none cursor-pointer"
+                                >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                    <span>{lang === 'AM' ? 'አሳጥር' : 'Collapse'}</span>
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                <button
+                                    onClick={() => {
+                                        setActiveCategory(null);
+                                        setIsCategoriesExpanded(false);
+                                    }}
+                                    className={cn(
+                                        "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                        !activeCategory
+                                            ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                            : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                        lang === 'AM' && 'font-ethiopic'
+                                    )}
+                                >
+                                    <span className="text-sm sm:text-base leading-none shrink-0" aria-hidden="true">🍽️</span>
+                                    <span>{t("public.all_items", { defaultValue: "All" })}</span>
+                                    <span
+                                        className={cn(
+                                            "px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                            !activeCategory
+                                                ? "bg-white/25 text-white"
+                                                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                        )}
+                                    >
+                                        {totalItemCount}
+                                    </span>
+                                </button>
+
+                                {categories.map(cat => {
+                                    const isActive = activeCategory === cat.id;
+                                    const count = cat.menuItems?.length || 0;
+                                    const icon = getCategoryIcon(cat.name);
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => {
+                                                setActiveCategory(isActive ? null : cat.id);
+                                                setIsCategoriesExpanded(false);
+                                            }}
+                                            className={cn(
+                                                "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold transition-all duration-200 border cursor-pointer active:scale-95 select-none shadow-2xs",
+                                                isActive
+                                                    ? "bg-[color:var(--color-brand-500)] text-white border-[color:var(--color-brand-500)] shadow-xs"
+                                                    : "bg-white dark:bg-[#222222] text-neutral-700 dark:text-[#E5E5E5] border-neutral-200/80 dark:border-[#2A2A2A] hover:bg-neutral-50 dark:hover:bg-[#2A2A2A] hover:border-neutral-300 dark:hover:border-neutral-700",
+                                                lang === 'AM' && 'font-ethiopic'
+                                            )}
+                                        >
+                                            <span className="text-sm sm:text-base leading-none shrink-0" aria-hidden="true">{icon}</span>
+                                            <span>{cat.name}</span>
+                                            <span
+                                                className={cn(
+                                                    "px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold leading-tight tabular-nums transition-colors ml-0.5",
+                                                    isActive
+                                                        ? "bg-white/25 text-white"
+                                                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-[#A3A3A3] group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
+                                                )}
+                                            >
+                                                {count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Bottom Sentinel to trigger collapse exactly when the last row slides under the search bar */}
+                            <div ref={sentinelRef} className="h-0 w-full" />
+                        </div>
+                    </div>
+                )}
 
                 {/* ─── Main Menu Grid ─── */}
                 <main className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8 pt-6 pb-20">
@@ -838,34 +843,51 @@ export default function PublicMenuPage() {
                             )}
 
                             {/* ─── Regular Category Sections ─── */}
-                            {filteredCategories.map(cat => (
-                                <div key={cat.id} className="scroll-mt-32">
-                                    <div className={cn("mb-4 flex items-baseline gap-3", menuStyle === 'MINIMAL' && "mb-2")}>
-                                        <h2 className={cn("text-xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight", lang === 'AM' && 'font-ethiopic font-bold')}>
-                                            {cat.name}
-                                        </h2>
-                                        <div className="flex-grow border-t border-neutral-200 dark:border-[#2A2A2A]" />
-                                    </div>
+                            {filteredCategories.map(cat => {
+                                const catName = cat.name;
+                                const icon = getCategoryIcon(cat.name);
+                                const count = cat.menuItems?.length || 0;
 
-                                    {/* DYNAMIC 2-COL MOBILE GRID LAYOUT */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
-                                        {cat.menuItems.map((item: PublicMenuItem, idx: number) => (
-                                            <div
-                                                key={item.id}
-                                                className="animate-fade-in-up h-full"
-                                                style={{ animationDelay: `${Math.min(idx * 50 + 100, 500)}ms` }}
-                                            >
-                                                <MenuItemCard
-                                                    item={item}
-                                                    lang={lang}
-                                                    onClick={() => handleSelectItem(item)}
-                                                    menuStyle={menuStyle}
-                                                />
+                                return (
+                                    <div key={cat.id} className="scroll-mt-32">
+                                        <div className={cn("mb-4 flex items-center justify-between gap-3", menuStyle === 'MINIMAL' && "mb-2.5")}>
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                {/* Category Icon Badge */}
+                                                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-base sm:text-lg shrink-0 shadow-2xs">
+                                                    {icon}
+                                                </div>
+                                                <div className="flex items-baseline gap-2 min-w-0">
+                                                    <h2 className={cn("text-lg sm:text-xl font-black text-neutral-900 dark:text-[#F5F5F5] tracking-tight truncate", lang === 'AM' && 'font-ethiopic font-bold')}>
+                                                        {catName}
+                                                    </h2>
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 shrink-0">
+                                                        {count}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        ))}
+                                            <div className="flex-grow border-t border-neutral-200/80 dark:border-[#2A2A2A]" />
+                                        </div>
+
+                                        {/* DYNAMIC 2-COL MOBILE GRID LAYOUT */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
+                                            {cat.menuItems.map((item: PublicMenuItem, idx: number) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="animate-fade-in-up h-full"
+                                                    style={{ animationDelay: `${Math.min(idx * 50 + 100, 500)}ms` }}
+                                                >
+                                                    <MenuItemCard
+                                                        item={item}
+                                                        lang={lang}
+                                                        onClick={() => handleSelectItem(item)}
+                                                        menuStyle={menuStyle}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
 
                             {filteredCategories.length === 0 && (
                                 <div className="text-center py-20 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-black/5 dark:border-[#2A2A2A] shadow-sm">
@@ -1007,7 +1029,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
-                {/* Image Section */}
                 <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                     {hasImage ? (
                         <img
@@ -1032,7 +1053,6 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     )}
                 </div>
 
-                {/* Text Section */}
                 <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
                     <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
                         {name}
@@ -1055,7 +1075,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 </span>
                             </div>
                         ) : (
-                            <p className="text-sm sm:text-lg font-black text-[color:var(--color-brand-500)] leading-none">
+                            <p className="text-sm sm:text-lg font-black text-amber-600 dark:text-amber-400 leading-none" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                 {regularPriceFormatted}
                             </p>
                         )}
@@ -1134,7 +1154,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 </span>
                             </div>
                         ) : (
-                            <p className={cn("text-sm sm:text-lg font-bold text-[color:var(--color-brand-500)] pt-1.5", elegantFontClass)}>
+                            <p className={cn("text-sm sm:text-lg font-bold pt-1.5 text-amber-600 dark:text-amber-400", elegantFontClass)} style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                 {regularPriceFormatted}
                             </p>
                         )}
@@ -1149,134 +1169,153 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
         );
     }
 
-    /* ── CLASSIC STYLE ── */
-    if (menuStyle === 'CLASSIC') {
-        const classicFontClass = 'font-serif';
+    /* ── MODERN STYLE: Multi-grid with Circular Images ── */
+    if (menuStyle === 'MODERN') {
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full bg-amber-50/30 dark:bg-amber-950/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-none hover:shadow-amber-900/10 transition-all duration-300",
+                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300",
                     item.isFeatured
-                        ? "border-2 border-amber-500/50 dark:border-amber-500/40 shadow-md"
-                        : "border border-amber-900/5 dark:border-amber-100/5",
-                    "hover:-translate-y-1 active:scale-[0.98]",
-                    "flex flex-col items-center justify-start p-3 sm:p-5 group",
+                        ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-xs"
+                        : "border border-neutral-200/80 dark:border-neutral-800/80",
+                    "hover:-translate-y-0.5 active:scale-[0.98]",
+                    "flex flex-col items-center justify-start p-3 sm:p-4 group",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
                 {hasImage ? (
-                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-amber-900/5 dark:border-amber-100/5 shadow-inner">
+                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-0.5 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-black/5 dark:border-white/5">
                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
 
-                        {item.isFeatured && <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{t('public.featured')}</div>}
-                        {hasDiscount && <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>{discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}</div>}
+                        {/* Badges */}
+                        {item.isFeatured && (
+                            <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                {t('public.featured')}
+                            </div>
+                        )}
+                        {hasDiscount && (
+                            <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
+                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-amber-100/50 dark:bg-amber-900/30 flex items-center justify-center shadow-inner border border-amber-900/5 dark:border-amber-100/5">
-                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-amber-700/30 dark:text-amber-200/20" />
+                    <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full mx-auto mt-0.5 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center">
+                        <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
+                        {hasDiscount && (
+                            <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
+                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                            </div>
+                        )}
                     </div>
                 )}
 
-                <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-4">
-                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", classicFontClass, isAm && 'font-ethiopic')}>
+                <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-3.5">
+                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
                         {name}
                     </h3>
-                    {desc && <p className={cn("text-[11px] sm:text-xs text-neutral-600 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>{desc}</p>}
-                    <div className="mt-auto w-full pt-1 flex flex-col items-center">
+
+                    {desc && (
+                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>
+                            {desc}
+                        </p>
+                    )}
+
+                    <div className="mt-auto w-full pt-1.5 flex flex-col items-center">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center mt-1">
-                                <span className={cn("text-sm sm:text-lg font-bold text-emerald-600 dark:text-emerald-400", classicFontClass)}>
+                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center">
+                                <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-[10px] sm:text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
+                                <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
                                     {regularPriceFormatted}
                                 </span>
                             </div>
                         ) : (
-                            <p className={cn("text-sm sm:text-lg font-bold text-[color:var(--color-brand-500)] text-center mt-1", classicFontClass)}>{regularPriceFormatted}</p>
+                            <p className="text-sm sm:text-lg font-black text-center text-amber-600 dark:text-amber-400" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
+                                {regularPriceFormatted}
+                            </p>
                         )}
-                        {!item.isAvailable && <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-200/50 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>{t('public.sold_out')}</span>}
+                        {!item.isAvailable && (
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
+                                {t('public.sold_out')}
+                            </span>
+                        )}
                     </div>
                 </div>
             </button>
         );
     }
 
-    /* ── MODERN STYLE (DEFAULT) ── */
+    /* ── CLASSIC STYLE (DEFAULT): Multi-grid with Rectangular Cards ── */
     return (
         <button
             onClick={onClick}
             className={cn(
-                "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-none hover:shadow-brand-500/10 transition-all duration-300",
+                "w-full h-full flex flex-col items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
+                "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]",
                 item.isFeatured
-                    ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
-                    : "border border-black/5 dark:border-[#2A2A2A]",
-                "hover:-translate-y-1 active:scale-[0.98]",
-                "flex flex-col items-center justify-start p-3 sm:p-5 group",
+                    ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
+                    : "border-neutral-200/80 dark:border-neutral-800/80",
+                "overflow-hidden",
                 !item.isAvailable && "opacity-60 grayscale-[50%]"
             )}
         >
-            {hasImage ? (
-                <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] border border-black/5 dark:border-white/5">
-                    <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            {/* Image Section */}
+            <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
+                {hasImage ? (
+                    <img
+                        src={item.imageUrl}
+                        alt={name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                        <span className="text-3xl filter drop-shadow-sm">🍽️</span>
+                    </div>
+                )}
+                {item.isFeatured && (
+                    <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
+                        <Star className="w-2.5 h-2.5 fill-white text-white" /> {t('public.featured')}
+                    </span>
+                )}
+                {hasDiscount && (
+                    <span className={cn("absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
+                        <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                    </span>
+                )}
+            </div>
 
-                    {/* Dark gradient for badges */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-50" />
-
-                    {/* Badges container */}
-                    {item.isFeatured && (
-                        <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                            {t('public.featured')}
-                        </div>
-                    )}
-                    {hasDiscount && (
-                        <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center relative">
-                    <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-300 dark:text-[#2A2A2A]" />
-                    {hasDiscount && (
-                        <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
-                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            <div className="flex flex-col flex-grow w-full items-center text-center mt-2.5 sm:mt-4">
-                <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
+            {/* Text Section */}
+            <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
+                <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
                     {name}
                 </h3>
 
                 {desc && (
-                    <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-0.5 w-full", isAm && "font-ethiopic")}>
+                    <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mb-2 leading-snug w-full", isAm && "font-ethiopic")}>
                         {desc}
                     </p>
                 )}
 
-                <div className="mt-auto w-full pt-1 flex flex-col items-center">
+                <div className="mt-auto pt-1 flex items-center justify-between">
                     {hasDiscount ? (
-                        <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center mt-1">
-                            <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                        <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
+                            <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">
                                 {discountPriceFormatted}
                             </span>
-                            <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
+                            <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
                                 {regularPriceFormatted}
                             </span>
                         </div>
                     ) : (
-                        <p className="text-sm sm:text-lg font-black text-[color:var(--color-brand-500)] text-center mt-1">
+                        <p className="text-sm sm:text-lg font-black text-amber-600 dark:text-amber-400 leading-none" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                             {regularPriceFormatted}
                         </p>
                     )}
-
                     {!item.isAvailable && (
-                        <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
+                        <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
                     )}
