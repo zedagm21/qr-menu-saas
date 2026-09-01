@@ -25,6 +25,8 @@ import { FoodDetail } from '../../components/public/FoodDetail';
 import { MenuFilterModal, type FilterState } from '../../components/public/MenuFilterModal';
 import { RestaurantInfoModal } from '../../components/public/RestaurantInfoModal';
 import { SocialMediaModal } from '../../components/public/SocialMediaModal';
+import { PaymentModal } from '../../components/public/PaymentModal';
+import { WifiModal } from '../../components/public/WifiModal';
 import { QuickActionBar, QuickActionModal, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -55,6 +57,8 @@ export default function PublicMenuPage() {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [showRestaurantInfo, setShowRestaurantInfo] = useState(false);
     const [showSocialMedia, setShowSocialMedia] = useState(false);
+    const [showPayment, setShowPayment] = useState(false);
+    const [showWifi, setShowWifi] = useState(false);
     const [activeQuickAction, setActiveQuickAction] = useState<QuickAction>(null);
     const [filters, setFilters] = useState<FilterState>({
         minPrice: '',
@@ -534,7 +538,7 @@ export default function PublicMenuPage() {
                                 {restaurant.paymentInfo && (
                                     <button
                                         type="button"
-                                        onClick={handleOpenRestaurantInfo}
+                                        onClick={() => setShowPayment(true)}
                                         className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
                                     >
                                         <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -545,7 +549,7 @@ export default function PublicMenuPage() {
                                 {(restaurant.wifiName || restaurant.wifiPassword) && (
                                     <button
                                         type="button"
-                                        onClick={handleOpenRestaurantInfo}
+                                        onClick={() => setShowWifi(true)}
                                         className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:px-3.5 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold transition-all border border-white/25 shadow-2xs active:scale-95 cursor-pointer"
                                     >
                                         <Wifi className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -940,6 +944,22 @@ export default function PublicMenuPage() {
                     restaurant={restaurant}
                     isAm={lang === 'AM'}
                     onSocialClick={(platform) => slug && publicApi.recordInteraction(slug, 'SOCIAL_CLICK', platform)}
+                />
+
+                {/* ─── Dedicated Payment Modal ─── */}
+                <PaymentModal
+                    isOpen={showPayment}
+                    onClose={() => setShowPayment(false)}
+                    restaurant={restaurant}
+                    isAm={lang === 'AM'}
+                />
+
+                {/* ─── Dedicated WiFi Modal ─── */}
+                <WifiModal
+                    isOpen={showWifi}
+                    onClose={() => setShowWifi(false)}
+                    restaurant={restaurant}
+                    isAm={lang === 'AM'}
                 />
 
                 {/* ─── Quick Action Pop-up Modal / Bottom-Sheet (Info, Payment, Wi-Fi) ─── */}
