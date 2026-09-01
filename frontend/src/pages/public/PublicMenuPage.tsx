@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
+import toast from 'react-hot-toast';
 import {
     Search,
     X,
@@ -93,6 +94,36 @@ export default function PublicMenuPage() {
         setLang(nextLang);
         i18n.changeLanguage(nextLang.toLowerCase());
         localStorage.setItem('public-menu-lang', nextLang.toLowerCase());
+    };
+
+    const handleShare = async () => {
+        const shareUrl = window.location.href;
+        const shareData = {
+            title: restaurant?.name || 'Menu',
+            text: lang === 'AM'
+                ? `${restaurant?.name || 'የምግብ'} ሜኑን ይመልከቱ`
+                : `Check out the menu for ${restaurant?.name || 'this restaurant'}!`,
+            url: shareUrl,
+        };
+
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share(shareData);
+                if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
+                return;
+            } catch (err: any) {
+                if (err?.name === 'AbortError') return;
+            }
+        }
+
+        // Fallback: copy link to clipboard
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success(lang === 'AM' ? 'የሜኑ ሊንክ ተቀድቷል!' : 'Menu link copied to clipboard!', { id: 'menu-share-copied' });
+            if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
+        } catch {
+            toast.error(lang === 'AM' ? 'ሊንኩን መቅዳት አልተቻለም' : 'Failed to copy link');
+        }
     };
 
     const queryClient = useQueryClient();
@@ -433,7 +464,7 @@ export default function PublicMenuPage() {
                         <span className="text-white/90 group-hover:text-white font-bold text-sm tracking-[0.2em] uppercase transition-colors">{t("public.menu_label")}</span>
                     </button>
 
-                    {/* Right side: Info + Language + Theme Toggle */}
+                    {/* Right side: Info + Share + Language + Theme Toggle */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
                             type="button"
@@ -443,6 +474,15 @@ export default function PublicMenuPage() {
                             className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
                         >
                             <Info className="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleShare}
+                            aria-label={t("public.share_menu", { defaultValue: "Share Menu" })}
+                            title={t("public.share_menu", { defaultValue: "Share Menu" })}
+                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                        >
+                            <Share2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={handleLanguageToggle}
