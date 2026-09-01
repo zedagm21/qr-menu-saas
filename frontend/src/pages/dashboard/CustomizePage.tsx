@@ -423,37 +423,37 @@ const CustomizePage: React.FC = () => {
 
                             <div
                                 key={previewKey}
-                                className="p-4 lg:p-5 overflow-hidden h-full animate-[fadeIn_0.35s_ease-out]"
+                                className="p-3 sm:p-4 overflow-y-auto hide-scrollbar h-full animate-[fadeIn_0.35s_ease-out]"
                                 style={{ color: textColor }}
                             >
                                 {/* Restaurant header */}
-                                <div className="flex items-center gap-3 mb-4">
+                                <div className="flex items-center gap-3 mb-3">
                                     {restaurant?.logoUrl ? (
-                                        <img src={restaurant.logoUrl} alt="" className="w-10 h-10 rounded-xl object-cover shadow-sm flex-shrink-0" />
+                                        <img src={restaurant.logoUrl} alt="" className="w-9 h-9 rounded-xl object-cover shadow-sm flex-shrink-0" />
                                     ) : (
                                         <div
-                                            className="w-10 h-10 rounded-xl shadow-sm flex-shrink-0 transition-all duration-500"
+                                            className="w-9 h-9 rounded-xl shadow-sm flex-shrink-0 transition-all duration-500"
                                             style={{ background: watched.primaryColor }}
                                         />
                                     )}
                                     <div className="min-w-0">
-                                        <p className="text-sm font-bold leading-tight truncate">{restaurant?.name ?? t('auth.restaurantName')}</p>
-                                        <p className="text-[11px] opacity-60 mt-0.5">⭐ {t('customize.preview')}</p>
+                                        <p className="text-[13px] sm:text-sm font-bold leading-tight truncate">{restaurant?.name ?? t('auth.restaurantName')}</p>
+                                        <p className="text-[10px] sm:text-[11px] opacity-60 mt-0.5">⭐ {t('customize.preview')}</p>
                                     </div>
                                 </div>
 
                                 {/* Color accent bar */}
                                 <div
-                                    className="h-1 rounded-full mb-4 opacity-60 transition-all duration-500"
+                                    className="h-1 rounded-full mb-3.5 opacity-60 transition-all duration-500"
                                     style={{ background: `linear-gradient(90deg, ${watched.primaryColor}, ${watched.accentColor})` }}
                                 />
 
                                 {/* Menu items */}
                                 <div className={cn(
-                                    (previewDevice === 'tablet' || previewDevice === 'desktop') && watched.menuStyle !== 'MINIMAL' && watched.menuStyle !== 'ELEGANT'
-                                        ? 'grid grid-cols-2 gap-3'
+                                    (watched.menuStyle === 'CLASSIC' || watched.menuStyle === 'MODERN')
+                                        ? 'grid grid-cols-2 gap-2 sm:gap-2.5'
                                         : (previewDevice === 'tablet' || previewDevice === 'desktop') && watched.menuStyle === 'ELEGANT'
-                                            ? 'grid grid-cols-2 lg:grid-cols-3 gap-4'
+                                            ? 'grid grid-cols-2 lg:grid-cols-3 gap-3'
                                             : 'flex flex-col gap-2'
                                 )}>
                                     {menuItems.length > 0 ? menuItems.map((item, i) => {
@@ -471,50 +471,66 @@ const CustomizePage: React.FC = () => {
 
                                         if (watched.menuStyle === 'CLASSIC') {
                                             return (
-                                                <div key={item.id ?? i} className="flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FDFBF7', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                                                    <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden">{imgNode}</div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[13px] font-semibold truncate">{name}</p>
-                                                        <p className="text-[11px] opacity-60 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                <div
+                                                    key={item.id ?? i}
+                                                    className="flex flex-col items-stretch text-left rounded-xl border overflow-hidden shadow-2xs transition-all duration-300"
+                                                    style={{ borderColor: cardBorder, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }}
+                                                >
+                                                    <div className="w-full aspect-[4/3] bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0">
+                                                        {imgNode}
                                                     </div>
-                                                    <span className="text-[13px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                    <div className="p-2 flex flex-col flex-1 min-w-0">
+                                                        <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight">{name}</p>
+                                                        <p className="text-[9px] sm:text-[10px] opacity-60 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                        <div className="mt-auto pt-1 flex items-center justify-between">
+                                                            <span className="text-[11px] sm:text-[12px] font-black transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             );
                                         }
                                         if (watched.menuStyle === 'MODERN') {
                                             return (
-                                                <div key={item.id ?? i} className="flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 shadow-sm" style={{ borderColor: cardBorder, backgroundColor: cardBg }}>
-                                                    <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden">{imgNode}</div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[13px] font-extrabold truncate uppercase tracking-tight">{name}</p>
-                                                        <p className="text-[10px] opacity-60 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                <div
+                                                    key={item.id ?? i}
+                                                    className="flex flex-col items-center text-center p-2 rounded-xl border shadow-2xs transition-all duration-300"
+                                                    style={{ borderColor: cardBorder, backgroundColor: cardBg }}
+                                                >
+                                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/5 mt-0.5">
+                                                        {imgNode}
                                                     </div>
-                                                    <span className="text-[13px] font-black flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                    <div className="w-full mt-1.5 flex flex-col flex-1 min-w-0">
+                                                        <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight w-full">{name}</p>
+                                                        <p className="text-[9px] sm:text-[10px] opacity-60 truncate mt-0.5 w-full">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                        <div className="mt-auto pt-1 flex items-center justify-center">
+                                                            <span className="text-[11px] sm:text-[12px] font-black transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             );
                                         }
                                         if (watched.menuStyle === 'ELEGANT') {
                                             return (
                                                 <div key={item.id ?? i} className="flex flex-col gap-2 pb-3 mb-1 border-b transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: 'transparent' }}>
-                                                    <div className="w-full h-28 rounded-lg overflow-hidden shadow-sm">{imgNode}</div>
+                                                    <div className="w-full h-24 sm:h-28 rounded-lg overflow-hidden shadow-sm">{imgNode}</div>
                                                     <div className="flex justify-between items-start gap-2 pt-1" style={{ fontFamily: 'Georgia, serif' }}>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-[14px] font-bold truncate tracking-wide">{name}</p>
-                                                            <p className="text-[11px] opacity-70 line-clamp-2 mt-1 leading-relaxed" style={{ fontFamily: watched.fontFamily }}>{desc || t('customize.prepared_fresh_daily')}</p>
+                                                            <p className="text-[13px] sm:text-[14px] font-bold truncate tracking-wide">{name}</p>
+                                                            <p className="text-[10px] sm:text-[11px] opacity-70 line-clamp-2 mt-0.5 leading-relaxed" style={{ fontFamily: watched.fontFamily }}>{desc || t('customize.prepared_fresh_daily')}</p>
                                                         </div>
-                                                        <span className="text-[14px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                        <span className="text-[13px] sm:text-[14px] font-bold flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                     </div>
                                                 </div>
                                             );
                                         }
                                         if (watched.menuStyle === 'MINIMAL') {
                                             return (
-                                                <div key={item.id ?? i} className="flex justify-between items-center py-3 border-b transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: 'transparent' }}>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[13px] font-medium truncate">{name}</p>
-                                                        <p className="text-[11px] opacity-50 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                <div key={item.id ?? i} className="flex justify-between items-center py-2.5 border-b transition-all duration-300" style={{ borderColor: cardBorder, backgroundColor: 'transparent' }}>
+                                                    <div className="flex-1 min-w-0 pr-2">
+                                                        <p className="text-[12px] sm:text-[13px] font-medium truncate">{name}</p>
+                                                        <p className="text-[10px] sm:text-[11px] opacity-50 truncate mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
                                                     </div>
-                                                    <span className="text-[13px] font-medium flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
+                                                    <span className="text-[12px] sm:text-[13px] font-medium flex-shrink-0 transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                 </div>
                                             );
                                         }
