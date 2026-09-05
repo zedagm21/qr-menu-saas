@@ -7,7 +7,7 @@ import {
     Save, Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
     Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info,
-    AlertTriangle, Pencil, Link2
+    AlertTriangle, Pencil, Link2, Crop
 } from 'lucide-react';
 import { useRestaurant, useUpdateRestaurant, useChangeSlug } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import { FloatingSaveBar } from '../../components/ui/FloatingSaveBar';
 import { UnsavedChangesModal } from '../../components/ui/UnsavedChangesModal';
 import { useUnsavedPrompt } from '../../hooks/useUnsavedPrompt';
+import { ImageFramingModal } from '../../components/dashboard/ImageFramingModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FormData {
@@ -95,7 +96,9 @@ interface UploadZoneProps {
     onDragOver: (e: React.DragEvent) => void;
     onDragLeave: () => void;
     onDrop: (e: React.DragEvent) => void;
+    onDropFile?: (file: File) => void;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onAdjust?: () => void;
     imageUrl?: string;
     label: string;
     hint: string;
@@ -103,15 +106,16 @@ interface UploadZoneProps {
     uploaded: boolean;
     progress?: number | null;
     tChangeImage: string;
+    tAdjustFraming?: string;
     tDropToUpload: string;
     tToUpload: string;
     tClickDragDrop: string;
 }
 
 const UploadZone: React.FC<UploadZoneProps> = ({
-    aspect, dragOver, onDragOver, onDragLeave, onDrop, onChange,
+    aspect, dragOver, onDragOver, onDragLeave, onDrop, onDropFile, onChange, onAdjust,
     imageUrl, label, hint, emptyIcon, uploaded, progress,
-    tChangeImage, tDropToUpload, tToUpload, tClickDragDrop
+    tChangeImage, tAdjustFraming, tDropToUpload, tToUpload, tClickDragDrop
 }) => (
     <div className="flex flex-col">
         <div className="mb-3">
@@ -130,7 +134,16 @@ const UploadZone: React.FC<UploadZoneProps> = ({
             )}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            onDrop={e => { e.preventDefault(); onDragLeave(); }}
+            onDrop={e => {
+                e.preventDefault();
+                onDragLeave();
+                const file = e.dataTransfer.files?.[0];
+                if (file && onDropFile) {
+                    onDropFile(file);
+                } else {
+                    onDrop(e);
+                }
+            }}
         >
             {/* Progress overlay */}
             {progress !== null && progress !== undefined && (
@@ -148,10 +161,26 @@ const UploadZone: React.FC<UploadZoneProps> = ({
             {imageUrl ? (
                 <>
                     <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-sm">
-                        <UploadCloud className="w-6 h-6 text-white mb-1.5" />
-                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{tChangeImage}</span>
+                    {/* Hover overlay with dual actions: Adjust & Change */}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-xs p-3">
+                        {onAdjust && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onAdjust();
+                                }}
+                                className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
+                            >
+                                <Crop className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{tAdjustFraming || 'Adjust'}</span>
+                            </button>
+                        )}
+                        <div className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all">
+                            <UploadCloud className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{tChangeImage}</span>
+                        </div>
                     </div>
                     {/* Success checkmark */}
                     {uploaded && (
@@ -351,41 +380,102 @@ const RestaurantPage: React.FC = () => {
         handleSubmit(onSubmit)();
     };
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // ── Image Framing & Crop State ──────────────────────────────────────────
+    const [framingModalState, setFramingModalState] = useState<{
+        isOpen: boolean;
+        source: string | File | null;
+        type: 'logo' | 'cover';
+    }>({
+        isOpen: false,
+        source: null,
+        type: 'logo',
+    });
+
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        try {
-            setLogoProgress(0);
-            const compressed = await compressImage(file, { maxDimension: 1200, quality: 0.85 });
-            await restaurantApi.uploadLogo(compressed, (percent) => setLogoProgress(percent));
-            await qc.invalidateQueries({ queryKey: ['restaurant'] });
-            toast.success(t('toast.uploaded'));
-            setLogoUploaded(true);
-            logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('toast.error'));
-        } finally {
-            setLogoProgress(null);
-            e.target.value = '';
-        }
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'logo',
+        });
+        e.target.value = '';
     };
 
-    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoDrop = (file: File) => {
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'logo',
+        });
+    };
+
+    const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        try {
-            setCoverProgress(0);
-            const compressed = await compressImage(file, { maxDimension: 2000, quality: 0.82 });
-            await restaurantApi.uploadCover(compressed, (percent) => setCoverProgress(percent));
-            await qc.invalidateQueries({ queryKey: ['restaurant'] });
-            toast.success(t('toast.uploaded'));
-            setCoverUploaded(true);
-            coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('toast.error'));
-        } finally {
-            setCoverProgress(null);
-            e.target.value = '';
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'cover',
+        });
+        e.target.value = '';
+    };
+
+    const handleCoverDrop = (file: File) => {
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'cover',
+        });
+    };
+
+    const handleAdjustExistingLogo = () => {
+        if (!restaurant?.logoUrl) return;
+        setFramingModalState({
+            isOpen: true,
+            source: restaurant.logoUrl,
+            type: 'logo',
+        });
+    };
+
+    const handleAdjustExistingCover = () => {
+        if (!restaurant?.coverImageUrl) return;
+        setFramingModalState({
+            isOpen: true,
+            source: restaurant.coverImageUrl,
+            type: 'cover',
+        });
+    };
+
+    const handleApplyCroppedImage = async (croppedFile: File) => {
+        if (framingModalState.type === 'logo') {
+            try {
+                setLogoProgress(0);
+                const compressed = await compressImage(croppedFile, { maxDimension: 1200, quality: 0.85 });
+                await restaurantApi.uploadLogo(compressed, (percent) => setLogoProgress(percent));
+                await qc.invalidateQueries({ queryKey: ['restaurant'] });
+                toast.success(t('toast.uploaded'));
+                setLogoUploaded(true);
+                logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
+            } catch (error: any) {
+                toast.error(error?.response?.data?.error || t('toast.error'));
+            } finally {
+                setLogoProgress(null);
+            }
+        } else {
+            try {
+                setCoverProgress(0);
+                const compressed = await compressImage(croppedFile, { maxDimension: 2000, quality: 0.82 });
+                await restaurantApi.uploadCover(compressed, (percent) => setCoverProgress(percent));
+                await qc.invalidateQueries({ queryKey: ['restaurant'] });
+                toast.success(t('toast.uploaded'));
+                setCoverUploaded(true);
+                coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
+            } catch (error: any) {
+                toast.error(error?.response?.data?.error || t('toast.error'));
+            } finally {
+                setCoverProgress(null);
+            }
         }
     };
 
@@ -461,7 +551,9 @@ const RestaurantPage: React.FC = () => {
                                 onDragOver={e => { e.preventDefault(); setLogoDragOver(true); }}
                                 onDragLeave={() => setLogoDragOver(false)}
                                 onDrop={() => setLogoDragOver(false)}
-                                onChange={handleLogoUpload}
+                                onDropFile={handleLogoDrop}
+                                onChange={handleLogoSelect}
+                                onAdjust={handleAdjustExistingLogo}
                                 imageUrl={restaurant?.logoUrl}
                                 label={t('restaurant.logo')}
                                 hint={t('restaurant.logoHint')}
@@ -469,6 +561,7 @@ const RestaurantPage: React.FC = () => {
                                 uploaded={logoUploaded}
                                 progress={logoProgress}
                                 tChangeImage={t("restaurant.change_image")}
+                                tAdjustFraming={t("restaurant.adjust_framing", { defaultValue: "Adjust / Crop" })}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
@@ -479,7 +572,9 @@ const RestaurantPage: React.FC = () => {
                                 onDragOver={e => { e.preventDefault(); setCoverDragOver(true); }}
                                 onDragLeave={() => setCoverDragOver(false)}
                                 onDrop={() => setCoverDragOver(false)}
-                                onChange={handleCoverUpload}
+                                onDropFile={handleCoverDrop}
+                                onChange={handleCoverSelect}
+                                onAdjust={handleAdjustExistingCover}
                                 imageUrl={restaurant?.coverImageUrl}
                                 label={t('restaurant.cover')}
                                 hint={t('restaurant.coverHint')}
@@ -487,6 +582,7 @@ const RestaurantPage: React.FC = () => {
                                 uploaded={coverUploaded}
                                 progress={coverProgress}
                                 tChangeImage={t("restaurant.change_image")}
+                                tAdjustFraming={t("restaurant.adjust_framing", { defaultValue: "Adjust / Crop" })}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
@@ -841,6 +937,16 @@ const RestaurantPage: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {/* ── Image Framing & Crop Modal ── */}
+                <ImageFramingModal
+                    isOpen={framingModalState.isOpen}
+                    onClose={() => setFramingModalState(prev => ({ ...prev, isOpen: false }))}
+                    imageSource={framingModalState.source}
+                    imageType={framingModalState.type}
+                    restaurantName={restaurant?.name || 'Restaurant'}
+                    onApply={handleApplyCroppedImage}
+                />
             </div>
         </>
     );
