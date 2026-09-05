@@ -73,7 +73,8 @@ export default function QRPage() {
     const { mutate: ensure, isPending: isGenerating } = useEnsureQRCode();
 
     const qr = Array.isArray(qrCodes) ? qrCodes[0] : null;
-    const menuUrl = qr?.targetUrl ?? (restaurant ? `${window.location.origin}/r/${restaurant.slug}` : '');
+    const currentSlug = liveRestaurant?.slug || restaurant?.slug;
+    const menuUrl = currentSlug ? `${window.location.origin}/r/${currentSlug}` : (qr?.targetUrl ?? '');
 
     // Studio Configuration State - DEFAULT includeLogo to true, showSubtitle to false
     const [config, setConfig] = useState<QRStyleConfig>({
@@ -153,7 +154,7 @@ export default function QRPage() {
             });
 
             const link = document.createElement('a');
-            link.download = `${restaurant?.slug ?? 'menu'}-${config.template}-card.png`;
+            link.download = `${currentSlug ?? 'menu'}-${config.template}-card.png`;
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             toast.success(t('qr.png_downloaded', { defaultValue: 'High-resolution card PNG downloaded!' }));
@@ -183,7 +184,7 @@ export default function QRPage() {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${restaurant?.slug ?? 'menu'}-vector-qr.svg`;
+            link.download = `${currentSlug ?? 'menu'}-vector-qr.svg`;
             link.click();
             URL.revokeObjectURL(url);
             toast.success(t('qr.svg_downloaded', { defaultValue: 'True Vector SVG downloaded!' }));
@@ -199,7 +200,7 @@ export default function QRPage() {
 
     return (
         <>
-            <Helmet><title>{t('qr.title', { defaultValue: 'Aesthetic QR Studio' })} — QR Menu</title></Helmet>
+            <Helmet><title>{t('qr.title', { defaultValue: 'Aesthetic QR Studio' })} — OurMenu</title></Helmet>
 
             {/* Print & PDF Sheet Customization Modal */}
             <QRPrintModal

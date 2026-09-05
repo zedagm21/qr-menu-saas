@@ -9,6 +9,9 @@ import { Button } from '../../components/ui/Button';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { cn } from '../../lib/utils';
 import { useForm } from 'react-hook-form';
+import { FloatingSaveBar } from '../../components/ui/FloatingSaveBar';
+import { UnsavedChangesModal } from '../../components/ui/UnsavedChangesModal';
+import { useUnsavedPrompt } from '../../hooks/useUnsavedPrompt';
 
 type ThemeType = 'light' | 'dark' | 'auto';
 
@@ -18,13 +21,34 @@ const SettingsPage: React.FC = () => {
     const { theme, setTheme } = useDashboardTheme();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting, isDirty } } = useForm({
         defaultValues: {
             currentPassword: '',
             newPassword: '',
             confirmPassword: ''
         }
     });
+
+    const watchedPasswords = watch();
+    const isModified = Boolean(
+        isDirty ||
+        watchedPasswords.currentPassword ||
+        watchedPasswords.newPassword ||
+        watchedPasswords.confirmPassword
+    );
+
+    const {
+        showUnsavedModal,
+        setShowUnsavedModal,
+        stayOnPage,
+        proceedNavigation,
+    } = useUnsavedPrompt(isModified);
+
+    const handleDiscard = () => {
+        reset();
+        setShowUnsavedModal(false);
+        proceedNavigation();
+    };
 
     const onSubmit = async (data: any) => {
         if (data.newPassword !== data.confirmPassword) {
@@ -34,17 +58,23 @@ const SettingsPage: React.FC = () => {
         try {
             await updatePassword(data.currentPassword, data.newPassword);
             toast.success(t('toast.passwordUpdated'), { icon: '🔒' });
+            reset();
+            proceedNavigation();
         } catch (error) {
             console.error('Failed to update password', error);
             toast.error(t('toast.passwordError'));
         }
     };
 
+    const handleSaveAndLeave = () => {
+        handleSubmit(onSubmit)();
+    };
+
     return (
         <>
-            <Helmet><title>{t('settings.title')} — QR Menu</title></Helmet>
+            <Helmet><title>{t('settings.title')} — OurMenu</title></Helmet>
 
-            <div className="min-h-full bg-white dark:!bg-neutral-950 dark:!text-white p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 pb-28 lg:pb-12 transition-colors duration-200">
+            <div className="min-h-full bg-white dark:!bg-neutral-950 dark:!text-white p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 pb-28 lg:pb-24 transition-colors duration-200">
 
                 {/* ── Header ── */}
                 <div className="animate-fade-in-up delay-0">
@@ -198,18 +228,24 @@ const SettingsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-2">
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    isLoading={isSubmitting}
-                                    className="h-11 px-8 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white font-bold"
-                                    icon={<Save className="w-4 h-4 stroke-[2.5]" />}
-                                >
-                                    {t('settings.update_password', { defaultValue: 'Update Password' })}
-                                </Button>
-                            </div>
-                        </form>
+                        {/* ── Sticky Floating Save Bar ── */}
+                        <FloatingSaveBar
+                            isModified={isModified}
+                            isSaving={isSubmitting}
+                            onDiscard={handleDiscard}
+                            saveLabel={t('settings.update_password', { defaultValue: 'Update Password' })}
+                        />
+                    </form>
+
+                    {/* ── Unsaved Changes Navigation Modal ── */}
+                    <UnsavedChangesModal
+                        isOpen={showUnsavedModal}
+                        onStay={stayOnPage}
+                        onDiscardAndLeave={handleDiscard}
+                        onSaveAndLeave={handleSaveAndLeave}
+                        isSaving={isSubmitting}
+                        description={t('settings.unsaved_modal_desc', { defaultValue: 'You have unsaved changes in your settings. What would you like to do before leaving?' })}
+                    />
                     </div>
 
                     {/* ── Section: Danger Zone ── */}

@@ -142,3 +142,30 @@ export const useReorderMenuItems = () => {
         },
     });
 };
+
+export const useBatchUpdateMenuItems = () => {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: ({ ids, data }: { ids: string[]; data: { isAvailable?: boolean; categoryId?: string; discountPercent?: number | null } }) =>
+            menuItemApi.batchUpdate(ids, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['menu-items'] });
+            toast.success(t('toast.saved', { defaultValue: 'Items updated successfully' }));
+        },
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
+    });
+};
+
+export const useBatchDeleteMenuItems = () => {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: (ids: string[]) => menuItemApi.batchDelete(ids),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['menu-items'] });
+            toast.success(t('toast.deleted', { defaultValue: 'Items deleted successfully' }));
+        },
+        onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
+    });
+};

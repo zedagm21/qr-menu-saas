@@ -274,7 +274,7 @@ export interface AnalyticsData {
     };
 }
 
-// ─── SaaS Super Admin Types ───────────────────────────────────────────────────
+// ─── Platform Super Admin Types ───────────────────────────────────────────────
 export interface AdminOverviewMetrics {
     restaurants: {
         total: number;

@@ -36,11 +36,11 @@ export class EmailService {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; background-color: #ffffff;">
-              <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); color: #ffffff; font-size: 24px; font-weight: bold; margin-bottom: 16px;">
-                QR
+              <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); color: #ffffff; font-size: 20px; font-weight: bold; margin-bottom: 16px;">
+                OM
               </div>
               <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #111827;">Verify Your Email</h1>
-              <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">Welcome to QR Menu SaaS, ${name}!</p>
+              <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">Welcome to OurMenu, ${name}!</p>
             </td>
           </tr>
           <!-- Body -->
@@ -64,7 +64,7 @@ export class EmailService {
           <tr>
             <td style="padding: 20px 32px; background-color: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                &copy; ${new Date().getFullYear()} QR Menu SaaS. All rights reserved.
+                &copy; ${new Date().getFullYear()} OurMenu. All rights reserved.
               </p>
             </td>
           </tr>
@@ -78,10 +78,10 @@ export class EmailService {
 
         try {
             await brevo.transactionalEmails.sendTransacEmail({
-                sender: { name: 'QR Menu', email: config.emailFrom },
+                sender: { name: 'OurMenu', email: config.emailFrom },
                 to: [{ email, name }],
-                subject: `${otp} is your QR Menu verification code`,
-                textContent: `Hello ${name},\n\nYour QR Menu verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not create a QR Menu account, please ignore this email.\n\n— The QR Menu Team`,
+                subject: `${otp} is your OurMenu verification code`,
+                textContent: `Hello ${name},\n\nYour OurMenu verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not create an OurMenu account, please ignore this email.\n\n— The OurMenu Team`,
                 htmlContent: html,
             });
             return true;
@@ -124,11 +124,11 @@ export class EmailService {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; background-color: #ffffff;">
-              <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); color: #ffffff; font-size: 24px; font-weight: bold; margin-bottom: 16px;">
-                QR
+              <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); color: #ffffff; font-size: 20px; font-weight: bold; margin-bottom: 16px;">
+                OM
               </div>
               <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #111827;">Reset Your Password</h1>
-              <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">QR Menu Account Security</p>
+              <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">OurMenu Account Security</p>
             </td>
           </tr>
           <!-- Body -->
@@ -152,7 +152,7 @@ export class EmailService {
           <tr>
             <td style="padding: 20px 32px; background-color: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                &copy; ${new Date().getFullYear()} QR Menu SaaS. All rights reserved.
+                &copy; ${new Date().getFullYear()} OurMenu. All rights reserved.
               </p>
             </td>
           </tr>
@@ -166,10 +166,10 @@ export class EmailService {
 
         try {
             await brevo.transactionalEmails.sendTransacEmail({
-                sender: { name: 'QR Menu Security', email: config.emailFrom },
+                sender: { name: 'OurMenu Security', email: config.emailFrom },
                 to: [{ email, name: displayName }],
-                subject: `${otp} is your QR Menu password reset code`,
-                textContent: `Hello ${displayName},\n\nYour QR Menu password reset code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\n— The QR Menu Team`,
+                subject: `${otp} is your OurMenu password reset code`,
+                textContent: `Hello ${displayName},\n\nYour OurMenu password reset code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\n— The OurMenu Team`,
                 htmlContent: html,
             });
             return true;

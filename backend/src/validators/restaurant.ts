@@ -37,5 +37,10 @@ export const updateThemeSchema = z.object({
     darkMode: z.enum(['LIGHT', 'DARK', 'AUTO']).optional(),
 });
 
+export const changeSlugSchema = z.object({
+    slug: z.string().min(2, 'Slug must be at least 2 characters').max(60, 'Slug must be at most 60 characters'),
+});
+
 export type UpdateRestaurantInput = z.infer<typeof updateRestaurantSchema>;
 export type UpdateThemeInput = z.infer<typeof updateThemeSchema>;
+export type ChangeSlugInput = z.infer<typeof changeSlugSchema>;

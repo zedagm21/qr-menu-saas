@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -15,7 +15,9 @@ import {
     Info,
     CreditCard,
     Wifi,
-    Share2
+    Share2,
+    Plus,
+    Minus
 } from 'lucide-react';
 import { publicApi } from '../../services/api';
 import { formatCurrency, applyRestaurantTheme, getTranslation, isFastingItem, cn } from '../../lib/utils';
@@ -29,14 +31,20 @@ import { PaymentModal } from '../../components/public/PaymentModal';
 import { WifiModal } from '../../components/public/WifiModal';
 import { QuickActionBar, QuickActionModal, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
+import { OrderTray } from '../../components/public/OrderTray';
+import { OrderModal } from '../../components/public/OrderModal';
+import { DishImage } from '../../components/public/DishImage';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
+import type { OrderTab } from '../../types/order';
 
 export default function PublicMenuPage() {
     const { t, i18n } = useTranslation();
     const { slug } = useParams<{ slug: string }>();
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const location = useLocation();
     const tableParam = searchParams.get('table');
     const qrParam = searchParams.get('qr');
 
@@ -73,6 +81,82 @@ export default function PublicMenuPage() {
         // Default for visitor is device Auto
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
+
+    const [coverAspect, setCoverAspect] = useState<number | null>(null);
+    const isWideBanner = coverAspect === null || coverAspect >= 1.8;
+
+    const categoryPillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+    const [tab, setTab] = useState<OrderTab>(() => {
+        try {
+            if (!slug) return {};
+            const saved = localStorage.getItem(`ourmenu_tab_${slug}`);
+            return saved ? JSON.parse(saved) : {};
+        } catch {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        if (slug) {
+            try {
+                localStorage.setItem(`ourmenu_tab_${slug}`, JSON.stringify(tab));
+            } catch {}
+        }
+    }, [tab, slug]);
+
+    // Center selected category pill smoothly in horizontal scroll view
+    useEffect(() => {
+        if (activeCategory && categoryPillRefs.current[activeCategory]) {
+            categoryPillRefs.current[activeCategory]?.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center',
+                block: 'nearest',
+            });
+        }
+    }, [activeCategory]);
+
+    const handleUpdateTabQuantity = (item: PublicMenuItem, delta: number) => {
+        setTab((prev) => {
+            const existing = prev[item.id];
+            const newQty = (existing?.quantity || 0) + delta;
+            if (newQty <= 0) {
+                const next = { ...prev };
+                delete next[item.id];
+                return next;
+            }
+            return {
+                ...prev,
+                [item.id]: {
+                    item,
+                    quantity: newQty,
+                },
+            };
+        });
+    };
+
+    const handleRemoveTabItem = (itemId: string) => {
+        setTab((prev) => {
+            const next = { ...prev };
+            delete next[itemId];
+            return next;
+        });
+    };
+
+    const handleClearTab = () => {
+        setTab({});
+        if (slug) {
+            localStorage.removeItem(`ourmenu_tab_${slug}`);
+        }
+        toast.success(lang === 'AM' ? 'ትዕዛዞች ተሰርዘዋል' : 'Orders cleared');
+    };
+
+    const tabItemsList = Object.values(tab);
+    const tabTotalCount = tabItemsList.reduce((acc, curr) => acc + curr.quantity, 0);
+    const tabTotalAmount = tabItemsList.reduce((acc, curr) => {
+        const p = parseFloat(curr.item.discountPrice || curr.item.price || '0');
+        return acc + (isNaN(p) ? 0 : p * curr.quantity);
+    }, 0);
 
     // Auto-collapse when scrolling down once categories slide under the sticky search header, remain collapsed
     useEffect(() => {
@@ -150,6 +234,13 @@ export default function PublicMenuPage() {
         networkMode: 'offlineFirst',
         retry: 1,
     });
+
+    // If accessed via an old slug alias, seamless redirect to the restaurant's active canonical slug
+    useEffect(() => {
+        if (restaurant?.slug && slug && restaurant.slug !== slug) {
+            navigate(`/r/${restaurant.slug}${location.search}`, { replace: true });
+        }
+    }, [restaurant?.slug, slug, navigate, location.search]);
 
     // When connection is restored after being offline, automatically re-sync latest menu changes
     useEffect(() => {
@@ -441,7 +532,7 @@ export default function PublicMenuPage() {
             case 'MINIMAL':
                 return 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5';
             case 'MODERN':
-                return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4';
+                return 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4';
             case 'CLASSIC':
             default:
                 return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4';
@@ -458,38 +549,41 @@ export default function PublicMenuPage() {
             <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111111] transition-colors" dir="ltr">
                 <OfflineNotice isOnline={isOnline} wasOffline={wasOffline} isAm={lang === 'AM'} />
 
-                {/* ─── Sticky Top Bar (Hovering over cover at top, frosted glass when scrolled) ─── */}
+                {/* ─── Sticky Top Bar ─── */}
                 <div className={cn(
-                    "sticky top-0 z-50 h-14 px-4 flex items-center justify-between transition-all duration-200",
-                    isScrolled
-                        ? "bg-neutral-900/85 dark:bg-neutral-950/90 backdrop-blur-md border-b border-white/10 shadow-sm"
-                        : "bg-transparent border-b border-transparent"
+                    "sticky top-0 z-50 h-14 px-3.5 sm:px-4 flex items-center justify-between transition-all duration-200",
+                    "bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-b border-black/5 dark:border-[#222222] shadow-2xs"
                 )}>
-                    {/* Left side: Logo + MENU text (Clickable -> Opens Restaurant Info Modal) */}
+                    {/* Left side: Logo + Restaurant Name (Clickable -> Opens Restaurant Info Modal) */}
                     <button
                         type="button"
                         onClick={handleOpenRestaurantInfo}
                         aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/15 active:scale-95 transition-all cursor-pointer group"
+                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-2xl hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer group min-w-0"
                     >
                         {restaurant.logoUrl ? (
-                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-white/30 shadow-sm object-cover group-hover:border-white transition-colors" />
+                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-black/10 dark:border-white/20 shadow-xs object-cover group-hover:scale-105 transition-transform shrink-0" />
                         ) : (
-                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white/90 font-bold text-sm group-hover:bg-white/30 transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-[color:var(--color-brand-500)]/15 dark:bg-[color:var(--color-brand-500)]/25 text-[color:var(--color-brand-500)] flex items-center justify-center font-bold text-sm shrink-0">
                                 {restaurant.name?.[0] || '🍽️'}
                             </div>
                         )}
-                        <span className="text-white/90 group-hover:text-white font-bold text-sm tracking-[0.2em] uppercase transition-colors">{t("public.menu_label")}</span>
+                        <span className={cn(
+                            "text-neutral-900 dark:text-[#F5F5F5] group-hover:text-[color:var(--color-brand-500)] font-black text-sm sm:text-base tracking-tight truncate max-w-[150px] xs:max-w-[200px] sm:max-w-[320px] transition-colors",
+                            lang === 'AM' && 'font-ethiopic font-bold'
+                        )}>
+                            {restaurant.name}
+                        </span>
                     </button>
 
                     {/* Right side: Info + Share + Language + Theme Toggle */}
-                    <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                         <button
                             type="button"
                             onClick={handleOpenRestaurantInfo}
                             aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
                             title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
                         >
                             <Info className="w-4 h-4" />
                         </button>
@@ -498,76 +592,82 @@ export default function PublicMenuPage() {
                             onClick={handleShare}
                             aria-label={t("public.share_menu", { defaultValue: "Share Menu" })}
                             title={t("public.share_menu", { defaultValue: "Share Menu" })}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
                         >
                             <Share2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={handleLanguageToggle}
                             aria-label={t("public.language_switch")}
-                            className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white/90 text-xs font-bold border border-white/10"
+                            className="px-2.5 sm:px-3 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors text-neutral-800 dark:text-neutral-200 text-xs font-bold border border-neutral-200/80 dark:border-[#333333]"
                         >
                             {lang === 'EN' ? 'አማ' : 'EN'}
                         </button>
                         <button
                             onClick={toggleDarkMode}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-[#333333]"
                         >
                             {isDark ? '☀️' : '🌙'}
                         </button>
                     </div>
                 </div>
 
-                {/* ─── Hero Section (20% Viewport Height on Mobile, Spacious on Desktop) ─── */}
-                <header className="relative -mt-14 pt-14 pb-2 sm:pt-20 sm:pb-10 px-4 h-[20vh] min-h-[160px] sm:h-auto sm:min-h-[250px] md:min-h-[290px] flex items-center justify-center animate-fade-in-up delay-0 overflow-hidden">
-                    {/* Cover image as background spanning top-0 behind top bar */}
-                    {restaurant.coverImageUrl ? (
-                        <div className="absolute inset-0">
-                            <img src={restaurant.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
-                            {/* Gentle top shadow for top-bar contrast */}
-                            <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none" />
-                            {/* Gentle bottom shadow for smooth page transition */}
-                            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/70 via-black/15 to-transparent pointer-events-none" />
-                            {/* Subtle ambient contrast */}
-                            <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                {/* ─── Desktop Cover Image Banner (Spacious & Uncropped with Smart Aspect Limit) ─── */}
+                {restaurant.coverImageUrl && (
+                    <div className="hidden md:block max-w-6xl mx-auto px-4 lg:px-8 pt-3 pb-1">
+                        <div
+                            onClick={handleOpenRestaurantInfo}
+                            className="relative w-full rounded-2xl overflow-hidden bg-neutral-100 dark:bg-[#181818] border border-neutral-200/80 dark:border-[#282828] shadow-xs cursor-pointer group flex items-center justify-center h-48 md:h-60 lg:h-72 max-h-[300px]"
+                            title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                        >
+                            {/* Ambient blurred backdrop so letterbox areas softly match the image colors */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 dark:opacity-20 scale-110 pointer-events-none"
+                                style={{ backgroundImage: `url(${restaurant.coverImageUrl})` }}
+                            />
+                            {/* Cover Image with Smart Non-Crop Limit */}
+                            <img
+                                src={restaurant.coverImageUrl}
+                                alt={restaurant.name}
+                                onLoad={(e) => {
+                                    const { naturalWidth, naturalHeight } = e.currentTarget;
+                                    if (naturalWidth && naturalHeight) {
+                                        setCoverAspect(naturalWidth / naturalHeight);
+                                    }
+                                }}
+                                className={cn(
+                                    "relative z-10 rounded-2xl group-hover:scale-[1.008] transition-transform duration-300",
+                                    isWideBanner
+                                        ? "w-full h-full max-h-[300px] object-contain"
+                                        : "w-full h-full object-cover object-center"
+                                )}
+                            />
                         </div>
-                    ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black overflow-hidden">
-                            {/* Subtle Ambient Brand Glow */}
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-[120%] h-48 bg-gradient-to-b from-[color:var(--color-brand-500)]/30 via-[color:var(--color-brand-600)]/15 to-transparent rounded-full blur-2xl pointer-events-none" />
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[color:var(--color-brand-500)]/20 via-transparent to-black/80 pointer-events-none" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
-                        </div>
-                    )}
-
-                    {/* Restaurant Title Centered */}
-                    <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto pb-6 sm:pb-8">
-                        <h1 className={cn("text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] filter", lang === 'AM' && 'font-ethiopic')}>
-                            {restaurant.name}
-                        </h1>
                     </div>
+                )}
 
-                    {/* Quick action utility badges (Payment, WiFi, Socials) anchored at the bottom end of the cover image */}
-                    {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
-                        <div className="absolute bottom-2 sm:bottom-3 inset-x-4 flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap z-20">
-                            {restaurant.paymentInfo && (
+                {/* ─── Dedicated Quick Actions Row (Payments, WiFi, Socials) ─── */}
+                {(hasPayment || hasWifi || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
+                    <div className="bg-white/80 dark:bg-[#151515]/80 backdrop-blur-xs border-b border-black/5 dark:border-[#222222] py-2 px-3 sm:px-4">
+                        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                            {hasPayment && (
                                 <button
                                     type="button"
                                     onClick={() => setShowPayment(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
-                                    <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
+                                    <CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>{t('public.payment', { defaultValue: 'Payments' })}</span>
                                 </button>
                             )}
 
-                            {(restaurant.wifiName || restaurant.wifiPassword) && (
+                            {hasWifi && (
                                 <button
                                     type="button"
                                     onClick={() => setShowWifi(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <Wifi className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                                     <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
                                 </button>
                             )}
@@ -579,15 +679,15 @@ export default function PublicMenuPage() {
                                         setShowSocialMedia(true);
                                         if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
                                     }}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <Share2 className="w-3.5 h-3.5 text-[color:var(--color-brand-500)] shrink-0" />
                                     <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
                                 </button>
                             )}
                         </div>
-                    )}
-                </header>
+                    </div>
+                )}
 
                 {/* ─── Sticky Search Header (z-30 so category grid slides smoothly under it) ─── */}
                 <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-xs py-2">
@@ -641,12 +741,52 @@ export default function PublicMenuPage() {
                             </button>
                         </div>
 
+                        {/* Fasting (የጾም) Filter Toggle Switch */}
+                        <div className="flex items-center justify-between py-1.5 px-3 rounded-2xl bg-neutral-100/80 dark:bg-[#111111] border border-neutral-200/80 dark:border-[#2A2A2A]">
+                            <div
+                                className="flex items-center gap-2 select-none cursor-pointer"
+                                onClick={() => setFilters(prev => ({ ...prev, fasting: prev.fasting === 'fasting' ? 'all' : 'fasting' }))}
+                            >
+                                <span className="text-base" aria-hidden="true">🌿</span>
+                                <span className={cn(
+                                    "text-xs sm:text-[13px] font-extrabold text-neutral-800 dark:text-neutral-200",
+                                    lang === 'AM' && 'font-ethiopic'
+                                )}>
+                                    {lang === 'AM' ? 'የጾም ብቻ' : 'Fasting Only (የጾም)'}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={filters.fasting === 'fasting'}
+                                onClick={() => setFilters(prev => ({
+                                    ...prev,
+                                    fasting: prev.fasting === 'fasting' ? 'all' : 'fasting'
+                                }))}
+                                className={cn(
+                                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    filters.fasting === 'fasting'
+                                        ? "bg-emerald-600 shadow-sm shadow-emerald-600/30"
+                                        : "bg-neutral-300 dark:bg-neutral-700"
+                                )}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={cn(
+                                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                        filters.fasting === 'fasting' ? "translate-x-5" : "translate-x-0"
+                                    )}
+                                />
+                            </button>
+                        </div>
+
                         {/* Compact single-row horizontal capsule bar (Active only when collapsed) */}
                         {categories.length > 0 && !isCategoriesExpanded && (
                             <div className="pt-0.5 animate-fade-in">
                                 <div className="flex items-center gap-1.5 min-w-0">
                                     <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 min-w-0 -mx-1 px-1">
                                         <button
+                                            ref={(el) => { categoryPillRefs.current['ALL'] = el; }}
                                             onClick={() => setActiveCategory(null)}
                                             className={cn(
                                                 "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
@@ -677,6 +817,7 @@ export default function PublicMenuPage() {
                                             return (
                                                 <button
                                                     key={cat.id}
+                                                    ref={(el) => { categoryPillRefs.current[cat.id] = el; }}
                                                     onClick={() => setActiveCategory(isActive ? null : cat.id)}
                                                     className={cn(
                                                         "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
@@ -849,6 +990,9 @@ export default function PublicMenuPage() {
                                                     lang={lang}
                                                     onClick={() => handleSelectItem(item)}
                                                     menuStyle={menuStyle}
+                                                    quantityInTab={tab[item.id]?.quantity || 0}
+                                                    onUpdateQuantity={(delta) => handleUpdateTabQuantity(item, delta)}
+                                                    searchQuery={search}
                                                 />
                                             </div>
                                         ))}
@@ -895,6 +1039,9 @@ export default function PublicMenuPage() {
                                                         lang={lang}
                                                         onClick={() => handleSelectItem(item)}
                                                         menuStyle={menuStyle}
+                                                        quantityInTab={tab[item.id]?.quantity || 0}
+                                                        onUpdateQuantity={(delta) => handleUpdateTabQuantity(item, delta)}
+                                                        searchQuery={search}
                                                     />
                                                 </div>
                                             ))}
@@ -949,6 +1096,33 @@ export default function PublicMenuPage() {
                     item={selectedItem}
                     isOpen={!!selectedItem}
                     onClose={() => setSelectedItem(null)}
+                    isAm={lang === 'AM'}
+                    quantityInTab={selectedItem ? tab[selectedItem.id]?.quantity || 0 : 0}
+                    onUpdateQuantity={(delta) => selectedItem && handleUpdateTabQuantity(selectedItem, delta)}
+                />
+
+                {/* ─── Floating Diner Order Tray (Bottom Bar) ─── */}
+                <OrderTray
+                    totalCount={tabTotalCount}
+                    totalAmount={tabTotalAmount}
+                    currency={restaurant.currency || 'ETB'}
+                    isAm={lang === 'AM'}
+                    onOpenModal={() => setIsOrderModalOpen(true)}
+                />
+
+                {/* ─── Diner Table Tab Order Modal (WhatsApp & Waiter View) ─── */}
+                <OrderModal
+                    isOpen={isOrderModalOpen}
+                    onClose={() => setIsOrderModalOpen(false)}
+                    tab={tab}
+                    onUpdateQuantity={(itemId, delta) => {
+                        const entry = tab[itemId];
+                        if (entry) handleUpdateTabQuantity(entry.item, delta);
+                    }}
+                    onRemoveItem={handleRemoveTabItem}
+                    onClearTab={handleClearTab}
+                    restaurant={restaurant}
+                    initialTableNumber={tableParam}
                     isAm={lang === 'AM'}
                 />
 
@@ -1015,8 +1189,54 @@ export default function PublicMenuPage() {
     );
 }
 
-// ─── Menu Item Card Component (4 Styles Differentiated) ───
-const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: string, onClick: () => void, menuStyle: string }) => {
+// ─── Search Highlighting Component ───────────────────────────────────────────
+const HighlightText: React.FC<{ text: string; highlight?: string; className?: string }> = ({
+    text,
+    highlight,
+    className,
+}) => {
+    if (!highlight || !highlight.trim()) {
+        return <span className={className}>{text}</span>;
+    }
+    const escaped = highlight.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    const parts = text.split(regex);
+    return (
+        <span className={className}>
+            {parts.map((part, i) =>
+                regex.test(part) ? (
+                    <mark
+                        key={i}
+                        className="bg-amber-300 dark:bg-amber-500/70 text-slate-950 dark:text-white px-0.5 rounded-xs font-black"
+                    >
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                )
+            )}
+        </span>
+    );
+};
+
+// ─── Menu Item Card Component (4 Styles Differentiated with Tab Ordering) ───
+const MenuItemCard = ({
+    item,
+    lang,
+    onClick,
+    menuStyle,
+    quantityInTab = 0,
+    onUpdateQuantity,
+    searchQuery,
+}: {
+    item: any;
+    lang: string;
+    onClick: () => void;
+    menuStyle: string;
+    quantityInTab?: number;
+    onUpdateQuantity?: (delta: number) => void;
+    searchQuery?: string;
+}) => {
     const { t } = useTranslation();
     const name = item.translations?.length ? getTranslation(item.translations, lang) : item.name ?? '';
     const desc = item.translations?.length ? getTranslation(item.translations, lang, 'description') : item.description ?? '';
@@ -1026,7 +1246,60 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
     const hasDiscount = item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price);
     const regularPriceFormatted = formatCurrency(item.price, item.currency);
     const discountPriceFormatted = hasDiscount ? formatCurrency(item.discountPrice, item.currency) : '';
-    const discountPercent = hasDiscount ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100) : 0;
+    const discountPercent = hasDiscount
+        ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)
+        : 0;
+
+    // Mini tab button helper
+    const renderTabControls = () => {
+        if (!item.isAvailable || !onUpdateQuantity) return null;
+
+        return (
+            <div className="mt-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                {quantityInTab > 0 ? (
+                    <div className="inline-flex items-center gap-1 bg-amber-500/20 dark:bg-amber-500/30 border border-amber-500/40 rounded-xl p-0.5 shadow-2xs">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateQuantity(-1);
+                            }}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Decrease quantity"
+                        >
+                            <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                        <span className="w-4 sm:w-5 text-center text-xs font-black text-amber-700 dark:text-amber-400 tabular-nums">
+                            {quantityInTab}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateQuantity(1);
+                            }}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Increase quantity"
+                        >
+                            <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateQuantity(1);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-neutral-100 hover:bg-amber-500 dark:bg-neutral-800 dark:hover:bg-amber-500 text-neutral-700 hover:text-slate-950 dark:text-neutral-300 dark:hover:text-slate-950 text-[11px] font-extrabold border border-neutral-200 dark:border-neutral-700 transition-all active:scale-90 cursor-pointer shadow-2xs"
+                    >
+                        <Plus className="w-3 h-3 stroke-[3]" />
+                        <span>{isAm ? 'ጨምር' : 'Add'}</span>
+                    </button>
+                )}
+            </div>
+        );
+    };
 
     /* ── MINIMAL STYLE: Sleek Horizontal Row ── */
     if (menuStyle === 'MINIMAL') {
@@ -1044,9 +1317,13 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             >
                 {hasImage ? (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 relative">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        <DishImage
+                            src={item.imageUrl}
+                            alt={name}
+                            className="transition-transform duration-300 group-hover:scale-105"
+                        />
                         {item.isFeatured && (
-                            <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase">
+                            <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase z-10">
                                 ⭐
                             </span>
                         )}
@@ -1056,7 +1333,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className={cn("text-xs sm:text-sm font-bold text-neutral-900 dark:text-[#F5F5F5] truncate", isAm && 'font-ethiopic font-bold')}>
-                            {name}
+                            <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount && (
                             <span className="bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded">
@@ -1066,7 +1343,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </div>
                     {desc && (
                         <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5", isAm && "font-ethiopic")}>
-                            {desc}
+                            <HighlightText text={desc} highlight={searchQuery} />
                         </p>
                     )}
                 </div>
@@ -1086,10 +1363,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {regularPriceFormatted}
                         </span>
                     )}
-                    {!item.isAvailable && (
+                    {!item.isAvailable ? (
                         <span className={cn("text-[8px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
+                    ) : (
+                        renderTabControls()
                     )}
                 </div>
             </button>
@@ -1112,8 +1391,8 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             >
                 {hasImage ? (
                     <div className="w-full aspect-[16/10] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none" />
+                        <DishImage src={item.imageUrl} alt={name} className="transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none pointer-events-none" />
 
                         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 pr-8 z-10">
                             {item.isFeatured && (
@@ -1133,7 +1412,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 <div className="p-4 sm:p-5 flex flex-col flex-grow">
                     <div className="flex items-baseline justify-between gap-3 mb-1.5">
                         <h3 className={cn("text-sm sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
-                            {name}
+                            <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount ? (
                             <div className="flex items-baseline gap-1.5 shrink-0">
@@ -1153,94 +1432,102 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                     {desc && (
                         <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 leading-relaxed mb-2", elegantFontClass, isAm && "font-ethiopic")}>
-                            {desc}
+                            <HighlightText text={desc} highlight={searchQuery} />
                         </p>
                     )}
 
-                    {!item.isAvailable && (
-                        <div className="mt-auto pt-2">
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                        {!item.isAvailable ? (
                             <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
-                        </div>
-                    )}
+                        ) : (
+                            renderTabControls()
+                        )}
+                    </div>
                 </div>
             </button>
         );
     }
 
-    /* ── MODERN STYLE: Multi-grid with Enlarged Circular Images ── */
+    /* ── MODERN STYLE: Side-by-Side Card (Large Left Photo + Right Details) ── */
     if (menuStyle === 'MODERN') {
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-3xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-300",
+                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-3 sm:p-4 text-left transition-all duration-300",
+                    "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] group",
+                    "flex items-stretch gap-3.5 sm:gap-4.5 overflow-hidden",
                     item.isFeatured
-                        ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-xs"
-                        : "border border-neutral-200/80 dark:border-neutral-800/80",
-                    "hover:-translate-y-1 active:scale-[0.98]",
-                    "flex flex-col items-center justify-start p-3.5 sm:p-5 group",
+                        ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
+                        : "border-neutral-200/80 dark:border-neutral-800/80",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
-                {hasImage ? (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 shadow-md">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-
-                        {/* Badges */}
-                        {item.isFeatured && (
-                            <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                {t('public.featured')}
-                            </div>
-                        )}
-                        {hasDiscount && (
-                            <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center shadow-inner">
-                        <UtensilsCrossed className="w-8 h-8 sm:w-10 sm:h-10 text-neutral-300 dark:text-[#2A2A2A]" />
-                        {hasDiscount && (
-                            <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
-                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
-                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
-                        {name}
-                    </h3>
-
-                    {desc && (
-                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>
-                            {desc}
-                        </p>
+                {/* Left Side: Large Rounded Food Photo */}
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-xl sm:rounded-2xl overflow-hidden shrink-0 relative bg-neutral-100 dark:bg-neutral-800">
+                    {hasImage ? (
+                        <DishImage
+                            src={item.imageUrl}
+                            alt={name}
+                            className="transition-transform duration-500 group-hover:scale-105"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                            <span className="text-3xl filter drop-shadow-sm">🍽️</span>
+                        </div>
                     )}
 
-                    <div className="mt-auto w-full pt-2 flex flex-col items-center">
+                    {/* Badges */}
+                    {item.isFeatured && (
+                        <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm z-10", isAm && 'font-ethiopic')}>
+                            ⭐ {t('public.featured')}
+                        </span>
+                    )}
+                    {hasDiscount && (
+                        <span className={cn("absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10", isAm && 'font-ethiopic')}>
+                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                        </span>
+                    )}
+                </div>
+
+                {/* Right Side: Title, Description, Price & Order Action */}
+                <div className="flex flex-col justify-between flex-1 min-w-0 py-0.5">
+                    <div>
+                        <h3 className={cn("text-sm sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-snug line-clamp-2", isAm && 'font-ethiopic font-bold')}>
+                            <HighlightText text={name} highlight={searchQuery} />
+                        </h3>
+
+                        {desc && (
+                            <p className={cn("text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 sm:line-clamp-3 leading-relaxed mt-1 sm:mt-1.5", isAm && "font-ethiopic")}>
+                                <HighlightText text={desc} highlight={searchQuery} />
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="mt-2.5 pt-1.5 flex items-center justify-between gap-2 border-t border-black/5 dark:border-white/5">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center">
-                                <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                <span className="text-[11px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
                                     {regularPriceFormatted}
                                 </span>
                             </div>
                         ) : (
-                            <p className="text-sm sm:text-lg font-black text-center text-amber-600 dark:text-amber-400" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
+                            <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                 {regularPriceFormatted}
                             </p>
                         )}
-                        {!item.isAvailable && (
-                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
+
+                        {!item.isAvailable ? (
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
+                        ) : (
+                            renderTabControls()
                         )}
                     </div>
                 </div>
@@ -1265,10 +1552,10 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             {/* Image Section */}
             <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                 {hasImage ? (
-                    <img
+                    <DishImage
                         src={item.imageUrl}
                         alt={name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="transition-transform duration-500 group-hover:scale-105"
                     />
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center">
@@ -1290,12 +1577,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             {/* Text Section */}
             <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
                 <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
-                    {name}
+                    <HighlightText text={name} highlight={searchQuery} />
                 </h3>
 
                 {desc && (
                     <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mb-2 leading-snug w-full", isAm && "font-ethiopic")}>
-                        {desc}
+                        <HighlightText text={desc} highlight={searchQuery} />
                     </p>
                 )}
 
@@ -1314,10 +1601,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {regularPriceFormatted}
                         </p>
                     )}
-                    {!item.isAvailable && (
+                    {!item.isAvailable ? (
                         <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
+                    ) : (
+                        renderTabControls()
                     )}
                 </div>
             </div>

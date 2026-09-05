@@ -114,10 +114,22 @@ model Restaurant {
   searchQueries       SearchQueryLog[]
   profileInteractions ProfileInteraction[]
   auditLogs           AuditLog[]
+  slugAliases         RestaurantSlugAlias[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
   @@map("restaurants")
+}
+
+model RestaurantSlugAlias {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  oldSlug      String     @unique
+  createdAt    DateTime   @default(now())
+
+  @@index([oldSlug])
+  @@map("restaurant_slug_aliases")
 }
 
 model RestaurantTranslation {

@@ -312,7 +312,7 @@ export default function AdminRestaurantsPage() {
                                                             )}
                                                             {(r.owner?.email || r.email) && (
                                                                 <a
-                                                                    href={`mailto:${r.owner?.email || r.email}?subject=Regarding your menu on QR Menu SaaS`}
+                                                                    href={`mailto:${r.owner?.email || r.email}?subject=Regarding your menu on OurMenu`}
                                                                     className="p-1 rounded-md bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
                                                                     title={`Email ${r.owner?.email || r.email}`}
                                                                 >
@@ -497,7 +497,7 @@ export default function AdminRestaurantsPage() {
                             <div>
                                 <p className="text-sm font-bold">Subscription Plan Tier</p>
                                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                    Assign or upgrade the restaurant's SaaS tier.
+                                    Assign or upgrade the restaurant's subscription tier.
                                 </p>
                             </div>
                             <div className="grid grid-cols-3 gap-2">

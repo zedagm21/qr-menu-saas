@@ -91,7 +91,7 @@ export const WifiModal: React.FC<WifiModalProps> = ({
                         </div>
                         <div className="min-w-0 flex-1">
                             <h2 id="wifi-modal-title" className="text-base font-extrabold text-neutral-900 dark:text-[#F5F5F5] truncate">
-                                {t('public.wifi', { defaultValue: 'Guest WiFi' })}
+                                {t('public.wifi', { defaultValue: 'WiFi' })}
                             </h2>
                             <p className="text-xs text-neutral-500 dark:text-[#A3A3A3] truncate">
                                 {displayName}

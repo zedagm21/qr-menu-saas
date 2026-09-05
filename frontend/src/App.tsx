@@ -28,6 +28,7 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
 
 // Public
+const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const PublicMenuPage = lazy(() => import('./pages/public/PublicMenuPage'));
 const CameraUploadPage = lazy(() => import('./pages/public/CameraUploadPage'));
 
@@ -64,7 +65,7 @@ const App: React.FC = () => (
                 <Route path="more" element={<MorePage />} />
             </Route>
 
-            {/* SaaS Super Admin */}
+            {/* Platform Super Admin */}
             <Route path="/admin" element={<AdminRoute />}>
                 <Route element={<AdminLayout />}>
                     <Route index element={<AdminOverviewPage />} />
@@ -73,6 +74,10 @@ const App: React.FC = () => (
                     <Route path="activity" element={<AdminActivityPage />} />
                 </Route>
             </Route>
+
+            {/* Landing page kept accessible for preview/testing */}
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/demo" element={<Navigate to="/r/vista-cafe-restaurant" replace />} />
 
             {/* Redirects */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

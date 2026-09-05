@@ -84,7 +84,7 @@ const RegisterPage: React.FC = () => {
     return (
         <>
             <Helmet>
-                <title>{t('auth.registerTitle')} — QR Menu</title>
+                <title>{t('auth.registerTitle')} — OurMenu</title>
             </Helmet>
 
             <div className="min-h-screen relative overflow-hidden bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col justify-between transition-colors duration-200">
@@ -100,7 +100,7 @@ const RegisterPage: React.FC = () => {
                         <div className="w-9 h-9 bg-gradient-to-tr from-amber-600 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-amber-500/20">
                             <QrCode className="w-5 h-5" />
                         </div>
-                        <span>QR Menu</span>
+                        <span>OurMenu</span>
                     </Link>
 
                     {/* Controls: Language & Theme */}
@@ -278,7 +278,7 @@ const RegisterPage: React.FC = () => {
 
                 {/* Footer */}
                 <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600">
-                    &copy; {new Date().getFullYear()} QR Menu SaaS. All rights reserved.
+                    &copy; {new Date().getFullYear()} OurMenu. All rights reserved.
                 </footer>
             </div>
         </>

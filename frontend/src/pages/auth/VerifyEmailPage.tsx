@@ -166,7 +166,7 @@ const VerifyEmailPage: React.FC = () => {
     return (
         <>
             <Helmet>
-                <title>{t('auth.verify.title', { defaultValue: 'Verify Your Email' })} — QR Menu</title>
+                <title>{t('auth.verify.title', { defaultValue: 'Verify Your Email' })} — OurMenu</title>
             </Helmet>
             <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 overflow-hidden flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">

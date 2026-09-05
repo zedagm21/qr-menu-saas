@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { menuItemService } from '../services/MenuItemService';
-import { createMenuItemSchema, updateMenuItemSchema, reorderMenuItemsSchema } from '../validators/menuItem';
+import {
+    createMenuItemSchema,
+    updateMenuItemSchema,
+    reorderMenuItemsSchema,
+    batchUpdateMenuItemsSchema,
+    batchDeleteMenuItemsSchema,
+} from '../validators/menuItem';
 
 export const getMenuItems = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -68,6 +74,26 @@ export const reorderMenuItems = async (req: Request, res: Response, next: NextFu
         const data = reorderMenuItemsSchema.parse(req.body);
         await menuItemService.reorderMenuItems(req.user!.restaurantId!, data.items);
         res.json({ message: 'Items reordered' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const batchUpdateMenuItems = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { ids, data } = batchUpdateMenuItemsSchema.parse(req.body);
+        const result = await menuItemService.batchUpdateMenuItems(req.user!.restaurantId!, ids, data);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const batchDeleteMenuItems = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { ids } = batchDeleteMenuItemsSchema.parse(req.body);
+        const result = await menuItemService.batchDeleteMenuItems(req.user!.restaurantId!, ids);
+        res.json(result);
     } catch (error) {
         next(error);
     }

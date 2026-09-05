@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "QR Menu",
+    "name": "OurMenu",
     "tagline": "የዲጂታል ምግብ ዝርዝር"
   },
   "nav": {
@@ -21,7 +21,7 @@
     "viewMenu": "የቀጥታ ምግብ ዝርዝር ይመልከቱ",
     "home": "መነሻ",
     "more": "ተጨማሪ",
-    "menuQr": "ሜኑ QR"
+    "menuQr": "OurMenu"
   },
   "analytics": {
     "title": "የስካን እና የተጠቃሚዎች ትንታኔ",
@@ -254,6 +254,19 @@
     "logoHint": "PNG, JPG · ቢበዛ 2MB",
     "coverHint": "የሚመከር መጠን፦ 1200×400px · ቢበዛ 5MB",
     "change_image": "ምስል ቀይር",
+    "adjust_framing": "አቀማመጥ አስተካክል",
+    "adjust_logo_title": "የሎጎ አቀማመጥ ማስተካከያ",
+    "adjust_cover_title": "የሽፋን ምስል አቀማመጥ ማስተካከያ",
+    "crop_hint": "የሚታየውን ቦታ ለማስተካከል ይጎትቱ። ለማጉላት ስላይደሩን ይጠቀሙ።",
+    "live_preview": "የቀጥታ እይታ",
+    "preview_topbar": "የላይኛው አርማ",
+    "preview_about_hero": "የስለ እኛ ገጽ አርማ",
+    "preview_desktop_banner": "የዴስክቶፕ ሜኑ ሽፋን",
+    "preview_modal_hero": "የስለ እኛ ገጽ ሽፋን",
+    "apply_save": "አረጋግጥና አስቀምጥ",
+    "reset": "ወደ መጀመሪያው መልስ",
+    "zoom": "አጉላ",
+    "rotate_90": "90° አሽከርክር",
     "drop_to_upload": "ለመጫን እዚህ ይልቀቁ",
     "to_upload": "ለመጫን",
     "ph_name": "ለምሳሌ፦ ብሉ ናይል ምግብ ቤት",
@@ -590,7 +603,7 @@
     "search_placeholder": "የምግብ ዝርዝር ይፈልጉ...",
     "unavailable": "በአሁኑ ሰዓት አይገኝም",
     "all_items": "ሁሉም",
-    "powered_by": "በ QR Menu የቀረበ",
+    "powered_by": "በ OurMenu የቀረበ",
     "language_switch": "ቋንቋ",
     "close": "ዝጋ",
     "menu_not_found": "የምግብ ዝርዝር አልተገኘም",
@@ -695,7 +708,7 @@
   },
   "design": {
     "clear_search": "ፍለጋን አጽዳ",
-    "powered_by": "በ QR Menu የቀረበ"
+    "powered_by": "በ OurMenu የቀረበ"
   },
   "camera_modal": {
     "badge": "ከስልክ ወደ ኮምፒውተር ማስተላለፊያ",

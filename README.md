@@ -1,6 +1,6 @@
-# 🍽️ QR Menu SaaS — Modern Digital Restaurant Menu Platform
+# 🍽️ OurMenu — Modern Digital Restaurant Menu Platform
 
-A production-ready, high-performance, multi-tenant QR Menu SaaS platform designed for restaurants, cafes, bars, and bistros. Features full bilingual support (**English 🇬🇧 & Amharic 🇪🇹**), custom QR code generation, real-time menu styling studio, live mobile previews, optimistic dashboard updates, and high-throughput in-memory caching.
+A production-ready, high-performance digital restaurant menu platform designed for restaurants, cafes, bars, and bistros. Features full bilingual support (**English 🇬🇧 & Amharic 🇪🇹**), custom QR code generation, real-time menu styling studio, live mobile previews, optimistic dashboard updates, and high-throughput in-memory caching.
 
 ---
 
@@ -63,7 +63,7 @@ A production-ready, high-performance, multi-tenant QR Menu SaaS platform designe
 ## 📂 Project Architecture
 
 ```
-qr-menu-saas/
+ourmenu/
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma          # Multi-tenant DB schema with compound indexes
@@ -114,8 +114,8 @@ qr-menu-saas/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/qr-menu-saas.git
-cd qr-menu-saas
+git clone https://github.com/your-username/ourmenu.git
+cd ourmenu
 ```
 
 ---
@@ -137,7 +137,7 @@ cd qr-menu-saas
    ```env
    NODE_ENV=development
    PORT=3001
-   DATABASE_URL="postgresql://postgres:password@localhost:5432/qrmenu_db"
+   DATABASE_URL="postgresql://postgres:password@localhost:5432/ourmenu_db"
    JWT_SECRET="your-super-secret-jwt-key"
    JWT_EXPIRES_IN=7d
    COOKIE_SECRET="your-cookie-secret"

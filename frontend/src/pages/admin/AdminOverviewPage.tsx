@@ -72,7 +72,7 @@ export default function AdminOverviewPage() {
 
     return (
         <>
-            <Helmet><title>Super Admin Overview — QR Menu</title></Helmet>
+            <Helmet><title>Super Admin Overview — OurMenu</title></Helmet>
 
             <div className="space-y-8 animate-fade-in">
                 {/* ── Page Header ── */}
@@ -80,7 +80,7 @@ export default function AdminOverviewPage() {
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase">
-                                SaaS Platform Control
+                                Platform Control
                             </span>
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -221,7 +221,7 @@ export default function AdminOverviewPage() {
                                 30-Day Platform Growth & Signups
                             </h3>
                             <p className="text-xs text-slate-400 mt-0.5">
-                                Daily new accounts registered across the SaaS platform
+                                Daily new accounts registered across OurMenu
                             </p>
                         </div>
 
@@ -285,7 +285,7 @@ export default function AdminOverviewPage() {
                                         Top Restaurants by Foot Traffic
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-0.5">
-                                        Highest diner QR scans across the SaaS platform
+                                        Highest diner QR scans across the platform
                                     </p>
                                 </div>
                                 <Link
@@ -343,7 +343,7 @@ export default function AdminOverviewPage() {
                         </div>
                     </div>
 
-                    {/* Recent SaaS Audit Activities */}
+                    {/* Recent Platform Audit Activities */}
                     <div className="lg:col-span-6 bg-slate-900/90 rounded-3xl p-6 border border-slate-800 shadow-sm flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between mb-4">

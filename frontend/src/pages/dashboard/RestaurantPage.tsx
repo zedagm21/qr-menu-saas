@@ -7,9 +7,9 @@ import {
     Save, Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
     Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info,
-    AlertTriangle
+    AlertTriangle, Pencil, Link2, Crop
 } from 'lucide-react';
-import { useRestaurant, useUpdateRestaurant } from '../../hooks/useRestaurant';
+import { useRestaurant, useUpdateRestaurant, useChangeSlug } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -19,6 +19,10 @@ import { getTranslation, cn } from '../../lib/utils';
 import type { SocialMediaEntry } from '../../types';
 import { SocialLinksManager, PLATFORMS } from '../../components/dashboard/SocialLinksManager';
 import toast from 'react-hot-toast';
+import { FloatingSaveBar } from '../../components/ui/FloatingSaveBar';
+import { UnsavedChangesModal } from '../../components/ui/UnsavedChangesModal';
+import { useUnsavedPrompt } from '../../hooks/useUnsavedPrompt';
+import { ImageFramingModal } from '../../components/dashboard/ImageFramingModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FormData {
@@ -92,7 +96,9 @@ interface UploadZoneProps {
     onDragOver: (e: React.DragEvent) => void;
     onDragLeave: () => void;
     onDrop: (e: React.DragEvent) => void;
+    onDropFile?: (file: File) => void;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onAdjust?: () => void;
     imageUrl?: string;
     label: string;
     hint: string;
@@ -100,15 +106,16 @@ interface UploadZoneProps {
     uploaded: boolean;
     progress?: number | null;
     tChangeImage: string;
+    tAdjustFraming?: string;
     tDropToUpload: string;
     tToUpload: string;
     tClickDragDrop: string;
 }
 
 const UploadZone: React.FC<UploadZoneProps> = ({
-    aspect, dragOver, onDragOver, onDragLeave, onDrop, onChange,
+    aspect, dragOver, onDragOver, onDragLeave, onDrop, onDropFile, onChange, onAdjust,
     imageUrl, label, hint, emptyIcon, uploaded, progress,
-    tChangeImage, tDropToUpload, tToUpload, tClickDragDrop
+    tChangeImage, tAdjustFraming, tDropToUpload, tToUpload, tClickDragDrop
 }) => (
     <div className="flex flex-col">
         <div className="mb-3">
@@ -127,7 +134,16 @@ const UploadZone: React.FC<UploadZoneProps> = ({
             )}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            onDrop={e => { e.preventDefault(); onDragLeave(); }}
+            onDrop={e => {
+                e.preventDefault();
+                onDragLeave();
+                const file = e.dataTransfer.files?.[0];
+                if (file && onDropFile) {
+                    onDropFile(file);
+                } else {
+                    onDrop(e);
+                }
+            }}
         >
             {/* Progress overlay */}
             {progress !== null && progress !== undefined && (
@@ -145,10 +161,26 @@ const UploadZone: React.FC<UploadZoneProps> = ({
             {imageUrl ? (
                 <>
                     <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-sm">
-                        <UploadCloud className="w-6 h-6 text-white mb-1.5" />
-                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{tChangeImage}</span>
+                    {/* Hover overlay with dual actions: Adjust & Change */}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-xs p-3">
+                        {onAdjust && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onAdjust();
+                                }}
+                                className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
+                            >
+                                <Crop className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{tAdjustFraming || 'Adjust'}</span>
+                            </button>
+                        )}
+                        <div className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all">
+                            <UploadCloud className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{tChangeImage}</span>
+                        </div>
                     </div>
                     {/* Success checkmark */}
                     {uploaded && (
@@ -193,9 +225,12 @@ const RestaurantPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: restaurant, isLoading } = useRestaurant();
     const { mutate: update, isPending } = useUpdateRestaurant();
+    const { mutate: changeSlug, isPending: isSlugChanging } = useChangeSlug();
     const qc = useQueryClient();
 
     const [tab, setTab] = useState<'en' | 'am'>('en');
+    const [showSlugModal, setShowSlugModal] = useState(false);
+    const [newSlugInput, setNewSlugInput] = useState('');
 
     const { register, handleSubmit, reset, watch, formState: { isDirty } } = useForm<FormData>();
     const status = watch('status');
@@ -209,8 +244,6 @@ const RestaurantPage: React.FC = () => {
     const [showWifiPassword, setShowWifiPassword] = useState(false);
     const [socialLinks, setSocialLinks] = useState<SocialMediaEntry[]>([]);
     const initialSocialJson = useRef('[]');
-    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-    const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -246,40 +279,12 @@ const RestaurantPage: React.FC = () => {
     const isSocialDirty = JSON.stringify(socialLinks.filter(l => l.url.trim() !== '')) !== initialSocialJson.current;
     const isModified = isDirty || isSocialDirty;
 
-    // Warn on browser reload / tab close
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isModified) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isModified]);
-
-    // Intercept internal link clicks when there are unsaved changes
-    useEffect(() => {
-        if (!isModified) return;
-
-        const handleAnchorClick = (e: MouseEvent) => {
-            const target = (e.target as HTMLElement).closest('a');
-            if (!target) return;
-            const href = target.getAttribute('href');
-            if (!href || href.startsWith('#') || target.target === '_blank' || href.startsWith('blob:')) return;
-
-            // If navigating away from the current page
-            if (href !== window.location.pathname) {
-                e.preventDefault();
-                e.stopPropagation();
-                setPendingNavHref(href);
-                setShowUnsavedModal(true);
-            }
-        };
-
-        document.addEventListener('click', handleAnchorClick, true);
-        return () => document.removeEventListener('click', handleAnchorClick, true);
-    }, [isModified]);
+    const {
+        showUnsavedModal,
+        setShowUnsavedModal,
+        stayOnPage,
+        proceedNavigation,
+    } = useUnsavedPrompt(isModified);
 
     const handleDiscardChanges = () => {
         if (restaurant) {
@@ -308,11 +313,7 @@ const RestaurantPage: React.FC = () => {
             initialSocialJson.current = JSON.stringify(originalSocial);
         }
         setShowUnsavedModal(false);
-        if (pendingNavHref) {
-            const target = pendingNavHref;
-            setPendingNavHref(null);
-            navigate(target);
-        }
+        proceedNavigation();
     };
 
     useEffect(() => () => {
@@ -370,12 +371,7 @@ const RestaurantPage: React.FC = () => {
                 setSocialLinks(normalizedSocial);
                 initialSocialJson.current = JSON.stringify(normalizedSocial);
                 reset(data);
-                if (pendingNavHref) {
-                    const target = pendingNavHref;
-                    setPendingNavHref(null);
-                    setShowUnsavedModal(false);
-                    navigate(target);
-                }
+                proceedNavigation();
             },
         });
     };
@@ -384,41 +380,102 @@ const RestaurantPage: React.FC = () => {
         handleSubmit(onSubmit)();
     };
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // ── Image Framing & Crop State ──────────────────────────────────────────
+    const [framingModalState, setFramingModalState] = useState<{
+        isOpen: boolean;
+        source: string | File | null;
+        type: 'logo' | 'cover';
+    }>({
+        isOpen: false,
+        source: null,
+        type: 'logo',
+    });
+
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        try {
-            setLogoProgress(0);
-            const compressed = await compressImage(file, { maxDimension: 1200, quality: 0.85 });
-            await restaurantApi.uploadLogo(compressed, (percent) => setLogoProgress(percent));
-            await qc.invalidateQueries({ queryKey: ['restaurant'] });
-            toast.success(t('toast.uploaded'));
-            setLogoUploaded(true);
-            logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('toast.error'));
-        } finally {
-            setLogoProgress(null);
-            e.target.value = '';
-        }
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'logo',
+        });
+        e.target.value = '';
     };
 
-    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoDrop = (file: File) => {
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'logo',
+        });
+    };
+
+    const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        try {
-            setCoverProgress(0);
-            const compressed = await compressImage(file, { maxDimension: 2000, quality: 0.82 });
-            await restaurantApi.uploadCover(compressed, (percent) => setCoverProgress(percent));
-            await qc.invalidateQueries({ queryKey: ['restaurant'] });
-            toast.success(t('toast.uploaded'));
-            setCoverUploaded(true);
-            coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('toast.error'));
-        } finally {
-            setCoverProgress(null);
-            e.target.value = '';
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'cover',
+        });
+        e.target.value = '';
+    };
+
+    const handleCoverDrop = (file: File) => {
+        setFramingModalState({
+            isOpen: true,
+            source: file,
+            type: 'cover',
+        });
+    };
+
+    const handleAdjustExistingLogo = () => {
+        if (!restaurant?.logoUrl) return;
+        setFramingModalState({
+            isOpen: true,
+            source: restaurant.logoUrl,
+            type: 'logo',
+        });
+    };
+
+    const handleAdjustExistingCover = () => {
+        if (!restaurant?.coverImageUrl) return;
+        setFramingModalState({
+            isOpen: true,
+            source: restaurant.coverImageUrl,
+            type: 'cover',
+        });
+    };
+
+    const handleApplyCroppedImage = async (croppedFile: File) => {
+        if (framingModalState.type === 'logo') {
+            try {
+                setLogoProgress(0);
+                const compressed = await compressImage(croppedFile, { maxDimension: 1200, quality: 0.85 });
+                await restaurantApi.uploadLogo(compressed, (percent) => setLogoProgress(percent));
+                await qc.invalidateQueries({ queryKey: ['restaurant'] });
+                toast.success(t('toast.uploaded'));
+                setLogoUploaded(true);
+                logoTimer.current = setTimeout(() => setLogoUploaded(false), 3000);
+            } catch (error: any) {
+                toast.error(error?.response?.data?.error || t('toast.error'));
+            } finally {
+                setLogoProgress(null);
+            }
+        } else {
+            try {
+                setCoverProgress(0);
+                const compressed = await compressImage(croppedFile, { maxDimension: 2000, quality: 0.82 });
+                await restaurantApi.uploadCover(compressed, (percent) => setCoverProgress(percent));
+                await qc.invalidateQueries({ queryKey: ['restaurant'] });
+                toast.success(t('toast.uploaded'));
+                setCoverUploaded(true);
+                coverTimer.current = setTimeout(() => setCoverUploaded(false), 3000);
+            } catch (error: any) {
+                toast.error(error?.response?.data?.error || t('toast.error'));
+            } finally {
+                setCoverProgress(null);
+            }
         }
     };
 
@@ -430,7 +487,7 @@ const RestaurantPage: React.FC = () => {
 
     return (
         <>
-            <Helmet><title>{t('restaurant.title')} — QR Menu</title></Helmet>
+            <Helmet><title>{t('restaurant.title')} — OurMenu</title></Helmet>
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 lg:p-10 max-w-4xl mx-auto pb-24 lg:pb-12 transition-colors duration-200">
 
                 {/* ── Page header ── */}
@@ -438,10 +495,24 @@ const RestaurantPage: React.FC = () => {
                     <div>
                         <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('restaurant.title')}</h1>
                         {restaurant?.slug && (
-                            <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-1.5">
-                                <Globe className="w-3.5 h-3.5" />
-                                <span className="font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">/r/{restaurant.slug}</span>
-                            </p>
+                            <div className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-2 flex-wrap">
+                                <span className="flex items-center gap-1.5 font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">
+                                    <Globe className="w-3.5 h-3.5" />
+                                    /r/{restaurant.slug}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setNewSlugInput(restaurant.slug);
+                                        setShowSlugModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors cursor-pointer border border-neutral-200/80 dark:border-neutral-700"
+                                    title={t('restaurant.change_url_handle', { defaultValue: 'Change URL handle' })}
+                                >
+                                    <Pencil className="w-3 h-3 text-[color:var(--color-brand-500)]" />
+                                    <span>{t('restaurant.edit_handle', { defaultValue: 'Change Handle' })}</span>
+                                </button>
+                            </div>
                         )}
                     </div>
                     <div className="flex items-center gap-3">
@@ -480,7 +551,9 @@ const RestaurantPage: React.FC = () => {
                                 onDragOver={e => { e.preventDefault(); setLogoDragOver(true); }}
                                 onDragLeave={() => setLogoDragOver(false)}
                                 onDrop={() => setLogoDragOver(false)}
-                                onChange={handleLogoUpload}
+                                onDropFile={handleLogoDrop}
+                                onChange={handleLogoSelect}
+                                onAdjust={handleAdjustExistingLogo}
                                 imageUrl={restaurant?.logoUrl}
                                 label={t('restaurant.logo')}
                                 hint={t('restaurant.logoHint')}
@@ -488,6 +561,7 @@ const RestaurantPage: React.FC = () => {
                                 uploaded={logoUploaded}
                                 progress={logoProgress}
                                 tChangeImage={t("restaurant.change_image")}
+                                tAdjustFraming={t("restaurant.adjust_framing", { defaultValue: "Adjust / Crop" })}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
@@ -498,7 +572,9 @@ const RestaurantPage: React.FC = () => {
                                 onDragOver={e => { e.preventDefault(); setCoverDragOver(true); }}
                                 onDragLeave={() => setCoverDragOver(false)}
                                 onDrop={() => setCoverDragOver(false)}
-                                onChange={handleCoverUpload}
+                                onDropFile={handleCoverDrop}
+                                onChange={handleCoverSelect}
+                                onAdjust={handleAdjustExistingCover}
                                 imageUrl={restaurant?.coverImageUrl}
                                 label={t('restaurant.cover')}
                                 hint={t('restaurant.coverHint')}
@@ -506,6 +582,7 @@ const RestaurantPage: React.FC = () => {
                                 uploaded={coverUploaded}
                                 progress={coverProgress}
                                 tChangeImage={t("restaurant.change_image")}
+                                tAdjustFraming={t("restaurant.adjust_framing", { defaultValue: "Adjust / Crop" })}
                                 tDropToUpload={t("restaurant.drop_to_upload")}
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
@@ -759,100 +836,117 @@ const RestaurantPage: React.FC = () => {
                     </SectionCard>
 
                     {/* ── Sticky Floating Save Bar ── */}
-                    <div className="fixed bottom-0 lg:bottom-6 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-20 lg:pb-0">
-                        <div className="pointer-events-auto max-w-3xl w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 p-3 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300">
-                            <div className="flex items-center gap-2.5">
-                                {isModified ? (
-                                    <>
-                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                                        <span className="text-[13px] font-medium text-amber-700 dark:text-amber-400">
-                                            {t('restaurant.unsaved_changes', { defaultValue: 'You have unsaved changes' })}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                                        <span className="text-[13px] font-medium text-neutral-500 dark:text-neutral-400">
-                                            {t('restaurant.all_saved', { defaultValue: 'All changes saved' })}
-                                        </span>
-                                    </>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {isModified && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleDiscardChanges}
-                                        className="h-10 text-[13px] text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
-                                    >
-                                        {t('common.discard', { defaultValue: 'Discard' })}
-                                    </Button>
-                                )}
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    size="sm"
-                                    className="h-10 px-6 text-[13px] font-semibold"
-                                    isLoading={isPending}
-                                    icon={<Save className="w-4 h-4" />}
-                                >
-                                    {t('restaurant.save', { defaultValue: 'Save Changes' })}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                    <FloatingSaveBar
+                        isModified={isModified}
+                        isSaving={isPending}
+                        onDiscard={handleDiscardChanges}
+                    />
 
                 </form>
 
                 {/* ── Unsaved Changes Navigation Modal ── */}
-                {showUnsavedModal && (
+                <UnsavedChangesModal
+                    isOpen={showUnsavedModal}
+                    onStay={stayOnPage}
+                    onDiscardAndLeave={handleDiscardChanges}
+                    onSaveAndLeave={handleSaveAndLeave}
+                    isSaving={isPending}
+                    description={t('restaurant.unsaved_modal_desc', { defaultValue: 'You have unsaved changes on your profile. What would you like to do before leaving?' })}
+                />
+
+                {/* ── Change URL Handle Modal ── */}
+                {showSlugModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                                    <AlertTriangle className="w-5 h-5" />
+                                <div className="w-10 h-10 rounded-xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] flex items-center justify-center shrink-0">
+                                    <Link2 className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                                        {t('restaurant.unsaved_modal_title', { defaultValue: 'Unsaved Changes' })}
+                                        {t('restaurant.change_slug_modal_title', { defaultValue: 'Change Menu URL Handle' })}
                                     </h3>
                                     <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-                                        {t('restaurant.unsaved_modal_desc', { defaultValue: 'You have unsaved changes on your profile. What would you like to do before leaving?' })}
+                                        {t('restaurant.change_slug_modal_desc', { defaultValue: 'Customize your public menu link. Old links will automatically redirect so existing QR cards continue working.' })}
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
+
+                            <div className="space-y-2 pt-2">
+                                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                                    {t('restaurant.new_url_handle', { defaultValue: 'New Handle / Slug' })}
+                                </label>
+                                <div className="flex items-center rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 overflow-hidden focus-within:ring-2 focus-within:ring-[color:var(--color-brand-500)]/50 focus-within:border-[color:var(--color-brand-500)]">
+                                    <span className="px-3 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800/80 border-r border-neutral-200 dark:border-neutral-700 select-none py-2.5">
+                                        /r/
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={newSlugInput}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                                .toLowerCase()
+                                                .replace(/[^a-z0-9-]/g, '')
+                                                .replace(/-+/g, '-');
+                                            setNewSlugInput(val);
+                                        }}
+                                        placeholder="e.g. lucy-lounge"
+                                        className="flex-1 px-3 py-2 text-sm font-mono font-semibold text-neutral-900 dark:text-white bg-transparent outline-none"
+                                    />
+                                </div>
+                                <p className="text-[11px] text-neutral-400 font-medium">
+                                    {t('restaurant.slug_rules', { defaultValue: 'Only lowercase letters, numbers, and single hyphens. At least 2 characters.' })}
+                                </p>
+
+                                {newSlugInput && (
+                                    <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 text-xs text-neutral-600 dark:text-neutral-300">
+                                        <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5">Live Preview:</span>
+                                        <span className="font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold break-all">
+                                            {window.location.origin}/r/{newSlugInput}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => setShowUnsavedModal(false)}
+                                    onClick={() => setShowSlugModal(false)}
                                     className="w-full sm:w-auto h-10 text-[13px]"
                                 >
-                                    {t('restaurant.stay_on_page', { defaultValue: 'Stay on Page' })}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={handleDiscardChanges}
-                                    className="w-full sm:w-auto h-10 text-[13px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                >
-                                    {t('common.discard_and_leave', { defaultValue: 'Discard & Leave' })}
+                                    {t('common.cancel', { defaultValue: 'Cancel' })}
                                 </Button>
                                 <Button
                                     type="button"
                                     variant="primary"
-                                    onClick={handleSaveAndLeave}
-                                    isLoading={isPending}
+                                    disabled={!newSlugInput || newSlugInput.length < 2 || newSlugInput === restaurant?.slug}
+                                    isLoading={isSlugChanging}
+                                    onClick={() => {
+                                        changeSlug(newSlugInput, {
+                                            onSuccess: () => {
+                                                setShowSlugModal(false);
+                                            },
+                                        });
+                                    }}
                                     className="w-full sm:w-auto h-10 text-[13px] font-semibold"
                                 >
-                                    {t('common.save_and_leave', { defaultValue: 'Save Changes' })}
+                                    {t('common.save', { defaultValue: 'Save New Handle' })}
                                 </Button>
                             </div>
                         </div>
                     </div>
                 )}
+
+                {/* ── Image Framing & Crop Modal ── */}
+                <ImageFramingModal
+                    isOpen={framingModalState.isOpen}
+                    onClose={() => setFramingModalState(prev => ({ ...prev, isOpen: false }))}
+                    imageSource={framingModalState.source}
+                    imageType={framingModalState.type}
+                    restaurantName={restaurant?.name || 'Restaurant'}
+                    onApply={handleApplyCroppedImage}
+                />
             </div>
         </>
     );

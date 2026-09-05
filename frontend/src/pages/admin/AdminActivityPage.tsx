@@ -35,7 +35,7 @@ export default function AdminActivityPage() {
 
     return (
         <>
-            <Helmet><title>SaaS Activity Audit Log — Super Admin</title></Helmet>
+            <Helmet><title>Activity Audit Log — Super Admin</title></Helmet>
 
             <div className="space-y-6 animate-fade-in">
                 {/* Header */}
@@ -45,7 +45,7 @@ export default function AdminActivityPage() {
                             <span className="p-2 bg-purple-500/10 text-purple-400 rounded-xl">
                                 <Activity className="w-6 h-6" />
                             </span>
-                            SaaS Activity & Audit Log
+                            Activity & Audit Log
                         </h1>
                         <p className="text-sm font-medium text-slate-400 mt-1">
                             Immutable audit trail of all platform registrations, access state modifications, and administrative operations.

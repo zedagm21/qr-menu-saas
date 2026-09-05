@@ -17,8 +17,8 @@ export default defineConfig({
                 'pwa-maskable-512x512.png',
             ],
             manifest: {
-                name: 'QR Menu Manager',
-                short_name: 'QR Manager',
+                name: 'OurMenu',
+                short_name: 'OurMenu',
                 description: 'Manage your digital menu, categories, QR codes, and analytics on the go.',
                 theme_color: '#D97706',
                 background_color: '#111111',
@@ -111,8 +111,8 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 5. Dish photos, logos, covers (local /uploads/ or remote CDN / Cloudflare R2 / Unsplash)
-                        urlPattern: /(?:\/uploads\/|\.(?:png|jpg|jpeg|svg|webp|avif|gif)(?:\?.*)?$|r2\.cloudflarestorage|images\.unsplash)/i,
+                        // 5. Dish photos, logos, covers (local /uploads/, /api/public/proxy-image, Cloudflare R2, Unsplash, external domains)
+                        urlPattern: /(?:\/api\/public\/proxy-image|\/uploads\/|\.(?:png|jpg|jpeg|svg|webp|avif|gif)(?:\?.*)?$|r2\.cloudflarestorage|images\.unsplash|vistacafeandrestaurant\.com)/i,
                         method: 'GET',
                         handler: 'StaleWhileRevalidate',
                         options: {

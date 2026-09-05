@@ -111,7 +111,7 @@ export default function OverviewPage() {
 
     return (
         <>
-            <Helmet><title>Dashboard — QR Menu</title></Helmet>
+            <Helmet><title>Dashboard — OurMenu</title></Helmet>
 
             <div className="min-h-full bg-neutral-50/50 dark:bg-transparent p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-8 transition-colors duration-200">
 

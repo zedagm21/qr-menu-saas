@@ -42,7 +42,7 @@ export const Sidebar: React.FC = () => {
                         <div className="w-7 h-7 bg-[color:var(--color-brand-500)] rounded-lg flex items-center justify-center text-white">
                             <QrCode className="w-4 h-4" />
                         </div>
-                        <span className="font-bold text-neutral-900 dark:text-neutral-50 text-sm">{t('nav.menuQr', { defaultValue: 'MenuQR' })}</span>
+                        <span className="font-bold text-neutral-900 dark:text-neutral-50 text-sm">{t('nav.menuQr', { defaultValue: 'OurMenu' })}</span>
                     </div>
                 )}
                 {collapsed && (

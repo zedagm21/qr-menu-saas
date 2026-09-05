@@ -1,14 +1,14 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "QR Menu SaaS Backend API",
+  "description": "OurMenu Backend API",
   "main": "dist/app.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/app.js",
     "lint": "tsc --noEmit",
-    "test": "echo \"No tests specified\" && exit 0",
+    "test": "ts-node tests/runner.ts",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "QR Menu",
+    "name": "OurMenu",
     "tagline": "Digital Restaurant Menu"
   },
   "nav": {
@@ -21,7 +21,7 @@
     "viewMenu": "View Live Menu",
     "home": "Home",
     "more": "More",
-    "menuQr": "MenuQR"
+    "menuQr": "OurMenu"
   },
   "analytics": {
     "title": "Performance & Scan Analytics",
@@ -254,6 +254,19 @@
     "logoHint": "PNG, JPG · max 2MB",
     "coverHint": "Recommended 1200×400px · max 5MB",
     "change_image": "Change image",
+    "adjust_framing": "Adjust / Crop",
+    "adjust_logo_title": "Adjust Logo Framing",
+    "adjust_cover_title": "Adjust Cover Image Framing",
+    "crop_hint": "Drag to reposition visible area. Use slider or scroll to zoom.",
+    "live_preview": "Live Preview",
+    "preview_topbar": "Header Avatar",
+    "preview_about_hero": "About Modal Badge",
+    "preview_desktop_banner": "Desktop Banner",
+    "preview_modal_hero": "About Modal Hero",
+    "apply_save": "Apply & Save",
+    "reset": "Reset",
+    "zoom": "Zoom",
+    "rotate_90": "Rotate 90°",
     "drop_to_upload": "Drop to upload",
     "to_upload": "to upload",
     "ph_name": "e.g. Blue Nile Restaurant",
@@ -590,7 +603,7 @@
     "search_placeholder": "Search menu...",
     "unavailable": "Currently unavailable",
     "all_items": "All",
-    "powered_by": "Powered by QR Menu",
+    "powered_by": "Powered by OurMenu",
     "language_switch": "Language",
     "close": "Close",
     "menu_not_found": "Menu not found",
@@ -695,7 +708,7 @@
   },
   "design": {
     "clear_search": "Clear search",
-    "powered_by": "Powered by QR Menu"
+    "powered_by": "Powered by OurMenu"
   },
   "camera_modal": {
     "badge": "Phone-to-Desktop Sync",
@@ -773,7 +786,7 @@
     "no_searches_period": "No diner searches recorded yet in this timeframe"
   },
   "admin": {
-    "title": "SaaS Platform Admin",
+    "title": "Platform Admin",
     "back_to_restaurant": "Restaurant Dashboard"
   },
   "offline": {
