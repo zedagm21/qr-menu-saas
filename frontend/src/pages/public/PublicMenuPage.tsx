@@ -82,6 +82,9 @@ export default function PublicMenuPage() {
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
 
+    const [coverAspect, setCoverAspect] = useState<number | null>(null);
+    const isWideBanner = coverAspect === null || coverAspect >= 1.8;
+
     const categoryPillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [tab, setTab] = useState<OrderTab>(() => {
@@ -546,38 +549,41 @@ export default function PublicMenuPage() {
             <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111111] transition-colors" dir="ltr">
                 <OfflineNotice isOnline={isOnline} wasOffline={wasOffline} isAm={lang === 'AM'} />
 
-                {/* ─── Sticky Top Bar (Hovering over cover at top, frosted glass when scrolled) ─── */}
+                {/* ─── Sticky Top Bar ─── */}
                 <div className={cn(
-                    "sticky top-0 z-50 h-14 px-4 flex items-center justify-between transition-all duration-200",
-                    isScrolled
-                        ? "bg-neutral-900/85 dark:bg-neutral-950/90 backdrop-blur-md border-b border-white/10 shadow-sm"
-                        : "bg-transparent border-b border-transparent"
+                    "sticky top-0 z-50 h-14 px-3.5 sm:px-4 flex items-center justify-between transition-all duration-200",
+                    "bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-b border-black/5 dark:border-[#222222] shadow-2xs"
                 )}>
-                    {/* Left side: Logo + MENU text (Clickable -> Opens Restaurant Info Modal) */}
+                    {/* Left side: Logo + Restaurant Name (Clickable -> Opens Restaurant Info Modal) */}
                     <button
                         type="button"
                         onClick={handleOpenRestaurantInfo}
                         aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-full hover:bg-white/15 active:scale-95 transition-all cursor-pointer group"
+                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-2xl hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer group min-w-0"
                     >
                         {restaurant.logoUrl ? (
-                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-white/30 shadow-sm object-cover group-hover:border-white transition-colors" />
+                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-black/10 dark:border-white/20 shadow-xs object-cover group-hover:scale-105 transition-transform shrink-0" />
                         ) : (
-                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white/90 font-bold text-sm group-hover:bg-white/30 transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-[color:var(--color-brand-500)]/15 dark:bg-[color:var(--color-brand-500)]/25 text-[color:var(--color-brand-500)] flex items-center justify-center font-bold text-sm shrink-0">
                                 {restaurant.name?.[0] || '🍽️'}
                             </div>
                         )}
-                        <span className="text-white/90 group-hover:text-white font-bold text-sm tracking-[0.2em] uppercase transition-colors">{t("public.menu_label")}</span>
+                        <span className={cn(
+                            "text-neutral-900 dark:text-[#F5F5F5] group-hover:text-[color:var(--color-brand-500)] font-black text-sm sm:text-base tracking-tight truncate max-w-[150px] xs:max-w-[200px] sm:max-w-[320px] transition-colors",
+                            lang === 'AM' && 'font-ethiopic font-bold'
+                        )}>
+                            {restaurant.name}
+                        </span>
                     </button>
 
                     {/* Right side: Info + Share + Language + Theme Toggle */}
-                    <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                         <button
                             type="button"
                             onClick={handleOpenRestaurantInfo}
                             aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
                             title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
                         >
                             <Info className="w-4 h-4" />
                         </button>
@@ -586,76 +592,82 @@ export default function PublicMenuPage() {
                             onClick={handleShare}
                             aria-label={t("public.share_menu", { defaultValue: "Share Menu" })}
                             title={t("public.share_menu", { defaultValue: "Share Menu" })}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 cursor-pointer border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
                         >
                             <Share2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={handleLanguageToggle}
                             aria-label={t("public.language_switch")}
-                            className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors text-white/90 text-xs font-bold border border-white/10"
+                            className="px-2.5 sm:px-3 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors text-neutral-800 dark:text-neutral-200 text-xs font-bold border border-neutral-200/80 dark:border-[#333333]"
                         >
                             {lang === 'EN' ? 'አማ' : 'EN'}
                         </button>
                         <button
                             onClick={toggleDarkMode}
-                            className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors flex items-center justify-center text-white/90 border border-white/10"
+                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-[#333333]"
                         >
                             {isDark ? '☀️' : '🌙'}
                         </button>
                     </div>
                 </div>
 
-                {/* ─── Hero Section (20% Viewport Height on Mobile, Spacious on Desktop) ─── */}
-                <header className="relative -mt-14 pt-14 pb-2 sm:pt-20 sm:pb-10 px-4 h-[20vh] min-h-[160px] sm:h-auto sm:min-h-[250px] md:min-h-[290px] flex items-center justify-center animate-fade-in-up delay-0 overflow-hidden">
-                    {/* Cover image as background spanning top-0 behind top bar */}
-                    {restaurant.coverImageUrl ? (
-                        <div className="absolute inset-0">
-                            <img src={restaurant.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
-                            {/* Gentle top shadow for top-bar contrast */}
-                            <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none" />
-                            {/* Gentle bottom shadow for smooth page transition */}
-                            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/70 via-black/15 to-transparent pointer-events-none" />
-                            {/* Subtle ambient contrast */}
-                            <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                {/* ─── Desktop Cover Image Banner (Spacious & Uncropped with Smart Aspect Limit) ─── */}
+                {restaurant.coverImageUrl && (
+                    <div className="hidden md:block max-w-6xl mx-auto px-4 lg:px-8 pt-3 pb-1">
+                        <div
+                            onClick={handleOpenRestaurantInfo}
+                            className="relative w-full rounded-2xl overflow-hidden bg-neutral-100 dark:bg-[#181818] border border-neutral-200/80 dark:border-[#282828] shadow-xs cursor-pointer group flex items-center justify-center h-48 md:h-60 lg:h-72 max-h-[300px]"
+                            title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                        >
+                            {/* Ambient blurred backdrop so letterbox areas softly match the image colors */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 dark:opacity-20 scale-110 pointer-events-none"
+                                style={{ backgroundImage: `url(${restaurant.coverImageUrl})` }}
+                            />
+                            {/* Cover Image with Smart Non-Crop Limit */}
+                            <img
+                                src={restaurant.coverImageUrl}
+                                alt={restaurant.name}
+                                onLoad={(e) => {
+                                    const { naturalWidth, naturalHeight } = e.currentTarget;
+                                    if (naturalWidth && naturalHeight) {
+                                        setCoverAspect(naturalWidth / naturalHeight);
+                                    }
+                                }}
+                                className={cn(
+                                    "relative z-10 rounded-2xl group-hover:scale-[1.008] transition-transform duration-300",
+                                    isWideBanner
+                                        ? "w-full h-full max-h-[300px] object-contain"
+                                        : "w-full h-full object-cover object-center"
+                                )}
+                            />
                         </div>
-                    ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black overflow-hidden">
-                            {/* Subtle Ambient Brand Glow */}
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-[120%] h-48 bg-gradient-to-b from-[color:var(--color-brand-500)]/30 via-[color:var(--color-brand-600)]/15 to-transparent rounded-full blur-2xl pointer-events-none" />
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[color:var(--color-brand-500)]/20 via-transparent to-black/80 pointer-events-none" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
-                        </div>
-                    )}
-
-                    {/* Restaurant Title Centered */}
-                    <div className="relative flex flex-col items-center justify-center text-center z-20 max-w-lg mx-auto pb-6 sm:pb-8">
-                        <h1 className={cn("text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] filter", lang === 'AM' && 'font-ethiopic')}>
-                            {restaurant.name}
-                        </h1>
                     </div>
+                )}
 
-                    {/* Quick action utility badges (Payment, WiFi, Socials) anchored at the bottom end of the cover image */}
-                    {(restaurant.paymentInfo || restaurant.wifiName || restaurant.wifiPassword || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
-                        <div className="absolute bottom-2 sm:bottom-3 inset-x-4 flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap z-20">
-                            {restaurant.paymentInfo && (
+                {/* ─── Dedicated Quick Actions Row (Payments, WiFi, Socials) ─── */}
+                {(hasPayment || hasWifi || (Array.isArray(restaurant.socialMedia) && restaurant.socialMedia.some(s => s && s.url && s.url.trim() !== ''))) && (
+                    <div className="bg-white/80 dark:bg-[#151515]/80 backdrop-blur-xs border-b border-black/5 dark:border-[#222222] py-2 px-3 sm:px-4">
+                        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                            {hasPayment && (
                                 <button
                                     type="button"
                                     onClick={() => setShowPayment(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
-                                    <span>{t('public.payment', { defaultValue: 'Payment' })}</span>
+                                    <CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>{t('public.payment', { defaultValue: 'Payments' })}</span>
                                 </button>
                             )}
 
-                            {(restaurant.wifiName || restaurant.wifiPassword) && (
+                            {hasWifi && (
                                 <button
                                     type="button"
                                     onClick={() => setShowWifi(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <Wifi className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                                     <span>{t('public.wifi', { defaultValue: 'WiFi' })}</span>
                                 </button>
                             )}
@@ -667,15 +679,15 @@ export default function PublicMenuPage() {
                                         setShowSocialMedia(true);
                                         if (slug) publicApi.recordInteraction(slug, 'SOCIAL_CLICK');
                                     }}
-                                    className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur-md text-white text-[11.5px] sm:text-[13px] font-bold transition-all border border-white/30 shadow-xs active:scale-95 cursor-pointer"
+                                    className="flex-1 sm:flex-initial min-w-[90px] max-w-[150px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2c2c2c] text-neutral-800 dark:text-[#F5F5F5] text-xs font-bold transition-all border border-neutral-200/80 dark:border-[#333333] shadow-2xs active:scale-95 cursor-pointer"
                                 >
-                                    <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[color:var(--color-brand-400)]" />
+                                    <Share2 className="w-3.5 h-3.5 text-[color:var(--color-brand-500)] shrink-0" />
                                     <span>{t('public.socials', { defaultValue: 'Socials' })}</span>
                                 </button>
                             )}
                         </div>
-                    )}
-                </header>
+                    </div>
+                )}
 
                 {/* ─── Sticky Search Header (z-30 so category grid slides smoothly under it) ─── */}
                 <div className="sticky top-14 z-30 bg-white/95 dark:bg-[#1A1A1A]/95 backdrop-blur-md border-b border-black/5 dark:border-[#2A2A2A] shadow-xs py-2">
