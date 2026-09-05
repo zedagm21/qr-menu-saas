@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -37,6 +37,8 @@ export default function PublicMenuPage() {
     const { t, i18n } = useTranslation();
     const { slug } = useParams<{ slug: string }>();
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const location = useLocation();
     const tableParam = searchParams.get('table');
     const qrParam = searchParams.get('qr');
 
@@ -150,6 +152,13 @@ export default function PublicMenuPage() {
         networkMode: 'offlineFirst',
         retry: 1,
     });
+
+    // If accessed via an old slug alias, seamless redirect to the restaurant's active canonical slug
+    useEffect(() => {
+        if (restaurant?.slug && slug && restaurant.slug !== slug) {
+            navigate(`/r/${restaurant.slug}${location.search}`, { replace: true });
+        }
+    }, [restaurant?.slug, slug, navigate, location.search]);
 
     // When connection is restored after being offline, automatically re-sync latest menu changes
     useEffect(() => {

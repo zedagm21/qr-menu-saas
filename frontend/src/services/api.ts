@@ -54,6 +54,7 @@ export const authApi = {
 export const restaurantApi = {
     get: () => api.get('/restaurant').then(r => r.data),
     update: (data: object) => api.put('/restaurant', data).then(r => r.data),
+    changeSlug: (slug: string) => api.put('/restaurant/slug', { slug }).then(r => r.data),
     updateTheme: (data: object) => api.put('/restaurant/theme', data).then(r => r.data),
     getStats: () => api.get('/restaurant/stats').then(r => r.data),
     publish: () => api.post('/restaurant/publish').then(r => r.data),

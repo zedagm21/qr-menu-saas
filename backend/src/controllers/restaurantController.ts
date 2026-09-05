@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { restaurantService } from '../services/RestaurantService';
 import { publicMenuService } from '../services/PublicMenuService';
-import { updateRestaurantSchema, updateThemeSchema } from '../validators/restaurant';
+import { updateRestaurantSchema, updateThemeSchema, changeSlugSchema } from '../validators/restaurant';
 import prisma from '../config/database';
 
 export const getRestaurant = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -17,6 +17,16 @@ export const updateRestaurant = async (req: Request, res: Response, next: NextFu
     try {
         const data = updateRestaurantSchema.parse(req.body);
         const restaurant = await restaurantService.updateRestaurant(req.user!.restaurantId!, data);
+        res.json(restaurant);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changeSlug = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { slug } = changeSlugSchema.parse(req.body);
+        const restaurant = await restaurantService.changeSlug(req.user!.restaurantId!, slug);
         res.json(restaurant);
     } catch (error) {
         next(error);

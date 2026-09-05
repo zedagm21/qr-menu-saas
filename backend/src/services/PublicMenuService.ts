@@ -8,13 +8,22 @@ export class PublicMenuService {
      */
     async invalidateCache(slugOrRestaurantId: string): Promise<void> {
         let slug = slugOrRestaurantId;
-        // If an ID was provided, resolve the slug
+        // If an ID was provided, resolve the slug and all its aliases
         if (slugOrRestaurantId.length > 20) {
             const r = await prisma.restaurant.findUnique({
                 where: { id: slugOrRestaurantId },
-                select: { slug: true },
+                select: { slug: true, slugAliases: { select: { oldSlug: true } } },
             });
-            if (r?.slug) slug = r.slug;
+            if (r) {
+                slug = r.slug;
+                publicMenuCache.invalidatePrefix(`restaurant:${slug}`);
+                publicMenuCache.invalidatePrefix(`menu:${slug}`);
+                for (const alias of r.slugAliases) {
+                    publicMenuCache.invalidatePrefix(`restaurant:${alias.oldSlug}`);
+                    publicMenuCache.invalidatePrefix(`menu:${alias.oldSlug}`);
+                }
+                return;
+            }
         }
 
         publicMenuCache.invalidatePrefix(`restaurant:${slug}`);
@@ -25,10 +34,26 @@ export class PublicMenuService {
         const cacheKey = `restaurant:${slug}:${lang}`;
         const cached = publicMenuCache.get(cacheKey);
         if (cached) return cached;
-        const restaurant = await prisma.restaurant.findUnique({
+        let restaurant = await prisma.restaurant.findUnique({
             where: { slug },
             include: { translations: true, theme: true },
         });
+
+        let isAliasRedirect = false;
+        if (!restaurant) {
+            const alias = await prisma.restaurantSlugAlias.findUnique({
+                where: { oldSlug: slug },
+                include: {
+                    restaurant: {
+                        include: { translations: true, theme: true },
+                    },
+                },
+            });
+            if (alias?.restaurant) {
+                restaurant = alias.restaurant;
+                isAliasRedirect = true;
+            }
+        }
 
         if (!restaurant) {
             throw createError('Restaurant not found', 404);
@@ -54,6 +79,8 @@ export class PublicMenuService {
             id: restaurant.id,
             name: translation?.name || restaurant.name,
             slug: restaurant.slug,
+            canonicalSlug: restaurant.slug,
+            isAliasRedirect,
             description: translation?.description ?? restaurant.description,
             logoUrl: restaurant.logoUrl,
             coverImageUrl: restaurant.coverImageUrl,
@@ -81,10 +108,24 @@ export class PublicMenuService {
         const cached = publicMenuCache.get(cacheKey);
         if (cached) return cached;
 
-        const restaurant = await prisma.restaurant.findUnique({
+        let restaurant = await prisma.restaurant.findUnique({
             where: { slug },
             select: { id: true, status: true, currency: true, isSuspended: true, suspensionReason: true },
         });
+
+        if (!restaurant) {
+            const alias = await prisma.restaurantSlugAlias.findUnique({
+                where: { oldSlug: slug },
+                include: {
+                    restaurant: {
+                        select: { id: true, status: true, currency: true, isSuspended: true, suspensionReason: true },
+                    },
+                },
+            });
+            if (alias?.restaurant) {
+                restaurant = alias.restaurant;
+            }
+        }
 
         if (!restaurant) {
             throw createError('Restaurant not found', 404);

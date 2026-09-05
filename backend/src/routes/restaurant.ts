@@ -9,6 +9,8 @@ const guard = [authenticate, requireRestaurant, tenantGuard] as const;
 
 router.get('/', ...guard, restaurantController.getRestaurant);
 router.put('/', ...guard, restaurantController.updateRestaurant);
+router.put('/slug', ...guard, restaurantController.changeSlug);
+router.post('/change-slug', ...guard, restaurantController.changeSlug);
 router.put('/theme', ...guard, restaurantController.updateTheme);
 router.get('/stats', ...guard, restaurantController.getStats);
 router.post('/publish', ...guard, restaurantController.publishMenu);

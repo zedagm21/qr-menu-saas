@@ -7,9 +7,9 @@ import {
     Save, Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
     Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info,
-    AlertTriangle
+    AlertTriangle, Pencil, Link2
 } from 'lucide-react';
-import { useRestaurant, useUpdateRestaurant } from '../../hooks/useRestaurant';
+import { useRestaurant, useUpdateRestaurant, useChangeSlug } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -193,9 +193,12 @@ const RestaurantPage: React.FC = () => {
     const navigate = useNavigate();
     const { data: restaurant, isLoading } = useRestaurant();
     const { mutate: update, isPending } = useUpdateRestaurant();
+    const { mutate: changeSlug, isPending: isSlugChanging } = useChangeSlug();
     const qc = useQueryClient();
 
     const [tab, setTab] = useState<'en' | 'am'>('en');
+    const [showSlugModal, setShowSlugModal] = useState(false);
+    const [newSlugInput, setNewSlugInput] = useState('');
 
     const { register, handleSubmit, reset, watch, formState: { isDirty } } = useForm<FormData>();
     const status = watch('status');
@@ -438,10 +441,24 @@ const RestaurantPage: React.FC = () => {
                     <div>
                         <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('restaurant.title')}</h1>
                         {restaurant?.slug && (
-                            <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-1.5">
-                                <Globe className="w-3.5 h-3.5" />
-                                <span className="font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">/r/{restaurant.slug}</span>
-                            </p>
+                            <div className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-2 flex-wrap">
+                                <span className="flex items-center gap-1.5 font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">
+                                    <Globe className="w-3.5 h-3.5" />
+                                    /r/{restaurant.slug}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setNewSlugInput(restaurant.slug);
+                                        setShowSlugModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors cursor-pointer border border-neutral-200/80 dark:border-neutral-700"
+                                    title={t('restaurant.change_url_handle', { defaultValue: 'Change URL handle' })}
+                                >
+                                    <Pencil className="w-3 h-3 text-[color:var(--color-brand-500)]" />
+                                    <span>{t('restaurant.edit_handle', { defaultValue: 'Change Handle' })}</span>
+                                </button>
+                            </div>
                         )}
                     </div>
                     <div className="flex items-center gap-3">
@@ -848,6 +865,90 @@ const RestaurantPage: React.FC = () => {
                                     className="w-full sm:w-auto h-10 text-[13px] font-semibold"
                                 >
                                     {t('common.save_and_leave', { defaultValue: 'Save Changes' })}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Change URL Handle Modal ── */}
+                {showSlugModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] flex items-center justify-center shrink-0">
+                                    <Link2 className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                                        {t('restaurant.change_slug_modal_title', { defaultValue: 'Change Menu URL Handle' })}
+                                    </h3>
+                                    <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                        {t('restaurant.change_slug_modal_desc', { defaultValue: 'Customize your public menu link. Old links will automatically redirect so existing QR cards continue working.' })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 pt-2">
+                                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                                    {t('restaurant.new_url_handle', { defaultValue: 'New Handle / Slug' })}
+                                </label>
+                                <div className="flex items-center rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 overflow-hidden focus-within:ring-2 focus-within:ring-[color:var(--color-brand-500)]/50 focus-within:border-[color:var(--color-brand-500)]">
+                                    <span className="px-3 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-800/80 border-r border-neutral-200 dark:border-neutral-700 select-none py-2.5">
+                                        /r/
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={newSlugInput}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                                .toLowerCase()
+                                                .replace(/[^a-z0-9-]/g, '')
+                                                .replace(/-+/g, '-');
+                                            setNewSlugInput(val);
+                                        }}
+                                        placeholder="e.g. lucy-lounge"
+                                        className="flex-1 px-3 py-2 text-sm font-mono font-semibold text-neutral-900 dark:text-white bg-transparent outline-none"
+                                    />
+                                </div>
+                                <p className="text-[11px] text-neutral-400 font-medium">
+                                    {t('restaurant.slug_rules', { defaultValue: 'Only lowercase letters, numbers, and single hyphens. At least 2 characters.' })}
+                                </p>
+
+                                {newSlugInput && (
+                                    <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 text-xs text-neutral-600 dark:text-neutral-300">
+                                        <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5">Live Preview:</span>
+                                        <span className="font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold break-all">
+                                            {window.location.origin}/r/{newSlugInput}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowSlugModal(false)}
+                                    className="w-full sm:w-auto h-10 text-[13px]"
+                                >
+                                    {t('common.cancel', { defaultValue: 'Cancel' })}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    disabled={!newSlugInput || newSlugInput.length < 2 || newSlugInput === restaurant?.slug}
+                                    isLoading={isSlugChanging}
+                                    onClick={() => {
+                                        changeSlug(newSlugInput, {
+                                            onSuccess: () => {
+                                                setShowSlugModal(false);
+                                            },
+                                        });
+                                    }}
+                                    className="w-full sm:w-auto h-10 text-[13px] font-semibold"
+                                >
+                                    {t('common.save', { defaultValue: 'Save New Handle' })}
                                 </Button>
                             </div>
                         </div>

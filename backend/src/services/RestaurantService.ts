@@ -21,24 +21,40 @@ export class RestaurantService {
         return restaurant;
     }
 
+    isPlaceholderSlug(slug: string, name?: string | null): boolean {
+        return /^my-restaurant(-\d+)?$/i.test(slug) || (name?.trim().toLowerCase() === 'my restaurant');
+    }
+
     async updateRestaurant(restaurantId: string, data: UpdateRestaurantInput) {
+        const existingRestaurant = await prisma.restaurant.findUnique({
+            where: { id: restaurantId },
+            select: { id: true, name: true, slug: true },
+        });
+
+        if (!existingRestaurant) {
+            throw createError('Restaurant not found', 404);
+        }
+
         const { translations, socialMedia, ...scalarData } = data;
 
-        // Determine the primary name for slug generation:
-        // Priority 1: English name from translations or scalarData.name
-        // Priority 2: Amharic name from translations (will be phonetically transliterated into Latin)
+        // Determine the primary name:
         const enName = translations?.find(t => t.language === 'EN')?.name?.trim();
         const amName = translations?.find(t => t.language === 'AM')?.name?.trim();
         const candidateName = enName || scalarData.name?.trim() || amName;
 
         let slugUpdate: { name?: string; slug?: string } = {};
         if (candidateName) {
-            const baseSlug = generateSlug(candidateName);
-            const slug = await ensureUniqueSlug(baseSlug, restaurantId);
-            slugUpdate = {
-                name: candidateName,
-                slug,
-            };
+            slugUpdate.name = candidateName;
+
+            // ONLY if currently using an initial placeholder ('my-restaurant-*'),
+            // transition cleanly to their first real restaurant name without creating an alias!
+            if (this.isPlaceholderSlug(existingRestaurant.slug, existingRestaurant.name)) {
+                if (candidateName.toLowerCase() !== 'my restaurant') {
+                    const baseSlug = generateSlug(candidateName);
+                    const cleanSlug = await ensureUniqueSlug(baseSlug, restaurantId);
+                    slugUpdate.slug = cleanSlug;
+                }
+            }
         }
 
         const updated = await prisma.$transaction(async (tx) => {
@@ -165,6 +181,77 @@ export class RestaurantService {
         });
         publicMenuService.invalidateCache(restaurantId).catch(() => {});
         return theme;
+    }
+
+    async changeSlug(restaurantId: string, rawSlug: string) {
+        const cleanSlug = generateSlug(rawSlug);
+        if (!cleanSlug || cleanSlug.length < 2) {
+            throw createError('Please provide a valid slug (at least 2 characters)', 400);
+        }
+
+        const existingRestaurant = await prisma.restaurant.findUnique({
+            where: { id: restaurantId },
+            select: { id: true, name: true, slug: true },
+        });
+
+        if (!existingRestaurant) {
+            throw createError('Restaurant not found', 404);
+        }
+
+        if (existingRestaurant.slug === cleanSlug) {
+            return existingRestaurant;
+        }
+
+        // Check if slug is taken by another restaurant
+        const conflict = await prisma.restaurant.findUnique({
+            where: { slug: cleanSlug },
+            select: { id: true },
+        });
+
+        if (conflict && conflict.id !== restaurantId) {
+            throw createError('This menu URL handle is already taken by another restaurant', 409);
+        }
+
+        // Check if slug is registered as an alias for another restaurant
+        const aliasConflict = await prisma.restaurantSlugAlias.findUnique({
+            where: { oldSlug: cleanSlug },
+            select: { restaurantId: true },
+        });
+
+        if (aliasConflict && aliasConflict.restaurantId !== restaurantId) {
+            throw createError('This menu URL handle was previously used and is reserved', 409);
+        }
+
+        const oldSlug = existingRestaurant.slug;
+        const isPlaceholder = this.isPlaceholderSlug(oldSlug, existingRestaurant.name);
+
+        const updated = await prisma.$transaction(async (tx) => {
+            // If the old slug was NOT a placeholder, save it to aliases so previous QR codes redirect
+            if (!isPlaceholder) {
+                await tx.restaurantSlugAlias.upsert({
+                    where: { oldSlug },
+                    update: { restaurantId },
+                    create: { restaurantId, oldSlug },
+                });
+            }
+
+            // Also delete any existing alias pointing this restaurant to cleanSlug (if it previously had it)
+            await tx.restaurantSlugAlias.deleteMany({
+                where: { oldSlug: cleanSlug, restaurantId },
+            });
+
+            return tx.restaurant.update({
+                where: { id: restaurantId },
+                data: { slug: cleanSlug },
+                include: { translations: true, theme: true },
+            });
+        });
+
+        // Invalidate cache for both old and new slugs
+        publicMenuService.invalidateCache(oldSlug).catch(() => {});
+        publicMenuService.invalidateCache(cleanSlug).catch(() => {});
+
+        return updated;
     }
 
     async getStats(restaurantId: string) {
