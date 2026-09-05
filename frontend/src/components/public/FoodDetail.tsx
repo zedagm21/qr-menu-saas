@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Star, AlertCircle, Info } from 'lucide-react';
+import { X, Star, AlertCircle, Info, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, cn } from '../../lib/utils';
 
@@ -8,9 +8,18 @@ interface FoodDetailProps {
     isOpen: boolean;
     onClose: () => void;
     isAm: boolean;
+    quantityInTab?: number;
+    onUpdateQuantity?: (delta: number) => void;
 }
 
-export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, isAm }) => {
+export const FoodDetail: React.FC<FoodDetailProps> = ({
+    item,
+    isOpen,
+    onClose,
+    isAm,
+    quantityInTab = 0,
+    onUpdateQuantity,
+}) => {
     const { t } = useTranslation();
 
     // Lock body scroll when overlay is open
@@ -154,12 +163,61 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({ item, isOpen, onClose, i
             </div>
 
             {/* Sticky Bottom Actions */}
-            <div className="fixed bottom-0 left-0 right-0 z-20 pb-4 sm:pb-8 pt-10 px-5 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#111111] dark:via-[#111111]/95 pointer-events-none">
-                <div className="max-w-xl mx-auto w-full pointer-events-auto">
+            <div className="fixed bottom-0 left-0 right-0 z-20 pb-4 sm:pb-8 pt-8 px-5 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#111111] dark:via-[#111111]/95 pointer-events-none">
+                <div className="max-w-xl mx-auto w-full pointer-events-auto flex flex-col gap-2">
                     {!item.isAvailable ? (
                         <button disabled className={cn("w-full py-4 sm:py-5 rounded-2xl bg-neutral-200 dark:bg-[#222222] text-neutral-500 dark:text-[#555555] font-black text-[16px] text-center shadow-lg border border-black/5 dark:border-white/5 cursor-not-allowed", isAm && "font-ethiopic")}>
                             {t('public.unavailable')}
                         </button>
+                    ) : onUpdateQuantity ? (
+                        <div className="flex items-center gap-3">
+                            {quantityInTab > 0 ? (
+                                <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-sm shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => onUpdateQuantity(-1)}
+                                        className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 flex items-center justify-center active:scale-95 shadow-2xs cursor-pointer"
+                                        aria-label="Decrease quantity"
+                                    >
+                                        <Minus className="w-4 h-4 stroke-[3]" />
+                                    </button>
+                                    <span className="w-8 text-center text-sm font-black text-neutral-900 dark:text-white tabular-nums">
+                                        {quantityInTab}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => onUpdateQuantity(1)}
+                                        className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 flex items-center justify-center active:scale-95 shadow-2xs cursor-pointer"
+                                        aria-label="Increase quantity"
+                                    >
+                                        <Plus className="w-4 h-4 stroke-[3]" />
+                                    </button>
+                                </div>
+                            ) : null}
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (quantityInTab === 0) {
+                                        onUpdateQuantity(1);
+                                    }
+                                    onClose();
+                                }}
+                                className={cn(
+                                    "flex-1 py-4 rounded-2xl bg-[color:var(--color-brand-500)] text-white font-black text-[15px] sm:text-[16px] tracking-wide text-center shadow-lg shadow-[color:var(--color-brand-500)]/25 hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer",
+                                    isAm && "font-ethiopic"
+                                )}
+                            >
+                                <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+                                <span>
+                                    {quantityInTab > 0
+                                        ? (isAm ? `በትዕዛዝ ውስጥ (${quantityInTab}) • ተመለስ` : `In Orders (${quantityInTab}) • Done`)
+                                        : (isAm
+                                            ? `ወደ ትዕዛዝ ጨምር (${formatCurrency(parseFloat(item.discountPrice || item.price || '0'), item.currency || 'ETB')})`
+                                            : `Add to Orders (${formatCurrency(parseFloat(item.discountPrice || item.price || '0'), item.currency || 'ETB')})`)}
+                                </span>
+                            </button>
+                        </div>
                     ) : (
                         <button
                             onClick={onClose}

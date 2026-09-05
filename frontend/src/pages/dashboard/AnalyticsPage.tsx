@@ -60,7 +60,7 @@ export default function AnalyticsPage() {
     return (
         <>
             <Helmet>
-                <title>{t('nav.analytics', { defaultValue: 'Analytics' })} — QR Menu</title>
+                <title>{t('nav.analytics', { defaultValue: 'Analytics' })} — OurMenu</title>
                 <style>{`
                     @media print {
                         aside, nav, header, button, .print\\:hidden { display: none !important; }

@@ -180,6 +180,96 @@ export class MenuItemService {
         publicMenuService.invalidateCache(restaurantId).catch(() => {});
     }
 
+    async batchUpdateMenuItems(
+        restaurantId: string,
+        ids: string[],
+        data: { isAvailable?: boolean; categoryId?: string; discountPercent?: number | null }
+    ) {
+        if (!ids.length) return { updatedCount: 0 };
+
+        // Verify all items belong to this restaurant
+        const items = await prisma.menuItem.findMany({
+            where: { id: { in: ids }, restaurantId },
+            select: { id: true, price: true }
+        });
+
+        if (items.length === 0) return { updatedCount: 0 };
+        const validIds = items.map(i => i.id);
+
+        if (data.categoryId) {
+            const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+            if (!category || category.restaurantId !== restaurantId) {
+                throw createError('Category not found', 404);
+            }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            if (data.discountPercent !== undefined) {
+                if (data.discountPercent === null) {
+                    // Remove discount
+                    await tx.menuItem.updateMany({
+                        where: { id: { in: validIds } },
+                        data: {
+                            discountPrice: null,
+                            ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
+                            ...(data.categoryId && { categoryId: data.categoryId }),
+                        }
+                    });
+                } else {
+                    // Calculate discountPrice per item based on each item's regular price
+                    for (const item of items) {
+                        const priceNum = Number(item.price);
+                        const discount = Math.round(priceNum * (1 - data.discountPercent / 100) * 100) / 100;
+                        await tx.menuItem.update({
+                            where: { id: item.id },
+                            data: {
+                                discountPrice: new Decimal(discount),
+                                ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
+                                ...(data.categoryId && { categoryId: data.categoryId }),
+                            }
+                        });
+                    }
+                }
+            } else {
+                await tx.menuItem.updateMany({
+                    where: { id: { in: validIds } },
+                    data: {
+                        ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
+                        ...(data.categoryId && { categoryId: data.categoryId }),
+                    }
+                });
+            }
+        });
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return { updatedCount: validIds.length };
+    }
+
+    async batchDeleteMenuItems(restaurantId: string, ids: string[]) {
+        if (!ids.length) return { deletedCount: 0 };
+
+        const items = await prisma.menuItem.findMany({
+            where: { id: { in: ids }, restaurantId },
+            select: { id: true, imageUrl: true }
+        });
+
+        if (items.length === 0) return { deletedCount: 0 };
+        const validIds = items.map(i => i.id);
+
+        await prisma.menuItem.deleteMany({
+            where: { id: { in: validIds } }
+        });
+
+        for (const item of items) {
+            if (item.imageUrl) {
+                imageStorage.delete(item.imageUrl).catch(() => {});
+            }
+        }
+
+        publicMenuService.invalidateCache(restaurantId).catch(() => {});
+        return { deletedCount: validIds.length };
+    }
+
     private async assertOwnership(restaurantId: string, itemId: string) {
         const item = await prisma.menuItem.findUnique({ where: { id: itemId } });
         if (!item || item.restaurantId !== restaurantId) {

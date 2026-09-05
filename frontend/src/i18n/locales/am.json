@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "QR Menu",
+    "name": "OurMenu",
     "tagline": "የዲጂታል ምግብ ዝርዝር"
   },
   "nav": {
@@ -21,7 +21,7 @@
     "viewMenu": "የቀጥታ ምግብ ዝርዝር ይመልከቱ",
     "home": "መነሻ",
     "more": "ተጨማሪ",
-    "menuQr": "ሜኑ QR"
+    "menuQr": "OurMenu"
   },
   "analytics": {
     "title": "የስካን እና የተጠቃሚዎች ትንታኔ",
@@ -590,7 +590,7 @@
     "search_placeholder": "የምግብ ዝርዝር ይፈልጉ...",
     "unavailable": "በአሁኑ ሰዓት አይገኝም",
     "all_items": "ሁሉም",
-    "powered_by": "በ QR Menu የቀረበ",
+    "powered_by": "በ OurMenu የቀረበ",
     "language_switch": "ቋንቋ",
     "close": "ዝጋ",
     "menu_not_found": "የምግብ ዝርዝር አልተገኘም",
@@ -695,7 +695,7 @@
   },
   "design": {
     "clear_search": "ፍለጋን አጽዳ",
-    "powered_by": "በ QR Menu የቀረበ"
+    "powered_by": "በ OurMenu የቀረበ"
   },
   "camera_modal": {
     "badge": "ከስልክ ወደ ኮምፒውተር ማስተላለፊያ",

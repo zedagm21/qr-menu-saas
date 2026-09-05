@@ -15,7 +15,9 @@ import {
     Info,
     CreditCard,
     Wifi,
-    Share2
+    Share2,
+    Plus,
+    Minus
 } from 'lucide-react';
 import { publicApi } from '../../services/api';
 import { formatCurrency, applyRestaurantTheme, getTranslation, isFastingItem, cn } from '../../lib/utils';
@@ -29,9 +31,12 @@ import { PaymentModal } from '../../components/public/PaymentModal';
 import { WifiModal } from '../../components/public/WifiModal';
 import { QuickActionBar, QuickActionModal, type QuickAction } from '../../components/public/QuickActions';
 import { OfflineNotice } from '../../components/public/OfflineNotice';
+import { OrderTray } from '../../components/public/OrderTray';
+import { OrderModal } from '../../components/public/OrderModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
+import type { OrderTab } from '../../types/order';
 
 export default function PublicMenuPage() {
     const { t, i18n } = useTranslation();
@@ -75,6 +80,79 @@ export default function PublicMenuPage() {
         // Default for visitor is device Auto
         return window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
+
+    const categoryPillRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+    const [tab, setTab] = useState<OrderTab>(() => {
+        try {
+            if (!slug) return {};
+            const saved = localStorage.getItem(`ourmenu_tab_${slug}`);
+            return saved ? JSON.parse(saved) : {};
+        } catch {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        if (slug) {
+            try {
+                localStorage.setItem(`ourmenu_tab_${slug}`, JSON.stringify(tab));
+            } catch {}
+        }
+    }, [tab, slug]);
+
+    // Center selected category pill smoothly in horizontal scroll view
+    useEffect(() => {
+        if (activeCategory && categoryPillRefs.current[activeCategory]) {
+            categoryPillRefs.current[activeCategory]?.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center',
+                block: 'nearest',
+            });
+        }
+    }, [activeCategory]);
+
+    const handleUpdateTabQuantity = (item: PublicMenuItem, delta: number) => {
+        setTab((prev) => {
+            const existing = prev[item.id];
+            const newQty = (existing?.quantity || 0) + delta;
+            if (newQty <= 0) {
+                const next = { ...prev };
+                delete next[item.id];
+                return next;
+            }
+            return {
+                ...prev,
+                [item.id]: {
+                    item,
+                    quantity: newQty,
+                },
+            };
+        });
+    };
+
+    const handleRemoveTabItem = (itemId: string) => {
+        setTab((prev) => {
+            const next = { ...prev };
+            delete next[itemId];
+            return next;
+        });
+    };
+
+    const handleClearTab = () => {
+        setTab({});
+        if (slug) {
+            localStorage.removeItem(`ourmenu_tab_${slug}`);
+        }
+        toast.success(lang === 'AM' ? 'ትዕዛዞች ተሰርዘዋል' : 'Orders cleared');
+    };
+
+    const tabItemsList = Object.values(tab);
+    const tabTotalCount = tabItemsList.reduce((acc, curr) => acc + curr.quantity, 0);
+    const tabTotalAmount = tabItemsList.reduce((acc, curr) => {
+        const p = parseFloat(curr.item.discountPrice || curr.item.price || '0');
+        return acc + (isNaN(p) ? 0 : p * curr.quantity);
+    }, 0);
 
     // Auto-collapse when scrolling down once categories slide under the sticky search header, remain collapsed
     useEffect(() => {
@@ -650,12 +728,52 @@ export default function PublicMenuPage() {
                             </button>
                         </div>
 
+                        {/* Fasting (የጾም) Filter Toggle Switch */}
+                        <div className="flex items-center justify-between py-1.5 px-3 rounded-2xl bg-neutral-100/80 dark:bg-[#111111] border border-neutral-200/80 dark:border-[#2A2A2A]">
+                            <div
+                                className="flex items-center gap-2 select-none cursor-pointer"
+                                onClick={() => setFilters(prev => ({ ...prev, fasting: prev.fasting === 'fasting' ? 'all' : 'fasting' }))}
+                            >
+                                <span className="text-base" aria-hidden="true">🌿</span>
+                                <span className={cn(
+                                    "text-xs sm:text-[13px] font-extrabold text-neutral-800 dark:text-neutral-200",
+                                    lang === 'AM' && 'font-ethiopic'
+                                )}>
+                                    {lang === 'AM' ? 'የጾም ምግብ ብቻ' : 'Fasting Food Only (የጾም)'}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={filters.fasting === 'fasting'}
+                                onClick={() => setFilters(prev => ({
+                                    ...prev,
+                                    fasting: prev.fasting === 'fasting' ? 'all' : 'fasting'
+                                }))}
+                                className={cn(
+                                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    filters.fasting === 'fasting'
+                                        ? "bg-emerald-600 shadow-sm shadow-emerald-600/30"
+                                        : "bg-neutral-300 dark:bg-neutral-700"
+                                )}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={cn(
+                                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                        filters.fasting === 'fasting' ? "translate-x-5" : "translate-x-0"
+                                    )}
+                                />
+                            </button>
+                        </div>
+
                         {/* Compact single-row horizontal capsule bar (Active only when collapsed) */}
                         {categories.length > 0 && !isCategoriesExpanded && (
                             <div className="pt-0.5 animate-fade-in">
                                 <div className="flex items-center gap-1.5 min-w-0">
                                     <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar py-0.5 min-w-0 -mx-1 px-1">
                                         <button
+                                            ref={(el) => { categoryPillRefs.current['ALL'] = el; }}
                                             onClick={() => setActiveCategory(null)}
                                             className={cn(
                                                 "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
@@ -686,6 +804,7 @@ export default function PublicMenuPage() {
                                             return (
                                                 <button
                                                     key={cat.id}
+                                                    ref={(el) => { categoryPillRefs.current[cat.id] = el; }}
                                                     onClick={() => setActiveCategory(isActive ? null : cat.id)}
                                                     className={cn(
                                                         "group inline-flex items-center gap-1.5 px-2.5 py-[5px] sm:px-3 sm:py-1.5 rounded-full text-[13px] sm:text-[14.5px] font-bold whitespace-nowrap transition-all duration-200 border cursor-pointer active:scale-95 select-none shrink-0 shadow-2xs",
@@ -858,6 +977,9 @@ export default function PublicMenuPage() {
                                                     lang={lang}
                                                     onClick={() => handleSelectItem(item)}
                                                     menuStyle={menuStyle}
+                                                    quantityInTab={tab[item.id]?.quantity || 0}
+                                                    onUpdateQuantity={(delta) => handleUpdateTabQuantity(item, delta)}
+                                                    searchQuery={search}
                                                 />
                                             </div>
                                         ))}
@@ -904,6 +1026,9 @@ export default function PublicMenuPage() {
                                                         lang={lang}
                                                         onClick={() => handleSelectItem(item)}
                                                         menuStyle={menuStyle}
+                                                        quantityInTab={tab[item.id]?.quantity || 0}
+                                                        onUpdateQuantity={(delta) => handleUpdateTabQuantity(item, delta)}
+                                                        searchQuery={search}
                                                     />
                                                 </div>
                                             ))}
@@ -958,6 +1083,33 @@ export default function PublicMenuPage() {
                     item={selectedItem}
                     isOpen={!!selectedItem}
                     onClose={() => setSelectedItem(null)}
+                    isAm={lang === 'AM'}
+                    quantityInTab={selectedItem ? tab[selectedItem.id]?.quantity || 0 : 0}
+                    onUpdateQuantity={(delta) => selectedItem && handleUpdateTabQuantity(selectedItem, delta)}
+                />
+
+                {/* ─── Floating Diner Order Tray (Bottom Bar) ─── */}
+                <OrderTray
+                    totalCount={tabTotalCount}
+                    totalAmount={tabTotalAmount}
+                    currency={restaurant.currency || 'ETB'}
+                    isAm={lang === 'AM'}
+                    onOpenModal={() => setIsOrderModalOpen(true)}
+                />
+
+                {/* ─── Diner Table Tab Order Modal (WhatsApp & Waiter View) ─── */}
+                <OrderModal
+                    isOpen={isOrderModalOpen}
+                    onClose={() => setIsOrderModalOpen(false)}
+                    tab={tab}
+                    onUpdateQuantity={(itemId, delta) => {
+                        const entry = tab[itemId];
+                        if (entry) handleUpdateTabQuantity(entry.item, delta);
+                    }}
+                    onRemoveItem={handleRemoveTabItem}
+                    onClearTab={handleClearTab}
+                    restaurant={restaurant}
+                    initialTableNumber={tableParam}
                     isAm={lang === 'AM'}
                 />
 
@@ -1024,8 +1176,54 @@ export default function PublicMenuPage() {
     );
 }
 
-// ─── Menu Item Card Component (4 Styles Differentiated) ───
-const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: string, onClick: () => void, menuStyle: string }) => {
+// ─── Search Highlighting Component ───────────────────────────────────────────
+const HighlightText: React.FC<{ text: string; highlight?: string; className?: string }> = ({
+    text,
+    highlight,
+    className,
+}) => {
+    if (!highlight || !highlight.trim()) {
+        return <span className={className}>{text}</span>;
+    }
+    const escaped = highlight.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    const parts = text.split(regex);
+    return (
+        <span className={className}>
+            {parts.map((part, i) =>
+                regex.test(part) ? (
+                    <mark
+                        key={i}
+                        className="bg-amber-300 dark:bg-amber-500/70 text-slate-950 dark:text-white px-0.5 rounded-xs font-black"
+                    >
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                )
+            )}
+        </span>
+    );
+};
+
+// ─── Menu Item Card Component (4 Styles Differentiated with Tab Ordering) ───
+const MenuItemCard = ({
+    item,
+    lang,
+    onClick,
+    menuStyle,
+    quantityInTab = 0,
+    onUpdateQuantity,
+    searchQuery,
+}: {
+    item: any;
+    lang: string;
+    onClick: () => void;
+    menuStyle: string;
+    quantityInTab?: number;
+    onUpdateQuantity?: (delta: number) => void;
+    searchQuery?: string;
+}) => {
     const { t } = useTranslation();
     const name = item.translations?.length ? getTranslation(item.translations, lang) : item.name ?? '';
     const desc = item.translations?.length ? getTranslation(item.translations, lang, 'description') : item.description ?? '';
@@ -1035,7 +1233,60 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
     const hasDiscount = item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price);
     const regularPriceFormatted = formatCurrency(item.price, item.currency);
     const discountPriceFormatted = hasDiscount ? formatCurrency(item.discountPrice, item.currency) : '';
-    const discountPercent = hasDiscount ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100) : 0;
+    const discountPercent = hasDiscount
+        ? Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)
+        : 0;
+
+    // Mini tab button helper
+    const renderTabControls = () => {
+        if (!item.isAvailable || !onUpdateQuantity) return null;
+
+        return (
+            <div className="mt-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                {quantityInTab > 0 ? (
+                    <div className="inline-flex items-center gap-1 bg-amber-500/20 dark:bg-amber-500/30 border border-amber-500/40 rounded-xl p-0.5 shadow-2xs">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateQuantity(-1);
+                            }}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Decrease quantity"
+                        >
+                            <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                        <span className="w-4 sm:w-5 text-center text-xs font-black text-amber-700 dark:text-amber-400 tabular-nums">
+                            {quantityInTab}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateQuantity(1);
+                            }}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Increase quantity"
+                        >
+                            <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateQuantity(1);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-neutral-100 hover:bg-amber-500 dark:bg-neutral-800 dark:hover:bg-amber-500 text-neutral-700 hover:text-slate-950 dark:text-neutral-300 dark:hover:text-slate-950 text-[11px] font-extrabold border border-neutral-200 dark:border-neutral-700 transition-all active:scale-90 cursor-pointer shadow-2xs"
+                    >
+                        <Plus className="w-3 h-3 stroke-[3]" />
+                        <span>{isAm ? 'ጨምር' : 'Add'}</span>
+                    </button>
+                )}
+            </div>
+        );
+    };
 
     /* ── MINIMAL STYLE: Sleek Horizontal Row ── */
     if (menuStyle === 'MINIMAL') {
@@ -1053,7 +1304,11 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             >
                 {hasImage ? (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 relative">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        <img
+                            src={item.imageUrl}
+                            alt={name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
                         {item.isFeatured && (
                             <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase">
                                 ⭐
@@ -1065,7 +1320,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className={cn("text-xs sm:text-sm font-bold text-neutral-900 dark:text-[#F5F5F5] truncate", isAm && 'font-ethiopic font-bold')}>
-                            {name}
+                            <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount && (
                             <span className="bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded">
@@ -1075,7 +1330,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                     </div>
                     {desc && (
                         <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5", isAm && "font-ethiopic")}>
-                            {desc}
+                            <HighlightText text={desc} highlight={searchQuery} />
                         </p>
                     )}
                 </div>
@@ -1095,10 +1350,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {regularPriceFormatted}
                         </span>
                     )}
-                    {!item.isAvailable && (
+                    {!item.isAvailable ? (
                         <span className={cn("text-[8px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
+                    ) : (
+                        renderTabControls()
                     )}
                 </div>
             </button>
@@ -1142,7 +1399,7 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                 <div className="p-4 sm:p-5 flex flex-col flex-grow">
                     <div className="flex items-baseline justify-between gap-3 mb-1.5">
                         <h3 className={cn("text-sm sm:text-lg font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight", elegantFontClass, isAm && 'font-ethiopic font-bold')}>
-                            {name}
+                            <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount ? (
                             <div className="flex items-baseline gap-1.5 shrink-0">
@@ -1162,17 +1419,19 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                     {desc && (
                         <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 leading-relaxed mb-2", elegantFontClass, isAm && "font-ethiopic")}>
-                            {desc}
+                            <HighlightText text={desc} highlight={searchQuery} />
                         </p>
                     )}
 
-                    {!item.isAvailable && (
-                        <div className="mt-auto pt-2">
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                        {!item.isAvailable ? (
                             <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
-                        </div>
-                    )}
+                        ) : (
+                            renderTabControls()
+                        )}
+                    </div>
                 </div>
             </button>
         );
@@ -1222,12 +1481,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
 
                 <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
                     <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
-                        {name}
+                        <HighlightText text={name} highlight={searchQuery} />
                     </h3>
 
                     {desc && (
                         <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>
-                            {desc}
+                            <HighlightText text={desc} highlight={searchQuery} />
                         </p>
                     )}
 
@@ -1246,10 +1505,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                                 {regularPriceFormatted}
                             </p>
                         )}
-                        {!item.isAvailable && (
+                        {!item.isAvailable ? (
                             <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
+                        ) : (
+                            renderTabControls()
                         )}
                     </div>
                 </div>
@@ -1299,12 +1560,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
             {/* Text Section */}
             <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
                 <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight mb-1 truncate w-full", isAm && 'font-ethiopic')}>
-                    {name}
+                    <HighlightText text={name} highlight={searchQuery} />
                 </h3>
 
                 {desc && (
                     <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mb-2 leading-snug w-full", isAm && "font-ethiopic")}>
-                        {desc}
+                        <HighlightText text={desc} highlight={searchQuery} />
                     </p>
                 )}
 
@@ -1323,10 +1584,12 @@ const MenuItemCard = ({ item, lang, onClick, menuStyle }: { item: any, lang: str
                             {regularPriceFormatted}
                         </p>
                     )}
-                    {!item.isAvailable && (
+                    {!item.isAvailable ? (
                         <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                             {t('public.sold_out')}
                         </span>
+                    ) : (
+                        renderTabControls()
                     )}
                 </div>
             </div>

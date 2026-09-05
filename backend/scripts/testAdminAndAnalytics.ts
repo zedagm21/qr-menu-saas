@@ -6,7 +6,7 @@ import { publicMenuService } from '../src/services/PublicMenuService';
 import { authService } from '../src/services/AuthService';
 
 async function runTests() {
-    console.log('🚀 Starting SaaS Super Admin & Analytics Integration Test Suite...\n');
+    console.log('🚀 Starting OurMenu Platform Admin & Analytics Integration Test Suite...\n');
 
     // 1. Setup & identify test restaurant and admin user
     const adminUser = await prisma.user.findFirst({
@@ -210,7 +210,7 @@ async function runTests() {
     }
     console.log('✅ Step 10: Broadcast created and verified as live for all restaurant dashboards.');
 
-    console.log('\n🎉 ALL SaaS Super Admin & Analytics tests PASSED perfectly! 🚀\n');
+    console.log('\n🎉 ALL OurMenu Platform Admin & Analytics tests PASSED perfectly! 🚀\n');
 }
 
 runTests()

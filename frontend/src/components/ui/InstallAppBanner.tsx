@@ -151,7 +151,7 @@ export const InstallAppBanner: React.FC = () => {
                     </div>
 
                     <h3 className="text-[15px] font-extrabold text-neutral-900 dark:text-white tracking-tight leading-snug">
-                        QR Menu Manager
+                        OurMenu
                     </h3>
 
                     <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5 leading-relaxed font-medium">

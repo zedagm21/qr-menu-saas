@@ -200,7 +200,7 @@ export default function QRPage() {
 
     return (
         <>
-            <Helmet><title>{t('qr.title', { defaultValue: 'Aesthetic QR Studio' })} — QR Menu</title></Helmet>
+            <Helmet><title>{t('qr.title', { defaultValue: 'Aesthetic QR Studio' })} — OurMenu</title></Helmet>
 
             {/* Print & PDF Sheet Customization Modal */}
             <QRPrintModal

@@ -271,7 +271,7 @@ const CategoriesPage: React.FC = () => {
 
     return (
         <>
-            <Helmet><title>{t('categories.title')} — QR Menu</title></Helmet>
+            <Helmet><title>{t('categories.title')} — OurMenu</title></Helmet>
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 transition-colors duration-200 p-4 lg:p-10 max-w-3xl mx-auto pb-24 lg:pb-12">
 
                 {/* ── Page header ── */}

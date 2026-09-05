@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "QR Menu",
+    "name": "OurMenu",
     "tagline": "Digital Restaurant Menu"
   },
   "nav": {
@@ -21,7 +21,7 @@
     "viewMenu": "View Live Menu",
     "home": "Home",
     "more": "More",
-    "menuQr": "MenuQR"
+    "menuQr": "OurMenu"
   },
   "analytics": {
     "title": "Performance & Scan Analytics",
@@ -590,7 +590,7 @@
     "search_placeholder": "Search menu...",
     "unavailable": "Currently unavailable",
     "all_items": "All",
-    "powered_by": "Powered by QR Menu",
+    "powered_by": "Powered by OurMenu",
     "language_switch": "Language",
     "close": "Close",
     "menu_not_found": "Menu not found",
@@ -695,7 +695,7 @@
   },
   "design": {
     "clear_search": "Clear search",
-    "powered_by": "Powered by QR Menu"
+    "powered_by": "Powered by OurMenu"
   },
   "camera_modal": {
     "badge": "Phone-to-Desktop Sync",
@@ -773,7 +773,7 @@
     "no_searches_period": "No diner searches recorded yet in this timeframe"
   },
   "admin": {
-    "title": "SaaS Platform Admin",
+    "title": "Platform Admin",
     "back_to_restaurant": "Restaurant Dashboard"
   },
   "offline": {

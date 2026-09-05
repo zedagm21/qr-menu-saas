@@ -19,6 +19,9 @@ import { getTranslation, cn } from '../../lib/utils';
 import type { SocialMediaEntry } from '../../types';
 import { SocialLinksManager, PLATFORMS } from '../../components/dashboard/SocialLinksManager';
 import toast from 'react-hot-toast';
+import { FloatingSaveBar } from '../../components/ui/FloatingSaveBar';
+import { UnsavedChangesModal } from '../../components/ui/UnsavedChangesModal';
+import { useUnsavedPrompt } from '../../hooks/useUnsavedPrompt';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FormData {
@@ -212,8 +215,6 @@ const RestaurantPage: React.FC = () => {
     const [showWifiPassword, setShowWifiPassword] = useState(false);
     const [socialLinks, setSocialLinks] = useState<SocialMediaEntry[]>([]);
     const initialSocialJson = useRef('[]');
-    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-    const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -249,40 +250,12 @@ const RestaurantPage: React.FC = () => {
     const isSocialDirty = JSON.stringify(socialLinks.filter(l => l.url.trim() !== '')) !== initialSocialJson.current;
     const isModified = isDirty || isSocialDirty;
 
-    // Warn on browser reload / tab close
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isModified) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isModified]);
-
-    // Intercept internal link clicks when there are unsaved changes
-    useEffect(() => {
-        if (!isModified) return;
-
-        const handleAnchorClick = (e: MouseEvent) => {
-            const target = (e.target as HTMLElement).closest('a');
-            if (!target) return;
-            const href = target.getAttribute('href');
-            if (!href || href.startsWith('#') || target.target === '_blank' || href.startsWith('blob:')) return;
-
-            // If navigating away from the current page
-            if (href !== window.location.pathname) {
-                e.preventDefault();
-                e.stopPropagation();
-                setPendingNavHref(href);
-                setShowUnsavedModal(true);
-            }
-        };
-
-        document.addEventListener('click', handleAnchorClick, true);
-        return () => document.removeEventListener('click', handleAnchorClick, true);
-    }, [isModified]);
+    const {
+        showUnsavedModal,
+        setShowUnsavedModal,
+        stayOnPage,
+        proceedNavigation,
+    } = useUnsavedPrompt(isModified);
 
     const handleDiscardChanges = () => {
         if (restaurant) {
@@ -311,11 +284,7 @@ const RestaurantPage: React.FC = () => {
             initialSocialJson.current = JSON.stringify(originalSocial);
         }
         setShowUnsavedModal(false);
-        if (pendingNavHref) {
-            const target = pendingNavHref;
-            setPendingNavHref(null);
-            navigate(target);
-        }
+        proceedNavigation();
     };
 
     useEffect(() => () => {
@@ -373,12 +342,7 @@ const RestaurantPage: React.FC = () => {
                 setSocialLinks(normalizedSocial);
                 initialSocialJson.current = JSON.stringify(normalizedSocial);
                 reset(data);
-                if (pendingNavHref) {
-                    const target = pendingNavHref;
-                    setPendingNavHref(null);
-                    setShowUnsavedModal(false);
-                    navigate(target);
-                }
+                proceedNavigation();
             },
         });
     };
@@ -433,7 +397,7 @@ const RestaurantPage: React.FC = () => {
 
     return (
         <>
-            <Helmet><title>{t('restaurant.title')} — QR Menu</title></Helmet>
+            <Helmet><title>{t('restaurant.title')} — OurMenu</title></Helmet>
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 lg:p-10 max-w-4xl mx-auto pb-24 lg:pb-12 transition-colors duration-200">
 
                 {/* ── Page header ── */}
@@ -776,100 +740,23 @@ const RestaurantPage: React.FC = () => {
                     </SectionCard>
 
                     {/* ── Sticky Floating Save Bar ── */}
-                    <div className="fixed bottom-0 lg:bottom-6 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-20 lg:pb-0">
-                        <div className="pointer-events-auto max-w-3xl w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 p-3 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300">
-                            <div className="flex items-center gap-2.5">
-                                {isModified ? (
-                                    <>
-                                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                                        <span className="text-[13px] font-medium text-amber-700 dark:text-amber-400">
-                                            {t('restaurant.unsaved_changes', { defaultValue: 'You have unsaved changes' })}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                                        <span className="text-[13px] font-medium text-neutral-500 dark:text-neutral-400">
-                                            {t('restaurant.all_saved', { defaultValue: 'All changes saved' })}
-                                        </span>
-                                    </>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {isModified && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleDiscardChanges}
-                                        className="h-10 text-[13px] text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
-                                    >
-                                        {t('common.discard', { defaultValue: 'Discard' })}
-                                    </Button>
-                                )}
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    size="sm"
-                                    className="h-10 px-6 text-[13px] font-semibold"
-                                    isLoading={isPending}
-                                    icon={<Save className="w-4 h-4" />}
-                                >
-                                    {t('restaurant.save', { defaultValue: 'Save Changes' })}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                    <FloatingSaveBar
+                        isModified={isModified}
+                        isSaving={isPending}
+                        onDiscard={handleDiscardChanges}
+                    />
 
                 </form>
 
                 {/* ── Unsaved Changes Navigation Modal ── */}
-                {showUnsavedModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                                    <AlertTriangle className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                                        {t('restaurant.unsaved_modal_title', { defaultValue: 'Unsaved Changes' })}
-                                    </h3>
-                                    <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-                                        {t('restaurant.unsaved_modal_desc', { defaultValue: 'You have unsaved changes on your profile. What would you like to do before leaving?' })}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setShowUnsavedModal(false)}
-                                    className="w-full sm:w-auto h-10 text-[13px]"
-                                >
-                                    {t('restaurant.stay_on_page', { defaultValue: 'Stay on Page' })}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={handleDiscardChanges}
-                                    className="w-full sm:w-auto h-10 text-[13px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                >
-                                    {t('common.discard_and_leave', { defaultValue: 'Discard & Leave' })}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    onClick={handleSaveAndLeave}
-                                    isLoading={isPending}
-                                    className="w-full sm:w-auto h-10 text-[13px] font-semibold"
-                                >
-                                    {t('common.save_and_leave', { defaultValue: 'Save Changes' })}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <UnsavedChangesModal
+                    isOpen={showUnsavedModal}
+                    onStay={stayOnPage}
+                    onDiscardAndLeave={handleDiscardChanges}
+                    onSaveAndLeave={handleSaveAndLeave}
+                    isSaving={isPending}
+                    description={t('restaurant.unsaved_modal_desc', { defaultValue: 'You have unsaved changes on your profile. What would you like to do before leaving?' })}
+                />
 
                 {/* ── Change URL Handle Modal ── */}
                 {showSlugModal && (

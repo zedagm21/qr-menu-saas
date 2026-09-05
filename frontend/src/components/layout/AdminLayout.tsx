@@ -14,7 +14,7 @@ const adminNavItems = [
     { to: '/admin', icon: LayoutDashboard, label: 'Overview', end: true },
     { to: '/admin/restaurants', icon: Store, label: 'Restaurants & Access' },
     { to: '/admin/users', icon: Users, label: 'Users & Registrations' },
-    { to: '/admin/activity', icon: FileText, label: 'SaaS Audit Log' },
+    { to: '/admin/activity', icon: FileText, label: 'Audit Log' },
 ];
 
 export const AdminLayout: React.FC = () => {
@@ -111,7 +111,7 @@ export const AdminLayout: React.FC = () => {
                         <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
                             <ShieldCheck className="w-5 h-5" />
                         </div>
-                        <span className="font-extrabold text-sm text-white">SaaS Platform Admin</span>
+                        <span className="font-extrabold text-sm text-white">OurMenu Admin</span>
                     </div>
                     <button
                         type="button"

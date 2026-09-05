@@ -88,7 +88,7 @@ export default function AdminUsersPage() {
                             Platform User Directory & Registrations
                         </h1>
                         <p className="text-sm font-medium text-slate-400 mt-1">
-                            Inspect all registered SaaS users, see who registered when, manage roles, and handle verification states.
+                            Inspect all registered users, see who registered when, manage roles, and handle verification states.
                         </p>
                     </div>
 
@@ -300,7 +300,7 @@ export default function AdminUsersPage() {
 
                                                     {/* Email Contact Shortcut */}
                                                     <a
-                                                        href={`mailto:${u.email}?subject=Support from QR Menu SaaS Admin`}
+                                                        href={`mailto:${u.email}?subject=Support from OurMenu Admin`}
                                                         className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
                                                         title={`Email ${u.email}`}
                                                     >

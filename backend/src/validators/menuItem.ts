@@ -54,5 +54,20 @@ export const reorderMenuItemsSchema = z.object({
     items: z.array(z.object({ id: z.string(), displayOrder: z.number().int().min(0) })),
 });
 
+export const batchUpdateMenuItemsSchema = z.object({
+    ids: z.array(z.string().min(1)).min(1, 'At least one item required'),
+    data: z.object({
+        isAvailable: z.boolean().optional(),
+        categoryId: z.string().optional(),
+        discountPercent: z.number().min(1).max(99).nullable().optional(),
+    }),
+});
+
+export const batchDeleteMenuItemsSchema = z.object({
+    ids: z.array(z.string().min(1)).min(1, 'At least one item required'),
+});
+
 export type CreateMenuItemInput = z.infer<typeof createMenuItemSchema>;
 export type UpdateMenuItemInput = z.infer<typeof updateMenuItemSchema>;
+export type BatchUpdateMenuItemsInput = z.infer<typeof batchUpdateMenuItemsSchema>;
+export type BatchDeleteMenuItemsInput = z.infer<typeof batchDeleteMenuItemsSchema>;

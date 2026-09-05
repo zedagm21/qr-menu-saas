@@ -18,7 +18,7 @@ export interface ImageDimensionOptions {
     maxHeight: number;
 }
 
-// Dimension limits tailored for the restaurant SaaS application
+// Dimension limits tailored for the restaurant application
 export const IMAGE_DIMENSION_LIMITS = {
     LOGO: { maxWidth: 1200, maxHeight: 1200 },
     COVER: { maxWidth: 2400, maxHeight: 1600 },

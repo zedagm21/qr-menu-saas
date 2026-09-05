@@ -407,7 +407,7 @@ export class AnalyticsService {
         const data = await this.getRestaurantAnalytics(restaurantId, timeframe);
         const rows: string[] = [];
 
-        rows.push('--- QR MENU SAAS RESTAURANT ANALYTICS REPORT ---');
+        rows.push('--- OURMENU RESTAURANT ANALYTICS REPORT ---');
         rows.push(`Timeframe,${timeframe}`);
         rows.push(`Generated At,${new Date().toISOString()}`);
         rows.push('');

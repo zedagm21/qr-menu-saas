@@ -20,6 +20,8 @@ router.delete('/categories/:id', ...guard, categoryController.deleteCategory);
 router.get('/menu-items', ...guard, menuItemController.getMenuItems);
 router.post('/menu-items', ...guard, menuItemController.createMenuItem);
 router.put('/menu-items/reorder', ...guard, menuItemController.reorderMenuItems);
+router.post('/menu-items/batch-update', ...guard, menuItemController.batchUpdateMenuItems);
+router.post('/menu-items/batch-delete', ...guard, menuItemController.batchDeleteMenuItems);
 router.get('/menu-items/:id', ...guard, menuItemController.getMenuItem);
 router.put('/menu-items/:id', ...guard, menuItemController.updateMenuItem);
 router.delete('/menu-items/:id', ...guard, menuItemController.deleteMenuItem);

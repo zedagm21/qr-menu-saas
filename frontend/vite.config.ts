@@ -17,8 +17,8 @@ export default defineConfig({
                 'pwa-maskable-512x512.png',
             ],
             manifest: {
-                name: 'QR Menu Manager',
-                short_name: 'QR Manager',
+                name: 'OurMenu',
+                short_name: 'OurMenu',
                 description: 'Manage your digital menu, categories, QR codes, and analytics on the go.',
                 theme_color: '#D97706',
                 background_color: '#111111',

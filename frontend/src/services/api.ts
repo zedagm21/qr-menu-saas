@@ -116,6 +116,10 @@ export const menuItemApi = {
     },
     reorder: (items: { id: string; displayOrder: number }[]) =>
         api.put('/menu-items/reorder', { items }).then(r => r.data),
+    batchUpdate: (ids: string[], data: { isAvailable?: boolean; categoryId?: string; discountPercent?: number | null }) =>
+        api.post('/menu-items/batch-update', { ids, data }).then(r => r.data),
+    batchDelete: (ids: string[]) =>
+        api.post('/menu-items/batch-delete', { ids }).then(r => r.data),
 };
 
 // ─── QR ───────────────────────────────────────────────────────────────────────
@@ -149,7 +153,7 @@ export const analyticsApi = {
         api.get('/restaurant/analytics/export', { params: { range: timeframe }, responseType: 'blob' }).then(r => r.data),
 };
 
-// ─── SaaS Super Admin ─────────────────────────────────────────────────────────
+// ─── Platform Super Admin ─────────────────────────────────────────────────────
 export const adminApi = {
     getOverview: () => api.get('/admin/overview').then(r => r.data),
     listRestaurants: (params: { page?: number; limit?: number; search?: string; status?: string; tier?: string }) =>

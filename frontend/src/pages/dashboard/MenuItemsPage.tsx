@@ -29,7 +29,7 @@ import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Beef, Search, UploadCloud,
     Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
-    Smartphone, Loader2, MoreVertical
+    Smartphone, Loader2, MoreVertical, CheckSquare
 } from 'lucide-react';
 import { PhoneCameraModal } from '../../components/dashboard/PhoneCameraModal';
 import { isHeicFile } from '../../lib/imageCompression';
@@ -41,6 +41,8 @@ import {
     useDeleteMenuItem,
     useReorderMenuItems,
     useUploadMenuItemImage,
+    useBatchUpdateMenuItems,
+    useBatchDeleteMenuItems,
 } from '../../hooks/useMenuItems';
 import { useCategories, useCreateCategory } from '../../hooks/useCategories';
 import { useRestaurant } from '../../hooks/useRestaurant';
@@ -48,6 +50,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { compressImage } from '../../lib/imageCompression';
 import type { MenuItem, Category } from '../../types';
 import { CategoryForm, CategoryFormData } from '../../components/dashboard/CategoryForm';
+import { BatchActionBar } from '../../components/dashboard/BatchActionBar';
 import { getTranslation, formatCurrency, cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -700,6 +703,8 @@ const MenuItemCardBase: React.FC<{
     onEdit: () => void;
     onDelete: () => void;
     onToggleAvailability: () => void;
+    isSelected?: boolean;
+    onToggleSelect?: (e: React.MouseEvent) => void;
     orderIndex?: number;
     isDragging?: boolean;
     dragOverlay?: boolean;
@@ -707,7 +712,7 @@ const MenuItemCardBase: React.FC<{
     listeners?: any;
     setNodeRef?: any;
     style?: React.CSSProperties;
-}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
+}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, isSelected, onToggleSelect, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
     const [showDropdown, setShowDropdown] = useState(false);
     const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number } | null>(null);
@@ -779,8 +784,11 @@ const MenuItemCardBase: React.FC<{
             style={style}
             className={cn(
                 'group relative flex items-stretch overflow-hidden',
-                'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/90 dark:border-neutral-800/90 rounded-[22px]',
-                !dragOverlay && 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200',
+                'backdrop-blur-md bg-white/95 dark:bg-neutral-900/95 border rounded-[22px]',
+                isSelected
+                    ? 'border-[color:var(--color-brand-500)] ring-2 ring-[color:var(--color-brand-500)]/40 shadow-md bg-[color:var(--color-brand-50)]/15 dark:bg-[color:var(--color-brand-500)]/10'
+                    : 'border-neutral-200/90 dark:border-neutral-800/90',
+                !dragOverlay && 'hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200',
                 dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
             )}
         >
@@ -796,12 +804,41 @@ const MenuItemCardBase: React.FC<{
                 )}
             />
 
+            {/* Selection Checkbox */}
+            {onToggleSelect && !dragOverlay && (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelect(e);
+                    }}
+                    className={cn(
+                        "w-10 sm:w-11 flex items-center justify-center border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 transition-colors cursor-pointer",
+                        isSelected
+                            ? "bg-[color:var(--color-brand-50)]/60 dark:bg-[color:var(--color-brand-500)]/20 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]"
+                            : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-neutral-300 dark:text-neutral-600 hover:text-neutral-500"
+                    )}
+                    aria-label="Select item"
+                >
+                    <div
+                        className={cn(
+                            "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                            isSelected
+                                ? "bg-[color:var(--color-brand-500)] border-[color:var(--color-brand-500)] text-white shadow-xs"
+                                : "border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:border-[color:var(--color-brand-400)]"
+                        )}
+                    >
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                </button>
+            )}
+
             {/* Drag Handle */}
             <div
                 {...attributes}
                 {...listeners}
                 className={cn(
-                    "touch-none flex items-center justify-center w-11 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                    "touch-none flex items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
                     (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
                 )}
             >
@@ -1005,6 +1042,8 @@ const SortableMenuItemCard: React.FC<{
     onEdit: () => void;
     onDelete: () => void;
     onToggleAvailability: () => void;
+    isSelected?: boolean;
+    onToggleSelect?: (e: React.MouseEvent) => void;
     orderIndex?: number;
 }> = (props) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
@@ -1031,9 +1070,14 @@ export default function MenuItemsPage() {
     const { mutate: toggleAvailability } = useToggleItemAvailability();
     const { mutate: remove } = useDeleteMenuItem();
     const { mutate: uploadImage } = useUploadMenuItemImage();
+    const { mutate: batchUpdate, isPending: isBatchUpdating } = useBatchUpdateMenuItems();
+    const { mutate: batchDelete, isPending: isBatchDeleting } = useBatchDeleteMenuItems();
 
     const [editing, setEditing] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+    const [isConfirmingBatchDelete, setIsConfirmingBatchDelete] = useState(false);
     const [filterCat, setFilterCat] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [quickCatOpen, setQuickCatOpen] = useState(false);
@@ -1042,6 +1086,66 @@ export default function MenuItemsPage() {
     const [localItems, setLocalItems] = useState<MenuItem[]>([]);
 
     const cats = Array.isArray(categories) ? categories : [];
+
+    const toggleSelectItem = (id: string) => {
+        setSelectedItemIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const clearSelection = () => {
+        setSelectedItemIds(new Set());
+    };
+
+    const exitSelectMode = () => {
+        clearSelection();
+        setIsSelectMode(false);
+    };
+
+    const handleBatchMakeAvailable = () => {
+        if (selectedItemIds.size === 0) return;
+        batchUpdate(
+            { ids: Array.from(selectedItemIds), data: { isAvailable: true } },
+            { onSuccess: () => clearSelection() }
+        );
+    };
+
+    const handleBatchMarkSoldOut = () => {
+        if (selectedItemIds.size === 0) return;
+        batchUpdate(
+            { ids: Array.from(selectedItemIds), data: { isAvailable: false } },
+            { onSuccess: () => clearSelection() }
+        );
+    };
+
+    const handleBatchMoveCategory = (targetCategoryId: string) => {
+        if (selectedItemIds.size === 0) return;
+        batchUpdate(
+            { ids: Array.from(selectedItemIds), data: { categoryId: targetCategoryId } },
+            { onSuccess: () => clearSelection() }
+        );
+    };
+
+    const handleBatchApplyDiscount = (discountPercent: number | null) => {
+        if (selectedItemIds.size === 0) return;
+        batchUpdate(
+            { ids: Array.from(selectedItemIds), data: { discountPercent } },
+            { onSuccess: () => clearSelection() }
+        );
+    };
+
+    const handleBatchDelete = () => {
+        if (selectedItemIds.size === 0) return;
+        batchDelete(Array.from(selectedItemIds), {
+            onSuccess: () => {
+                setIsConfirmingBatchDelete(false);
+                clearSelection();
+            }
+        });
+    };
 
     // Keep local items in sync with server query when not actively dragging
     useEffect(() => {
@@ -1184,9 +1288,27 @@ export default function MenuItemsPage() {
         }
     };
 
+    const allVisibleSelected = filtered.length > 0 && filtered.every(i => selectedItemIds.has(i.id));
+
+    const toggleSelectAllVisible = () => {
+        if (allVisibleSelected) {
+            setSelectedItemIds(prev => {
+                const next = new Set(prev);
+                filtered.forEach(i => next.delete(i.id));
+                return next;
+            });
+        } else {
+            setSelectedItemIds(prev => {
+                const next = new Set(prev);
+                filtered.forEach(i => next.add(i.id));
+                return next;
+            });
+        }
+    };
+
     return (
         <>
-            <Helmet><title>{t('menu_items.title')} — QR Menu</title></Helmet>
+            <Helmet><title>{t('menu_items.title')} — OurMenu</title></Helmet>
 
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 pb-28 lg:pb-12 transition-colors duration-200">
 
@@ -1220,14 +1342,47 @@ export default function MenuItemsPage() {
                     </div>
 
                     {cats.length > 0 ? (
-                        <Button
-                            variant="primary"
-                            className="hidden sm:flex h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold"
-                            icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
-                            onClick={() => setEditing('new')}
-                        >
-                            {t('menu_items.add_food_item')}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {items.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (isSelectMode) {
+                                            exitSelectMode();
+                                        } else {
+                                            setIsSelectMode(true);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "h-12 px-4 sm:px-5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all border flex items-center gap-2 cursor-pointer select-none",
+                                        isSelectMode
+                                            ? "bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
+                                            : "bg-white/95 dark:bg-neutral-900/95 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 shadow-xs"
+                                    )}
+                                >
+                                    {isSelectMode ? (
+                                        <>
+                                            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                                            <span>{t('common.done', { defaultValue: 'Done' })}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckSquare className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                            <span>{t('menu_items.edit', { defaultValue: 'Edit' })}</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
+
+                            <Button
+                                variant="primary"
+                                className="hidden sm:flex h-12 px-7 rounded-2xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white hover:-translate-y-0.5 transition-all font-bold"
+                                icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                                onClick={() => setEditing('new')}
+                            >
+                                {t('menu_items.add_food_item')}
+                            </Button>
+                        </div>
                     ) : (
                         <Button
                             variant="primary"
@@ -1321,7 +1476,54 @@ export default function MenuItemsPage() {
                 </div>
 
                 {/* ── Item list ── */}
-                <div className="animate-fade-in-up delay-150">
+                <div className="animate-fade-in-up delay-150 space-y-3">
+                    {isSelectMode && !isLoading && filtered.length > 0 && (
+                        <div className="flex items-center justify-between px-2 py-1">
+                            <button
+                                type="button"
+                                onClick={toggleSelectAllVisible}
+                                className="flex items-center gap-2.5 text-[13px] font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer group"
+                            >
+                                <div
+                                    className={cn(
+                                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                                        allVisibleSelected
+                                            ? "bg-[color:var(--color-brand-500)] border-[color:var(--color-brand-500)] text-white shadow-xs"
+                                            : selectedItemIds.size > 0
+                                            ? "border-[color:var(--color-brand-500)] bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/20"
+                                            : "border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 group-hover:border-neutral-400"
+                                    )}
+                                >
+                                    {allVisibleSelected ? (
+                                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    ) : selectedItemIds.size > 0 ? (
+                                        <div className="w-2.5 h-0.5 bg-[color:var(--color-brand-500)] rounded-full" />
+                                    ) : null}
+                                </div>
+                                <span>
+                                    {allVisibleSelected
+                                        ? t('menu_items.deselect_all', { defaultValue: 'Deselect all visible' })
+                                        : t('menu_items.select_all_visible', { count: filtered.length, defaultValue: `Select all visible (${filtered.length})` })}
+                                </span>
+                            </button>
+
+                            {selectedItemIds.size > 0 && (
+                                <div className="flex items-center gap-2.5">
+                                    <span className="text-[12px] font-extrabold text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]">
+                                        {t('menu_items.selected_count', { count: selectedItemIds.size, defaultValue: `${selectedItemIds.size} selected` })}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={clearSelection}
+                                        className="text-[12px] font-bold text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 underline cursor-pointer"
+                                    >
+                                        {t('actions.clear', { defaultValue: 'Clear' })}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {isLoading ? (
                         /* Realistic Shimmer Skeleton */
                         <div className="space-y-3">
@@ -1431,6 +1633,8 @@ export default function MenuItemsPage() {
                                                             onEdit={() => setEditing(item.id)}
                                                             onDelete={() => setDeletingId(item.id)}
                                                             onToggleAvailability={() => toggleAvailability({ id: item.id, isAvailable: !item.isAvailable })}
+                                                            isSelected={isSelectMode && selectedItemIds.has(item.id)}
+                                                            onToggleSelect={isSelectMode ? () => toggleSelectItem(item.id) : undefined}
                                                             orderIndex={orderIndex}
                                                         />
                                                     );
@@ -1467,7 +1671,7 @@ export default function MenuItemsPage() {
                 </div>
 
                 {/* Mobile FAB */}
-                {!editing && (
+                {!editing && selectedItemIds.size === 0 && (
                     <div className="fixed bottom-20 right-5 sm:hidden z-40">
                         <button
                             onClick={() => cats.length === 0 ? setQuickCatOpen(true) : setEditing('new')}
@@ -1476,6 +1680,36 @@ export default function MenuItemsPage() {
                             <Plus className="w-6 h-6 stroke-[2.5]" />
                         </button>
                     </div>
+                )}
+
+                {/* Batch Operations Floating Toolbar */}
+                {isSelectMode && (
+                    <BatchActionBar
+                        selectedCount={selectedItemIds.size}
+                        onClearSelection={clearSelection}
+                        onMakeAvailable={handleBatchMakeAvailable}
+                        onMarkSoldOut={handleBatchMarkSoldOut}
+                        categories={cats}
+                        onMoveCategory={handleBatchMoveCategory}
+                        onApplyDiscount={handleBatchApplyDiscount}
+                        onDeleteSelected={() => setIsConfirmingBatchDelete(true)}
+                        isLoading={isBatchUpdating || isBatchDeleting}
+                    />
+                )}
+
+                {/* Batch Delete Confirmation Dialog */}
+                {isConfirmingBatchDelete && (
+                    <ConfirmDialog
+                        isOpen={true}
+                        onClose={() => setIsConfirmingBatchDelete(false)}
+                        onConfirm={handleBatchDelete}
+                        title={t('actions.delete', { defaultValue: 'Delete Items' })}
+                        description={t('menu_items.batch_delete_confirm', {
+                            count: selectedItemIds.size,
+                            defaultValue: `Are you sure you want to delete ${selectedItemIds.size} selected items? This action cannot be undone.`
+                        })}
+                        confirmText={t('actions.delete', { defaultValue: 'Delete Selected' })}
+                    />
                 )}
             </div>
 
