@@ -539,7 +539,7 @@ export default function LandingPage() {
                                             >
                                                 <span className="text-sm">🌿</span>
                                                 <span className="text-xs font-bold text-white">
-                                                    {previewLang === 'AM' ? 'የጾም ምግብ ብቻ' : 'Fasting Food Only (የጾም)'}
+                                                    {previewLang === 'AM' ? 'የጾም ብቻ' : 'Fasting Only (የጾም)'}
                                                 </span>
                                             </div>
                                             <button

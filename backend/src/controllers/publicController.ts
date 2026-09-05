@@ -23,7 +23,7 @@ export const getMenuPublic = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-const PRIVATE_IP_REGEX = /^(localhost|127\.|0\.0\.0\.0|169\.254\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|\[?::1\]?|\[?fc00:|\[?fe80:)/i;
+export const PRIVATE_IP_REGEX = /^(localhost|127\.|0\.0\.0\.0|169\.254\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|\[?::1\]?|\[?fc00:|\[?fe80:)/i;
 
 export const proxyImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

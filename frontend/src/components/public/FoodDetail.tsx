@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X, Star, AlertCircle, Info, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, cn } from '../../lib/utils';
+import { DishImage } from './DishImage';
 
 interface FoodDetailProps {
     item: any;
@@ -58,7 +59,7 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({
                 {/* Hero Image */}
                 {hasImage ? (
                     <div className="w-full aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9] bg-neutral-200 dark:bg-[#0C0C0C] relative shrink-0">
-                        <img
+                        <DishImage
                             src={item.imageUrl}
                             alt={name}
                             className="w-full h-full object-cover"

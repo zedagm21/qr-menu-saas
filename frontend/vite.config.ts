@@ -111,8 +111,8 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 5. Dish photos, logos, covers (local /uploads/ or remote CDN / Cloudflare R2 / Unsplash)
-                        urlPattern: /(?:\/uploads\/|\.(?:png|jpg|jpeg|svg|webp|avif|gif)(?:\?.*)?$|r2\.cloudflarestorage|images\.unsplash)/i,
+                        // 5. Dish photos, logos, covers (local /uploads/, /api/public/proxy-image, Cloudflare R2, Unsplash, external domains)
+                        urlPattern: /(?:\/api\/public\/proxy-image|\/uploads\/|\.(?:png|jpg|jpeg|svg|webp|avif|gif)(?:\?.*)?$|r2\.cloudflarestorage|images\.unsplash|vistacafeandrestaurant\.com)/i,
                         method: 'GET',
                         handler: 'StaleWhileRevalidate',
                         options: {

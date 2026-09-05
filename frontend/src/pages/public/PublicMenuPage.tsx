@@ -33,6 +33,7 @@ import { QuickActionBar, QuickActionModal, type QuickAction } from '../../compon
 import { OfflineNotice } from '../../components/public/OfflineNotice';
 import { OrderTray } from '../../components/public/OrderTray';
 import { OrderModal } from '../../components/public/OrderModal';
+import { DishImage } from '../../components/public/DishImage';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import type { Restaurant, PublicCategory, PublicMenuItem } from '../../types';
@@ -739,7 +740,7 @@ export default function PublicMenuPage() {
                                     "text-xs sm:text-[13px] font-extrabold text-neutral-800 dark:text-neutral-200",
                                     lang === 'AM' && 'font-ethiopic'
                                 )}>
-                                    {lang === 'AM' ? 'የጾም ምግብ ብቻ' : 'Fasting Food Only (የጾም)'}
+                                    {lang === 'AM' ? 'የጾም ብቻ' : 'Fasting Only (የጾም)'}
                                 </span>
                             </div>
                             <button
@@ -1304,13 +1305,13 @@ const MenuItemCard = ({
             >
                 {hasImage ? (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 relative">
-                        <img
+                        <DishImage
                             src={item.imageUrl}
                             alt={name}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="transition-transform duration-300 group-hover:scale-105"
                         />
                         {item.isFeatured && (
-                            <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase">
+                            <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase z-10">
                                 ⭐
                             </span>
                         )}
@@ -1378,8 +1379,8 @@ const MenuItemCard = ({
             >
                 {hasImage ? (
                     <div className="w-full aspect-[16/10] bg-neutral-100 dark:bg-[#111111] relative overflow-hidden shrink-0">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none" />
+                        <DishImage src={item.imageUrl} alt={name} className="transition-transform duration-700 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none pointer-events-none" />
 
                         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 pr-8 z-10">
                             {item.isFeatured && (
@@ -1454,7 +1455,7 @@ const MenuItemCard = ({
             >
                 {hasImage ? (
                     <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 shadow-md">
-                        <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <DishImage src={item.imageUrl} alt={name} className="transition-transform duration-500 group-hover:scale-110" />
 
                         {/* Badges */}
                         {item.isFeatured && (
@@ -1535,10 +1536,10 @@ const MenuItemCard = ({
             {/* Image Section */}
             <div className="w-full aspect-[4/3] relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                 {hasImage ? (
-                    <img
+                    <DishImage
                         src={item.imageUrl}
                         alt={name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="transition-transform duration-500 group-hover:scale-105"
                     />
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center">

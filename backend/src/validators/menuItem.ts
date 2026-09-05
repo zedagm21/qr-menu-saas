@@ -60,6 +60,8 @@ export const batchUpdateMenuItemsSchema = z.object({
         isAvailable: z.boolean().optional(),
         categoryId: z.string().optional(),
         discountPercent: z.number().min(1).max(99).nullable().optional(),
+    }).refine((d) => Object.keys(d).length > 0, {
+        message: 'At least one field to update must be provided',
     }),
 });
 
