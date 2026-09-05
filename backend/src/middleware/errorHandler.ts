@@ -25,17 +25,20 @@ export const errorHandler = (
         return;
     }
 
-    const statusCode = err.statusCode || 500;
-    const message = err.isOperational ? err.message : 'Internal server error';
+    const statusCode = typeof err?.statusCode === 'number' ? err.statusCode : 500;
+    const isUnexpected = !err?.isOperational || statusCode >= 500;
+    const message = isUnexpected ? 'Internal server error' : (err?.message || 'Error occurred');
 
     if (process.env.NODE_ENV === 'development') {
         console.error('Error:', err);
+    } else if (isUnexpected) {
+        console.error('Unhandled server error:', err);
     }
 
     res.status(statusCode).json({
         error: message,
-        ...(err.data && { data: err.data }),
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+        ...((!isUnexpected || process.env.NODE_ENV === 'development') && err?.data && { data: err.data }),
+        ...(process.env.NODE_ENV === 'development' && { stack: err?.stack }),
     });
 };
 

@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { config } from './config/env';
-import { errorHandler } from './middleware/errorHandler';
+import { errorHandler, createError } from './middleware/errorHandler';
 
 import authRoutes from './routes/auth';
 import restaurantRoutes from './routes/restaurant';
@@ -29,10 +29,12 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow serving images
 }));
 
-// Allow both localhost and any configured LAN/production URL
+// Explicit allowlist: localhost development, production canonical domain, and apex domain
 const allowedOrigins = Array.from(new Set([
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://www.ourmenu.et',
+    'https://ourmenu.et',
     config.frontendUrl,
 ].filter(Boolean)));
 
@@ -43,7 +45,7 @@ app.use(cors({
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
-        return callback(new Error(`CORS: Origin ${origin} not allowed`));
+        return callback(createError(`CORS: Origin ${origin} not allowed`, 403));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
