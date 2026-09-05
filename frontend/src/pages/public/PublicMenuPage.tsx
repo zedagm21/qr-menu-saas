@@ -529,7 +529,7 @@ export default function PublicMenuPage() {
             case 'MINIMAL':
                 return 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5';
             case 'MODERN':
-                return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4';
+                return 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4';
             case 'CLASSIC':
             default:
                 return 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4';
@@ -1438,76 +1438,80 @@ const MenuItemCard = ({
         );
     }
 
-    /* ── MODERN STYLE: Multi-grid with Enlarged Circular Images ── */
+    /* ── MODERN STYLE: Side-by-Side Card (Large Left Photo + Right Details) ── */
     if (menuStyle === 'MODERN') {
         return (
             <button
                 onClick={onClick}
                 className={cn(
-                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-3xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-300",
+                    "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-3 sm:p-4 text-left transition-all duration-300",
+                    "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] group",
+                    "flex items-stretch gap-3.5 sm:gap-4.5 overflow-hidden",
                     item.isFeatured
-                        ? "border border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-xs"
-                        : "border border-neutral-200/80 dark:border-neutral-800/80",
-                    "hover:-translate-y-1 active:scale-[0.98]",
-                    "flex flex-col items-center justify-start p-3.5 sm:p-5 group",
+                        ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
+                        : "border-neutral-200/80 dark:border-neutral-800/80",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
                 )}
             >
-                {hasImage ? (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-100 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 shadow-md">
-                        <DishImage src={item.imageUrl} alt={name} className="transition-transform duration-500 group-hover:scale-110" />
-
-                        {/* Badges */}
-                        {item.isFeatured && (
-                            <div className={cn("absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                {t('public.featured')}
-                            </div>
-                        )}
-                        {hasDiscount && (
-                            <div className={cn("absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full mx-auto mt-1 relative overflow-hidden shrink-0 bg-neutral-50 dark:bg-[#111111] ring-4 ring-neutral-100 dark:ring-neutral-800/90 border border-neutral-200 dark:border-[#2A2A2A] flex items-center justify-center shadow-inner">
-                        <UtensilsCrossed className="w-8 h-8 sm:w-10 sm:h-10 text-neutral-300 dark:text-[#2A2A2A]" />
-                        {hasDiscount && (
-                            <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[7px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center shadow-lg uppercase tracking-wider">
-                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="flex flex-col flex-grow w-full items-center text-center mt-3 sm:mt-4">
-                    <h3 className={cn("text-xs sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-tight truncate w-full", isAm && 'font-ethiopic font-bold')}>
-                        <HighlightText text={name} highlight={searchQuery} />
-                    </h3>
-
-                    {desc && (
-                        <p className={cn("text-[11px] sm:text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-1 mt-1 w-full", isAm && "font-ethiopic")}>
-                            <HighlightText text={desc} highlight={searchQuery} />
-                        </p>
+                {/* Left Side: Large Rounded Food Photo */}
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-xl sm:rounded-2xl overflow-hidden shrink-0 relative bg-neutral-100 dark:bg-neutral-800">
+                    {hasImage ? (
+                        <DishImage
+                            src={item.imageUrl}
+                            alt={name}
+                            className="transition-transform duration-500 group-hover:scale-105"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                            <span className="text-3xl filter drop-shadow-sm">🍽️</span>
+                        </div>
                     )}
 
-                    <div className="mt-auto w-full pt-2 flex flex-col items-center">
+                    {/* Badges */}
+                    {item.isFeatured && (
+                        <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm z-10", isAm && 'font-ethiopic')}>
+                            ⭐ {t('public.featured')}
+                        </span>
+                    )}
+                    {hasDiscount && (
+                        <span className={cn("absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10", isAm && 'font-ethiopic')}>
+                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                        </span>
+                    )}
+                </div>
+
+                {/* Right Side: Title, Description, Price & Order Action */}
+                <div className="flex flex-col justify-between flex-1 min-w-0 py-0.5">
+                    <div>
+                        <h3 className={cn("text-sm sm:text-base font-bold text-neutral-900 dark:text-[#F5F5F5] leading-snug line-clamp-2", isAm && 'font-ethiopic font-bold')}>
+                            <HighlightText text={name} highlight={searchQuery} />
+                        </h3>
+
+                        {desc && (
+                            <p className={cn("text-xs text-neutral-500 dark:text-[#A3A3A3] line-clamp-2 sm:line-clamp-3 leading-relaxed mt-1 sm:mt-1.5", isAm && "font-ethiopic")}>
+                                <HighlightText text={desc} highlight={searchQuery} />
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="mt-2.5 pt-1.5 flex items-center justify-between gap-2 border-t border-black/5 dark:border-white/5">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap justify-center">
-                                <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                                <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
                                     {discountPriceFormatted}
                                 </span>
-                                <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                <span className="text-[11px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
                                     {regularPriceFormatted}
                                 </span>
                             </div>
                         ) : (
-                            <p className="text-sm sm:text-lg font-black text-center text-amber-600 dark:text-amber-400" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
+                            <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400" style={{ color: 'var(--color-accent-500, var(--color-brand-500, #D97706))' }}>
                                 {regularPriceFormatted}
                             </p>
                         )}
+
                         {!item.isAvailable ? (
-                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider mt-1", isAm && 'font-ethiopic')}>
+                            <span className={cn("text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 bg-neutral-100 dark:bg-[#222222] text-neutral-500 dark:text-[#A3A3A3] rounded uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                 {t('public.sold_out')}
                             </span>
                         ) : (

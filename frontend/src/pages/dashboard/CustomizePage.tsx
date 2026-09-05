@@ -43,7 +43,7 @@ const DEFAULTS: ThemeForm = {
 // ─────────────────────────────────────────────
 const STYLES: { value: MenuStyle; label: string; desc: string; emoji: string }[] = [
     { value: 'CLASSIC', label: 'Classic', desc: 'Traditional multi-grid with rectangular cards', emoji: '🍽️' },
-    { value: 'MODERN', label: 'Modern', desc: 'Clean multi-grid with circular dish images', emoji: '✨' },
+    { value: 'MODERN', label: 'Modern', desc: 'Side-by-side card with prominent dish photo and details', emoji: '✨' },
     { value: 'ELEGANT', label: 'Elegant', desc: 'Editorial serif typography and layout', emoji: '🌿' },
     { value: 'MINIMAL', label: 'Minimal', desc: 'Ultra-clean compact presentation', emoji: '⬜' },
 ];
@@ -496,9 +496,9 @@ const CustomizePage: React.FC = () => {
 
                                 {/* Menu items */}
                                 <div className={cn(
-                                    (watched.menuStyle === 'CLASSIC' || watched.menuStyle === 'MODERN')
+                                    watched.menuStyle === 'CLASSIC'
                                         ? 'grid grid-cols-2 gap-2 sm:gap-2.5'
-                                        : (previewDevice === 'tablet' || previewDevice === 'desktop') && watched.menuStyle === 'ELEGANT'
+                                        : (previewDevice === 'tablet' || previewDevice === 'desktop') && (watched.menuStyle === 'ELEGANT' || watched.menuStyle === 'MODERN')
                                             ? 'grid grid-cols-2 lg:grid-cols-3 gap-3'
                                             : 'flex flex-col gap-2'
                                 )}>
@@ -539,16 +539,18 @@ const CustomizePage: React.FC = () => {
                                             return (
                                                 <div
                                                     key={item.id ?? i}
-                                                    className="flex flex-col items-center text-center p-2.5 rounded-2xl border shadow-2xs transition-all duration-300"
-                                                    style={{ borderColor: cardBorder, backgroundColor: cardBg }}
+                                                    className="flex items-stretch gap-2.5 p-2 sm:p-2.5 rounded-2xl border shadow-2xs transition-all duration-300 overflow-hidden text-left"
+                                                    style={{ borderColor: cardBorder, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF' }}
                                                 >
-                                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 ring-2 ring-black/5 dark:ring-white/10 shadow-sm mt-0.5">
+                                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                                                         {imgNode}
                                                     </div>
-                                                    <div className="w-full mt-1.5 flex flex-col flex-1 min-w-0">
-                                                        <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight w-full">{name}</p>
-                                                        <p className="text-[9px] sm:text-[10px] opacity-60 truncate mt-0.5 w-full">{desc || t('customize.prepared_fresh_daily')}</p>
-                                                        <div className="mt-auto pt-1.5 flex items-center justify-center">
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                                        <div>
+                                                            <p className="text-[11px] sm:text-[12px] font-bold truncate leading-tight">{name}</p>
+                                                            <p className="text-[9px] sm:text-[10px] opacity-60 line-clamp-2 mt-0.5">{desc || t('customize.prepared_fresh_daily')}</p>
+                                                        </div>
+                                                        <div className="pt-1 flex items-center justify-between border-t border-black/5 dark:border-white/5 mt-1">
                                                             <span className="text-[11px] sm:text-[12px] font-black transition-colors duration-500" style={{ color: watched.accentColor }}>{price}</span>
                                                         </div>
                                                     </div>
