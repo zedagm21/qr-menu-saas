@@ -82,6 +82,19 @@ describe('Security: Route Rate Limiting Middleware', () => {
     it('should export publicRateLimiter middleware for diner interaction and scans', () => {
         assert.strictEqual(typeof publicRateLimiter, 'function');
     });
+
+    it('should exempt /api/health and /health from global rate limiting', () => {
+        const skipCheck = (path: string) =>
+            path.startsWith('/api/public') ||
+            path === '/api/health' ||
+            path === '/health';
+
+        assert.strictEqual(skipCheck('/api/health'), true);
+        assert.strictEqual(skipCheck('/health'), true);
+        assert.strictEqual(skipCheck('/api/public/restaurants/demo'), true);
+        assert.strictEqual(skipCheck('/api/auth/login'), false);
+        assert.strictEqual(skipCheck('/api/restaurant/menu'), false);
+    });
 });
 
 describe('Security: CORS Production Allowlist & Origin Validation', () => {

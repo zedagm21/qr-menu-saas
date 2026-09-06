@@ -6,6 +6,7 @@ services:
     buildCommand: npm install && npm run build
     preDeployCommand: npx prisma migrate deploy
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production

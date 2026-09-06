@@ -56,7 +56,10 @@ app.use(rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 200,
     message: 'Too many requests, please try again later.',
-    skip: (req) => req.path.startsWith('/api/public'), // Public menu has higher limit
+    skip: (req) =>
+        req.path.startsWith('/api/public') ||
+        req.path === '/api/health' ||
+        req.path === '/health',
 }));
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
@@ -87,9 +90,9 @@ app.get('/api/broadcast/active', async (_req, res, next) => {
     }
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// ─── Health check (Render keep-alive & external monitoring) ───────────────────
+app.get(['/api/health', '/health'], (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'OurMenu API', timestamp: new Date().toISOString() });
 });
 
 // ─── Validation error handler (Zod) — MUST be before generic errorHandler ─────
