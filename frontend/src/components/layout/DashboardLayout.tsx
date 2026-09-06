@@ -8,6 +8,7 @@ import { useActiveBroadcast } from '../../hooks/useAdmin';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import { cn } from '../../lib/utils';
 
 export const DashboardLayout: React.FC = () => {
@@ -15,6 +16,8 @@ export const DashboardLayout: React.FC = () => {
     const { isAuthenticated, isLoading, restaurant, user, refreshAuth } = useAuth();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const location = useLocation();
+    const { data: liveRestaurant } = useRestaurant({ enabled: isAuthenticated && !isLoading });
 
     const [impersonatingName, setImpersonatingName] = useState<string | null>(null);
     const { data: activeBroadcast } = useActiveBroadcast();
@@ -69,8 +72,6 @@ export const DashboardLayout: React.FC = () => {
         );
     }
 
-    const location = useLocation();
-    const { data: liveRestaurant } = useRestaurant();
     const currentRestaurant = liveRestaurant || restaurant;
     const isSetupNeeded = user?.role !== 'ADMIN' && (!currentRestaurant?.slug || !currentRestaurant?.name?.trim());
 
@@ -150,7 +151,9 @@ export const DashboardLayout: React.FC = () => {
                 <div className="max-w-7xl mx-auto min-h-full w-full flex-1">
                     {/* Smooth fade-in on page transitions */}
                     <div className="animate-fade-in">
-                        <Outlet />
+                        <ErrorBoundary>
+                            <Outlet />
+                        </ErrorBoundary>
                     </div>
                 </div>
             </main>

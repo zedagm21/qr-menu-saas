@@ -54,8 +54,8 @@ export default function AnalyticsPage() {
         }
     };
 
-    const maxTimelineCount = Math.max(...(data?.timeline.map(t => t.count) || [1]), 1);
-    const maxPeakCount = Math.max(...(data?.peakHours.map(p => p.count) || [1]), 1);
+    const maxTimelineCount = Math.max(...(Array.isArray(data?.timeline) ? data.timeline.map(t => t.count) : [1]), 1);
+    const maxPeakCount = Math.max(...(Array.isArray(data?.peakHours) ? data.peakHours.map(p => p.count) : [1]), 1);
 
     return (
         <>

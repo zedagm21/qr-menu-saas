@@ -57,6 +57,8 @@ function getTierBadge(r: AdminRestaurantItem) {
 export default function AdminRestaurantsPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { refreshAuth } = useAuth();
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -84,6 +86,9 @@ export default function AdminRestaurantsPage() {
 
     const { mutate: updateAccess, isPending: isUpdatingAccess } = useUpdateRestaurantAccess();
     const { mutate: deleteRestaurant, isPending: isDeleting } = useDeleteRestaurant();
+
+    const restaurants = Array.isArray(data?.data) ? data.data : [];
+    const pagination = data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
     const handleOpenAccessModal = (r: AdminRestaurantItem) => {
         setSelectedRestaurant(r);
@@ -119,9 +124,6 @@ export default function AdminRestaurantsPage() {
             }
         );
     };
-
-    const queryClient = useQueryClient();
-    const { refreshAuth } = useAuth();
 
     const handleImpersonate = async (r: AdminRestaurantItem) => {
         localStorage.setItem('admin_impersonating_restaurant_id', r.id);
@@ -244,7 +246,7 @@ export default function AdminRestaurantsPage() {
                         <div className="p-12 flex items-center justify-center">
                             <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                         </div>
-                    ) : (data?.data.length || 0) === 0 ? (
+                    ) : restaurants.length === 0 ? (
                         <div className="p-12 text-center text-slate-400 text-xs">
                             <Store className="w-10 h-10 opacity-30 mx-auto mb-2" />
                             No restaurants found matching your criteria.
@@ -263,7 +265,7 @@ export default function AdminRestaurantsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/60">
-                                    {data?.data.map((r) => (
+                                    {restaurants.map((r) => (
                                         <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
                                             {/* Restaurant info */}
                                             <td className="py-3.5 px-4">
@@ -424,10 +426,10 @@ export default function AdminRestaurantsPage() {
                     )}
 
                     {/* Pagination */}
-                    {(data?.pagination.totalPages || 0) > 1 && (
+                    {pagination.totalPages > 1 && (
                         <div className="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                             <span>
-                                Page {data?.pagination.page} of {data?.pagination.totalPages} ({data?.pagination.total} restaurants)
+                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} restaurants)
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
@@ -440,8 +442,8 @@ export default function AdminRestaurantsPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setPage(p => Math.min(p + 1, data?.pagination.totalPages || 1))}
-                                    disabled={page === data?.pagination.totalPages}
+                                    onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
+                                    disabled={page >= pagination.totalPages}
                                     className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg font-bold"
                                 >
                                     Next

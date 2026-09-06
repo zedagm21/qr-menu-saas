@@ -192,29 +192,42 @@ export class SystemLogService {
             ];
         }
 
-        const [total, logs] = await Promise.all([
-            prisma.systemLog.count({ where: whereClause }),
-            prisma.systemLog.findMany({
-                where: whereClause,
-                skip,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    user: { select: { id: true, name: true, email: true } },
-                    restaurant: { select: { id: true, name: true, slug: true } },
-                },
-            }),
-        ]);
+        try {
+            const [total, logs] = await Promise.all([
+                prisma.systemLog.count({ where: whereClause }),
+                prisma.systemLog.findMany({
+                    where: whereClause,
+                    skip,
+                    take: limit,
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        user: { select: { id: true, name: true, email: true } },
+                        restaurant: { select: { id: true, name: true, slug: true } },
+                    },
+                }),
+            ]);
 
-        return {
-            data: logs,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
+            return {
+                data: logs,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit) || 1,
+                },
+            };
+        } catch (error) {
+            console.error('[SystemLogService] Error querying system logs from database, returning safe fallback:', error);
+            return {
+                data: [],
+                pagination: {
+                    page,
+                    limit,
+                    total: 0,
+                    totalPages: 1,
+                },
+            };
+        }
     }
 
     /**
@@ -226,108 +239,128 @@ export class SystemLogService {
         const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        const [
-            unresolvedCount,
-            last24hErrors,
-            prev24hErrors,
-            last24hFatal,
-            last7dTotal,
-            backendCount,
-            frontendCount,
-            recentLogs,
-        ] = await Promise.all([
-            prisma.systemLog.count({ where: { status: LogStatus.UNRESOLVED } }),
-            prisma.systemLog.count({
-                where: {
-                    level: { in: [LogLevel.ERROR, LogLevel.FATAL] },
-                    createdAt: { gte: oneDayAgo },
-                },
-            }),
-            prisma.systemLog.count({
-                where: {
-                    level: { in: [LogLevel.ERROR, LogLevel.FATAL] },
-                    createdAt: { gte: twoDaysAgo, lt: oneDayAgo },
-                },
-            }),
-            prisma.systemLog.count({
-                where: {
-                    level: LogLevel.FATAL,
-                    createdAt: { gte: oneDayAgo },
-                },
-            }),
-            prisma.systemLog.count({
-                where: { createdAt: { gte: sevenDaysAgo } },
-            }),
-            prisma.systemLog.count({
-                where: {
-                    source: LogSource.BACKEND,
-                    createdAt: { gte: sevenDaysAgo },
-                },
-            }),
-            prisma.systemLog.count({
-                where: {
-                    source: LogSource.FRONTEND,
-                    createdAt: { gte: sevenDaysAgo },
-                },
-            }),
-            prisma.systemLog.findMany({
-                where: { createdAt: { gte: sevenDaysAgo } },
-                select: { createdAt: true, level: true, message: true },
-                orderBy: { createdAt: 'desc' },
-                take: 1000,
-            }),
-        ]);
+        try {
+            const [
+                unresolvedCount,
+                last24hErrors,
+                prev24hErrors,
+                last24hFatal,
+                last7dTotal,
+                backendCount,
+                frontendCount,
+                recentLogs,
+            ] = await Promise.all([
+                prisma.systemLog.count({ where: { status: LogStatus.UNRESOLVED } }),
+                prisma.systemLog.count({
+                    where: {
+                        level: { in: [LogLevel.ERROR, LogLevel.FATAL] },
+                        createdAt: { gte: oneDayAgo },
+                    },
+                }),
+                prisma.systemLog.count({
+                    where: {
+                        level: { in: [LogLevel.ERROR, LogLevel.FATAL] },
+                        createdAt: { gte: twoDaysAgo, lt: oneDayAgo },
+                    },
+                }),
+                prisma.systemLog.count({
+                    where: {
+                        level: LogLevel.FATAL,
+                        createdAt: { gte: oneDayAgo },
+                    },
+                }),
+                prisma.systemLog.count({
+                    where: { createdAt: { gte: sevenDaysAgo } },
+                }),
+                prisma.systemLog.count({
+                    where: {
+                        source: LogSource.BACKEND,
+                        createdAt: { gte: sevenDaysAgo },
+                    },
+                }),
+                prisma.systemLog.count({
+                    where: {
+                        source: LogSource.FRONTEND,
+                        createdAt: { gte: sevenDaysAgo },
+                    },
+                }),
+                prisma.systemLog.findMany({
+                    where: { createdAt: { gte: sevenDaysAgo } },
+                    select: { createdAt: true, level: true, message: true },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1000,
+                }),
+            ]);
 
-        // Construct 7-day timeline map
-        const timelineMap = new Map<string, { date: string; total: number; errors: number; fatal: number; warnings: number }>();
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-            const key = d.toISOString().slice(0, 10);
-            timelineMap.set(key, { date: key, total: 0, errors: 0, fatal: 0, warnings: 0 });
+            // Construct 7-day timeline map
+            const timelineMap = new Map<string, { date: string; total: number; errors: number; fatal: number; warnings: number }>();
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const key = d.toISOString().slice(0, 10);
+                timelineMap.set(key, { date: key, total: 0, errors: 0, fatal: 0, warnings: 0 });
+            }
+
+            // Aggregate top recurring errors
+            const messageCounts = new Map<string, { message: string; count: number; lastSeen: Date; level: string }>();
+
+            recentLogs.forEach((log) => {
+                const key = log.createdAt.toISOString().slice(0, 10);
+                if (timelineMap.has(key)) {
+                    const day = timelineMap.get(key)!;
+                    day.total++;
+                    if (log.level === LogLevel.ERROR) day.errors++;
+                    else if (log.level === LogLevel.FATAL) day.fatal++;
+                    else if (log.level === LogLevel.WARN) day.warnings++;
+                }
+
+                // Group by first line of message
+                const firstLine = log.message.split('\n')[0].slice(0, 120);
+                if (messageCounts.has(firstLine)) {
+                    messageCounts.get(firstLine)!.count++;
+                } else {
+                    messageCounts.set(firstLine, {
+                        message: firstLine,
+                        count: 1,
+                        lastSeen: log.createdAt,
+                        level: log.level,
+                    });
+                }
+            });
+
+            const topIssues = Array.from(messageCounts.values())
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5);
+
+            return {
+                unresolvedCount,
+                last24hErrors,
+                prev24hErrors,
+                last24hFatal,
+                last7dTotal,
+                backendCount,
+                frontendCount,
+                timeline: Array.from(timelineMap.values()),
+                topIssues,
+            };
+        } catch (error) {
+            console.error('[SystemLogService] Error computing system log metrics from database, returning safe fallback:', error);
+            const timeline: any[] = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                timeline.push({ date: d.toISOString().slice(0, 10), total: 0, errors: 0, fatal: 0, warnings: 0 });
+            }
+            return {
+                unresolvedCount: 0,
+                last24hErrors: 0,
+                prev24hErrors: 0,
+                last24hFatal: 0,
+                last7dTotal: 0,
+                backendCount: 0,
+                frontendCount: 0,
+                timeline,
+                topIssues: [],
+            };
         }
-
-        // Aggregate top recurring errors
-        const messageCounts = new Map<string, { message: string; count: number; lastSeen: Date; level: string }>();
-
-        recentLogs.forEach((log) => {
-            const key = log.createdAt.toISOString().slice(0, 10);
-            if (timelineMap.has(key)) {
-                const day = timelineMap.get(key)!;
-                day.total++;
-                if (log.level === LogLevel.ERROR) day.errors++;
-                else if (log.level === LogLevel.FATAL) day.fatal++;
-                else if (log.level === LogLevel.WARN) day.warnings++;
-            }
-
-            // Group by first line of message
-            const firstLine = log.message.split('\n')[0].slice(0, 120);
-            if (messageCounts.has(firstLine)) {
-                messageCounts.get(firstLine)!.count++;
-            } else {
-                messageCounts.set(firstLine, {
-                    message: firstLine,
-                    count: 1,
-                    lastSeen: log.createdAt,
-                    level: log.level,
-                });
-            }
-        });
-
-        const topIssues = Array.from(messageCounts.values())
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-
-        return {
-            unresolvedCount,
-            last24hErrors,
-            prev24hErrors,
-            last24hFatal,
-            last7dTotal,
-            backendCount,
-            frontendCount,
-            timeline: Array.from(timelineMap.values()),
-            topIssues,
-        };
     }
 
     /**

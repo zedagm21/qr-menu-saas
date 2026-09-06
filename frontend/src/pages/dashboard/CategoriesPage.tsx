@@ -210,6 +210,12 @@ const CategoriesPage: React.FC = () => {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [localCats, setLocalCats] = useState<Category[]>([]);
 
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
     useEffect(() => {
         if (Array.isArray(categories) && !activeId) {
             setLocalCats([...categories].sort((a, b) => a.displayOrder - b.displayOrder));
@@ -230,12 +236,6 @@ const CategoriesPage: React.FC = () => {
             update({ id: editing, data: { translations: buildTranslations(form), isActive: form.isActive } as any }, { onSuccess: () => setEditing(null) });
         }
     };
-
-    const sensors = useSensors(
-        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);

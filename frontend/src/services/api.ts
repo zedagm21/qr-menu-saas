@@ -22,12 +22,12 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             const path = window.location.pathname;
-            // Only redirect and notify if user is currently inside dashboard routes
-            if (path.startsWith('/dashboard')) {
+            // Redirect and notify if user is currently inside protected dashboard or admin routes
+            if (path.startsWith('/dashboard') || path.startsWith('/admin')) {
                 toast.error('Session expired. Please log in again.', { id: 'session-expired' });
                 // Clean redirect to login
                 setTimeout(() => {
-                    if (window.location.pathname.startsWith('/dashboard')) {
+                    if (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/admin')) {
                         window.location.href = '/login';
                     }
                 }, 800);

@@ -37,6 +37,9 @@ export default function AdminUsersPage() {
     const { mutate: verifyEmail, isPending: isVerifying } = useVerifyUserEmail();
     const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
 
+    const users = Array.isArray(data?.data) ? data.data : [];
+    const pagination = data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 };
+
     const handleConfirmRoleChange = () => {
         if (!roleTarget) return;
         updateRole(
@@ -168,7 +171,7 @@ export default function AdminUsersPage() {
                         <div className="p-12 flex items-center justify-center">
                             <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                         </div>
-                    ) : (data?.data.length || 0) === 0 ? (
+                    ) : users.length === 0 ? (
                         <div className="p-12 text-center text-slate-400 text-xs">
                             <Users className="w-10 h-10 opacity-30 mx-auto mb-2" />
                             No users found matching your filters.
@@ -187,7 +190,7 @@ export default function AdminUsersPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/60">
-                                    {data?.data.map((u) => (
+                                    {users.map((u) => (
                                         <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
                                             {/* User info */}
                                             <td className="py-3.5 px-4">
@@ -326,10 +329,10 @@ export default function AdminUsersPage() {
                     )}
 
                     {/* Pagination */}
-                    {(data?.pagination.totalPages || 0) > 1 && (
+                    {pagination.totalPages > 1 && (
                         <div className="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                             <span>
-                                Page {data?.pagination.page} of {data?.pagination.totalPages} ({data?.pagination.total} users)
+                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} users)
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
@@ -342,8 +345,8 @@ export default function AdminUsersPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setPage(p => Math.min(p + 1, data?.pagination.totalPages || 1))}
-                                    disabled={page === data?.pagination.totalPages}
+                                    onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
+                                    disabled={page >= pagination.totalPages}
                                     className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg font-bold"
                                 >
                                     Next

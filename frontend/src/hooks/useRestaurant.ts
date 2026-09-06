@@ -3,11 +3,12 @@ import { restaurantApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
-export const useRestaurant = () => {
+export const useRestaurant = (options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: ['restaurant'],
         queryFn: restaurantApi.get,
         staleTime: 30_000,
+        ...options,
     });
 };
 

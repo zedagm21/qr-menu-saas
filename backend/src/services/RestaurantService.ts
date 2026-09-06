@@ -286,7 +286,7 @@ export class RestaurantService {
                 data: { slug: cleanSlug },
                 include: { translations: true, theme: true },
             });
-        });
+        }, { timeout: 15000, maxWait: 10000 });
 
         // Invalidate cache for both old and new slugs
         if (oldSlug) {

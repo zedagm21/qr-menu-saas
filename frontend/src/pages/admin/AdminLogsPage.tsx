@@ -40,6 +40,32 @@ export default function AdminLogsPage() {
     const [isTogglingTelegram, setIsTogglingTelegram] = useState(false);
     const [isSendingTest, setIsSendingTest] = useState(false);
 
+    const { data: metrics, refetch: refetchMetrics } = useSystemLogMetrics(autoRefreshInterval);
+    const {
+        data: logsData,
+        isLoading,
+        isFetching,
+        isError,
+        error: logsError,
+        refetch: refetchLogs,
+    } = useSystemLogs(
+        {
+            page,
+            limit: 25,
+            level: levelFilter,
+            source: sourceFilter,
+            status: statusFilter,
+            search,
+        },
+        autoRefreshInterval
+    );
+
+    const updateStatusMutation = useUpdateSystemLogStatus();
+    const purgeMutation = usePurgeSystemLogs();
+
+    const logs = Array.isArray(logsData?.data) ? logsData.data : [];
+    const pagination = logsData?.pagination || { page: 1, limit: 25, total: 0, totalPages: 1 };
+
     useEffect(() => {
         adminApi.getTelegramStatus().then(setTelegramStatus).catch(() => {});
     }, []);
@@ -70,31 +96,6 @@ export default function AdminLogsPage() {
             setIsSendingTest(false);
         }
     };
-
-    const { data: metrics, refetch: refetchMetrics } = useSystemLogMetrics(autoRefreshInterval);
-    const {
-        data: logsData,
-        isLoading,
-        isFetching,
-        refetch: refetchLogs,
-    } = useSystemLogs(
-        {
-            page,
-            limit: 25,
-            level: levelFilter,
-            source: sourceFilter,
-            status: statusFilter,
-            search,
-        },
-        autoRefreshInterval
-    );
-
-    const updateStatusMutation = useUpdateSystemLogStatus();
-    const purgeMutation = usePurgePurgeMutationWrapper();
-
-    function usePurgePurgeMutationWrapper() {
-        return usePurgeSystemLogs();
-    }
 
     const handleRefreshAll = () => {
         refetchMetrics();
@@ -344,9 +345,9 @@ export default function AdminLogsPage() {
 
                         <div className="grid grid-cols-7 gap-2 sm:gap-4 pt-4 border-t border-slate-800/80">
                             {metrics.timeline.map((day) => {
-                                const maxVal = Math.max(...metrics.timeline.map(t => t.total), 1);
-                                const heightPct = Math.max(Math.round((day.total / maxVal) * 100), 8);
-                                const isToday = day.date === new Date().toISOString().slice(0, 10);
+                                const maxVal = Math.max(...metrics.timeline.map(t => t?.total || 0), 1);
+                                const heightPct = Math.max(Math.round(((day?.total || 0) / maxVal) * 100), 8);
+                                const isToday = day?.date === new Date().toISOString().slice(0, 10);
 
                                 return (
                                     <div key={day.date} className="flex flex-col items-center">
@@ -355,12 +356,12 @@ export default function AdminLogsPage() {
                                                 style={{ height: `${heightPct}%` }}
                                                 className={cn(
                                                     'w-full max-w-[36px] rounded-xl transition-all relative group cursor-pointer flex flex-col justify-end overflow-hidden',
-                                                    day.fatal > 0 ? 'bg-gradient-to-t from-rose-600 to-rose-400' :
-                                                    day.errors > 0 ? 'bg-gradient-to-t from-amber-600 to-amber-400' :
-                                                    day.total > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' :
+                                                    (day?.fatal || 0) > 0 ? 'bg-gradient-to-t from-rose-600 to-rose-400' :
+                                                    (day?.errors || 0) > 0 ? 'bg-gradient-to-t from-amber-600 to-amber-400' :
+                                                    (day?.total || 0) > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' :
                                                     'bg-slate-800'
                                                 )}
-                                                title={`${day.date}: ${day.total} events (${day.fatal} fatal, ${day.errors} errors, ${day.warnings} warns)`}
+                                                title={`${day?.date}: ${day?.total || 0} events (${day?.fatal || 0} fatal, ${day?.errors || 0} errors, ${day?.warnings || 0} warns)`}
                                             >
                                                 {/* Tooltip on hover */}
                                                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col bg-slate-950 border border-slate-800 rounded-xl p-2 text-[10px] whitespace-nowrap shadow-xl z-20 pointer-events-none">
@@ -371,12 +372,12 @@ export default function AdminLogsPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <span className="text-xs font-black text-white mt-1">{day.total}</span>
+                                        <span className="text-xs font-black text-white mt-1">{day?.total || 0}</span>
                                         <span className={cn(
                                             'text-[10px] font-bold mt-0.5',
                                             isToday ? 'text-indigo-400' : 'text-slate-500'
                                         )}>
-                                            {new Date(day.date).toLocaleDateString([], { weekday: 'short' })}
+                                            {day?.date ? new Date(day.date).toLocaleDateString([], { weekday: 'short' }) : '—'}
                                         </span>
                                     </div>
                                 );
@@ -465,7 +466,7 @@ export default function AdminLogsPage() {
                         </div>
 
                         <span className="text-[11px] text-slate-500">
-                            Showing {logsData?.data.length || 0} of {logsData?.pagination.total || 0} logs
+                            Showing {logs.length} of {pagination.total} logs
                         </span>
                     </div>
                 </div>
@@ -476,7 +477,23 @@ export default function AdminLogsPage() {
                         <div className="p-16 flex items-center justify-center">
                             <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                         </div>
-                    ) : (logsData?.data.length || 0) === 0 ? (
+                    ) : isError ? (
+                        <div className="p-16 text-center text-slate-400 text-xs">
+                            <AlertTriangle className="w-10 h-10 text-rose-400 opacity-80 mx-auto mb-2" />
+                            <p className="font-bold text-rose-300">Failed to load system logs</p>
+                            <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+                                {(logsError as any)?.response?.data?.error || (logsError as any)?.message || 'Database connection may be re-synchronizing. Please try refreshing.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleRefreshAll}
+                                className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold transition-all text-xs inline-flex items-center gap-2 cursor-pointer"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Retry Query</span>
+                            </button>
+                        </div>
+                    ) : logs.length === 0 ? (
                         <div className="p-16 text-center text-slate-400 text-xs">
                             <CheckCircle2 className="w-10 h-10 text-emerald-400 opacity-60 mx-auto mb-2" />
                             <p className="font-bold text-slate-300">No logs found</p>
@@ -496,7 +513,7 @@ export default function AdminLogsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/60">
-                                    {logsData?.data.map((log) => {
+                                    {logs.map((log) => {
                                         return (
                                             <tr
                                                 key={log.id}
@@ -582,10 +599,10 @@ export default function AdminLogsPage() {
                                                 {/* Timestamp */}
                                                 <td className="py-3.5 px-4 whitespace-nowrap text-slate-400 text-[11px]">
                                                     <p className="font-medium text-slate-200">
-                                                        {new Date(log.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                        {log.createdAt ? new Date(log.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '—'}
                                                     </p>
                                                     <p className="text-[10px] text-slate-500">
-                                                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                        {log.createdAt ? new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
                                                     </p>
                                                 </td>
 
@@ -618,10 +635,10 @@ export default function AdminLogsPage() {
                     )}
 
                     {/* Pagination */}
-                    {(logsData?.pagination.totalPages || 0) > 1 && (
+                    {pagination.totalPages > 1 && (
                         <div className="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                             <span>
-                                Page {logsData?.pagination.page} of {logsData?.pagination.totalPages} ({logsData?.pagination.total} events)
+                                Page {pagination.page} of {pagination.totalPages} ({pagination.total} events)
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
@@ -634,8 +651,8 @@ export default function AdminLogsPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setPage(p => Math.min(p + 1, logsData?.pagination.totalPages || 1))}
-                                    disabled={page === logsData?.pagination.totalPages}
+                                    onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
+                                    disabled={page >= pagination.totalPages}
                                     className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg font-bold"
                                 >
                                     Next
@@ -752,7 +769,7 @@ export default function AdminLogsPage() {
                         {/* Modal Footer Actions */}
                         <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
                             <span className="text-[11px] text-slate-500">
-                                Recorded at {new Date(selectedLog.createdAt).toLocaleString()}
+                                Recorded at {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString() : '—'}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button

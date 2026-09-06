@@ -65,8 +65,12 @@ export default function AdminOverviewPage() {
         );
     };
 
+    const signupTimeline = Array.isArray(data?.signupTimeline) ? data.signupTimeline : [];
+    const topRestaurants = Array.isArray(data?.topRestaurants) ? data.topRestaurants : [];
+    const recentAudits = Array.isArray(data?.recentAudits) ? data.recentAudits : [];
+
     const maxTimelineSignups = Math.max(
-        ...(data?.signupTimeline.map(s => Math.max(s.users, s.restaurants)) || [1]),
+        ...(signupTimeline.map(s => Math.max(s?.users || 0, s?.restaurants || 0))),
         1
     );
 
@@ -238,9 +242,9 @@ export default function AdminOverviewPage() {
 
                     {/* Timeline Bars */}
                     <div className="flex items-end gap-1.5 sm:gap-2 h-44 pt-6 pb-2 px-2 overflow-x-auto">
-                        {data?.signupTimeline.map((item) => {
-                            const userHeight = maxTimelineSignups > 0 ? Math.max((item.users / maxTimelineSignups) * 100, 4) : 4;
-                            const restHeight = maxTimelineSignups > 0 ? Math.max((item.restaurants / maxTimelineSignups) * 100, 4) : 4;
+                        {signupTimeline.map((item) => {
+                            const userHeight = maxTimelineSignups > 0 ? Math.max(((item?.users || 0) / maxTimelineSignups) * 100, 4) : 4;
+                            const restHeight = maxTimelineSignups > 0 ? Math.max(((item?.restaurants || 0) / maxTimelineSignups) * 100, 4) : 4;
 
                             return (
                                 <div
@@ -297,13 +301,13 @@ export default function AdminOverviewPage() {
                                 </Link>
                             </div>
 
-                            {(data?.topRestaurants.length || 0) === 0 ? (
+                            {topRestaurants.length === 0 ? (
                                 <div className="py-10 text-center text-xs text-slate-500">
                                     No diner scans recorded across restaurants yet
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-800/80">
-                                    {data?.topRestaurants.map((restaurant, idx) => (
+                                    {topRestaurants.map((restaurant, idx) => (
                                         <div key={restaurant.id} className="py-3 flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <span className={cn(
@@ -365,13 +369,13 @@ export default function AdminOverviewPage() {
                                 </Link>
                             </div>
 
-                            {(data?.recentAudits.length || 0) === 0 ? (
+                            {recentAudits.length === 0 ? (
                                 <div className="py-10 text-center text-xs text-slate-500">
                                     No audit activities recorded yet
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-800/80">
-                                    {data?.recentAudits.map((log) => (
+                                    {recentAudits.map((log) => (
                                         <div key={log.id} className="py-3 flex items-center justify-between gap-4 text-xs">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <span className={cn(

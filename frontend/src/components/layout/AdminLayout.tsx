@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useSystemLogMetrics } from '../../hooks/useSystemLogs';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import { cn } from '../../lib/utils';
 
 const adminNavItems = [
@@ -183,7 +184,9 @@ export const AdminLayout: React.FC = () => {
                 {/* Page Content */}
                 <main className="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6 lg:p-8">
                     <div className="max-w-7xl mx-auto min-h-full">
-                        <Outlet />
+                        <ErrorBoundary>
+                            <Outlet />
+                        </ErrorBoundary>
                     </div>
                 </main>
             </div>
