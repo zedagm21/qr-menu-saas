@@ -401,23 +401,30 @@ export class AnalyticsService {
     }
 
     /**
-     * Generate CSV export for analytics
+     * Generate CSV export for analytics safely escaped against formula injection
      */
     async generateCsv(restaurantId: string, timeframe: string = '30d'): Promise<string> {
         const data = await this.getRestaurantAnalytics(restaurantId, timeframe);
         const rows: string[] = [];
 
+        const sanitizeCell = (value: string | number | null | undefined): string => {
+            if (value === null || value === undefined) return '""';
+            const str = String(value);
+            const safeStr = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+            return `"${safeStr.replace(/"/g, '""')}"`;
+        };
+
         rows.push('--- OURMENU RESTAURANT ANALYTICS REPORT ---');
-        rows.push(`Timeframe,${timeframe}`);
-        rows.push(`Generated At,${new Date().toISOString()}`);
+        rows.push(`Timeframe,${sanitizeCell(timeframe)}`);
+        rows.push(`Generated At,${sanitizeCell(new Date().toISOString())}`);
         rows.push('');
 
         rows.push('--- SUMMARY ---');
         rows.push(`Total Scans,${data.summary.totalScans}`);
         rows.push(`Unique Diners,${data.summary.uniqueDiners}`);
         rows.push(`Growth %,${data.summary.scanGrowthPct}%`);
-        rows.push(`Peak Dining Rush,${data.summary.peakHour}`);
-        rows.push(`Top Performing Dish,${data.summary.topDish}`);
+        rows.push(`Peak Dining Rush,${sanitizeCell(data.summary.peakHour)}`);
+        rows.push(`Top Performing Dish,${sanitizeCell(data.summary.topDish)}`);
         rows.push(`Profile Views,${data.summary.profileViews}`);
         rows.push(`Social Media Clicks,${data.summary.totalSocialClicks}`);
         rows.push(`Phone Call Clicks,${data.summary.callClicks}`);
@@ -427,28 +434,28 @@ export class AnalyticsService {
         rows.push('--- TIMELINE ACTIVITY ---');
         rows.push('Period,Scans');
         data.timeline.forEach((t) => {
-            rows.push(`"${t.label}",${t.count}`);
+            rows.push(`${sanitizeCell(t.label)},${t.count}`);
         });
         rows.push('');
 
         rows.push('--- DAY OF WEEK DINING RHYTHM ---');
         rows.push('Day,Scans,Share %');
         data.dayOfWeek.forEach((d) => {
-            rows.push(`"${d.day}",${d.count},${d.pct}%`);
+            rows.push(`${sanitizeCell(d.day)},${d.count},${d.pct}%`);
         });
         rows.push('');
 
         rows.push('--- TOP PERFORMING DISHES ---');
         rows.push('Dish Name,Category,Price,Clicks,Popularity Share %');
         data.topDishes.forEach((d) => {
-            rows.push(`"${d.name}","${d.category}",${d.price},${d.clicks},${d.sharePct}%`);
+            rows.push(`${sanitizeCell(d.name)},${sanitizeCell(d.category)},${d.price},${d.clicks},${d.sharePct}%`);
         });
         rows.push('');
 
         rows.push('--- TOP CUSTOMER SEARCHES ---');
         rows.push('Search Query,Count');
         data.topSearches.forEach((s) => {
-            rows.push(`"${s.query}",${s.count}`);
+            rows.push(`${sanitizeCell(s.query)},${s.count}`);
         });
 
         return rows.join('\n');

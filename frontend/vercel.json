@@ -5,6 +5,10 @@
       "destination": "https://qrmenu-backend-gpsh.onrender.com/api/:path*"
     },
     {
+      "source": "/uploads/:path*",
+      "destination": "https://qrmenu-backend-gpsh.onrender.com/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

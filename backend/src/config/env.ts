@@ -1,14 +1,17 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
 export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     cookieSecret: process.env.COOKIE_SECRET || 'change-cookie-secret',
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-    appUrl: process.env.APP_URL || 'http://localhost:5173',
+    frontendUrl,
+    appUrl,
     uploadDir: process.env.UPLOAD_DIR || './uploads',
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10),
     isProduction: process.env.NODE_ENV === 'production',
@@ -34,3 +37,13 @@ export const config = {
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
 };
+
+// ─── Production Fail-Fast Validation ──────────────────────────────────────────
+if (config.isProduction) {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim() === 'change-me-in-production') {
+        throw new Error(
+            'FATAL SECURITY CONFIGURATION: JWT_SECRET environment variable must be set to a secure, random string in production.'
+        );
+    }
+}
+

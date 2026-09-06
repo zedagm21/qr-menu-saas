@@ -60,9 +60,9 @@ export const proxyImage = async (req: Request, res: Response, next: NextFunction
                 return;
             }
 
-            const contentType = stream.headers['content-type'] || '';
-            if (!contentType.startsWith('image/')) {
-                res.status(400).json({ error: 'Target URL did not return a valid image' });
+            const contentType = (stream.headers['content-type'] || '').toLowerCase();
+            if (!contentType.startsWith('image/') || contentType.includes('svg') || contentType.includes('xml')) {
+                res.status(400).json({ error: 'Target URL did not return a valid raster image. SVGs are not allowed.' });
                 return;
             }
 

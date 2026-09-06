@@ -233,3 +233,39 @@ describe('Security: Error Handler & Production Data Protection', () => {
         }
     });
 });
+
+describe('Security: Image Proxy SVG XSS Filtering', () => {
+    it('should reject SVG and XML content types from upstream images', () => {
+        const isAllowedRasterImage = (contentType: string): boolean => {
+            const ct = contentType.toLowerCase();
+            return ct.startsWith('image/') && !ct.includes('svg') && !ct.includes('xml');
+        };
+
+        assert.strictEqual(isAllowedRasterImage('image/jpeg'), true);
+        assert.strictEqual(isAllowedRasterImage('image/png'), true);
+        assert.strictEqual(isAllowedRasterImage('image/webp'), true);
+        assert.strictEqual(isAllowedRasterImage('image/avif'), true);
+        assert.strictEqual(isAllowedRasterImage('image/svg+xml'), false);
+        assert.strictEqual(isAllowedRasterImage('application/xml'), false);
+        assert.strictEqual(isAllowedRasterImage('text/html'), false);
+    });
+});
+
+describe('Security: CSV Formula Injection Escaping', () => {
+    it('should sanitize cells starting with formula triggers and escape quotes', () => {
+        const sanitizeCell = (value: string | number | null | undefined): string => {
+            if (value === null || value === undefined) return '""';
+            const str = String(value);
+            const safeStr = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+            return `"${safeStr.replace(/"/g, '""')}"`;
+        };
+
+        assert.strictEqual(sanitizeCell('=SUM(1+1)'), '"\'=SUM(1+1)"');
+        assert.strictEqual(sanitizeCell('+12345'), '"\'+12345"');
+        assert.strictEqual(sanitizeCell('-100'), '"\'-100"');
+        assert.strictEqual(sanitizeCell('@channel'), '"\'@channel"');
+        assert.strictEqual(sanitizeCell('Normal "Special" Dish'), '"Normal ""Special"" Dish"');
+        assert.strictEqual(sanitizeCell(null), '""');
+    });
+});
+

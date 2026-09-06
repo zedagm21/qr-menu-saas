@@ -130,6 +130,22 @@ export class AuthService {
         }
 
         if (!user.emailVerificationOtp || user.emailVerificationOtp !== otp.trim()) {
+            const nextAttempts = (user.resendAttemptsCount || 0) + 1;
+            if (nextAttempts >= 5) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        emailVerificationOtp: null,
+                        emailVerificationExpires: null,
+                        resendAttemptsCount: 0,
+                    },
+                });
+                throw createError('Too many failed attempts. This code has been invalidated. Please request a new one.', 400);
+            }
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { resendAttemptsCount: nextAttempts },
+            });
             throw createError('Invalid verification code. Please check your code and try again.', 400);
         }
 
@@ -541,6 +557,22 @@ export class AuthService {
         }
 
         if (!user.resetPasswordOtp || user.resetPasswordOtp !== input.otp.trim()) {
+            const nextAttempts = (user.resetPasswordAttempts || 0) + 1;
+            if (nextAttempts >= 5) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        resetPasswordOtp: null,
+                        resetPasswordExpires: null,
+                        resetPasswordAttempts: 0,
+                    },
+                });
+                throw createError('Too many failed attempts. This reset code has been invalidated. Please request a new one.', 400);
+            }
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { resetPasswordAttempts: nextAttempts },
+            });
             throw createError('Invalid reset code. Please check the code and try again.', 400);
         }
 

@@ -16,3 +16,20 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: APP_URL
+        sync: false
+      - key: COOKIE_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_SECRET_ACCESS_KEY
+        sync: false
+      - key: CLOUDFLARE_R2_BUCKET_NAME
+        sync: false
+      - key: CLOUDFLARE_R2_PUBLIC_URL
+        sync: false
+
