@@ -22,6 +22,7 @@ import {
     getSystemLogMetrics,
     updateSystemLogStatus,
     batchUpdateSystemLogStatus,
+    resolveSystemLogType,
     purgeSystemLogs,
 } from '../controllers/systemLogController';
 
@@ -55,6 +56,7 @@ router.get('/logs', getSystemLogs);
 router.get('/logs/metrics', getSystemLogMetrics);
 router.patch('/logs/:id/status', updateSystemLogStatus);
 router.post('/logs/batch-status', batchUpdateSystemLogStatus);
+router.post('/logs/resolve-type', resolveSystemLogType);
 router.delete('/logs/purge', purgeSystemLogs);
 
 export default router;

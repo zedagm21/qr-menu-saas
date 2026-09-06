@@ -440,6 +440,7 @@ export interface SystemLogMetrics {
     topIssues: {
         message: string;
         count: number;
+        unresolvedCount?: number;
         lastSeen: string;
         level: LogLevel;
     }[];

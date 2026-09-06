@@ -286,7 +286,7 @@ export class SystemLogService {
                 }),
                 prisma.systemLog.findMany({
                     where: { createdAt: { gte: sevenDaysAgo } },
-                    select: { createdAt: true, level: true, message: true },
+                    select: { createdAt: true, level: true, message: true, status: true },
                     orderBy: { createdAt: 'desc' },
                     take: 1000,
                 }),
@@ -301,7 +301,7 @@ export class SystemLogService {
             }
 
             // Aggregate top recurring errors
-            const messageCounts = new Map<string, { message: string; count: number; lastSeen: Date; level: string }>();
+            const messageCounts = new Map<string, { message: string; count: number; unresolvedCount: number; lastSeen: Date; level: string }>();
 
             recentLogs.forEach((log) => {
                 const key = log.createdAt.toISOString().slice(0, 10);
@@ -315,12 +315,16 @@ export class SystemLogService {
 
                 // Group by first line of message
                 const firstLine = log.message.split('\n')[0].slice(0, 120);
+                const isUnresolved = log.status === LogStatus.UNRESOLVED;
                 if (messageCounts.has(firstLine)) {
-                    messageCounts.get(firstLine)!.count++;
+                    const entry = messageCounts.get(firstLine)!;
+                    entry.count++;
+                    if (isUnresolved) entry.unresolvedCount++;
                 } else {
                     messageCounts.set(firstLine, {
                         message: firstLine,
                         count: 1,
+                        unresolvedCount: isUnresolved ? 1 : 0,
                         lastSeen: log.createdAt,
                         level: log.level,
                     });
@@ -328,7 +332,7 @@ export class SystemLogService {
             });
 
             const topIssues = Array.from(messageCounts.values())
-                .sort((a, b) => b.count - a.count)
+                .sort((a, b) => (b.unresolvedCount - a.unresolvedCount) || (b.count - a.count))
                 .slice(0, 5);
 
             return {
@@ -390,6 +394,62 @@ export class SystemLogService {
                 resolvedBy: status === LogStatus.RESOLVED ? adminUserId || 'admin' : null,
             },
         });
+    }
+
+    /**
+     * Resolve or ignore all occurrences of a specific error message type
+     */
+    async resolveByType(params: {
+        logId?: string;
+        message?: string;
+        status?: LogStatus;
+        adminUserId?: string;
+        matchMode?: 'exact' | 'prefix';
+    }) {
+        const targetStatus = params.status || LogStatus.RESOLVED;
+        let targetMessage = params.message?.trim();
+
+        if (params.logId && !targetMessage) {
+            const log = await prisma.systemLog.findUnique({
+                where: { id: params.logId },
+                select: { message: true },
+            });
+            if (!log) {
+                throw new Error('Log entry not found');
+            }
+            targetMessage = log.message;
+        }
+
+        if (!targetMessage) {
+            throw new Error('Message or logId is required to resolve by type');
+        }
+
+        const matchMode = params.matchMode || 'prefix';
+        const searchPattern = matchMode === 'prefix'
+            ? targetMessage.split('\n')[0].trim()
+            : targetMessage;
+
+        const where: any = {
+            status: { not: targetStatus },
+            message: matchMode === 'prefix'
+                ? { startsWith: searchPattern }
+                : { equals: searchPattern },
+        };
+
+        const result = await prisma.systemLog.updateMany({
+            where,
+            data: {
+                status: targetStatus,
+                resolvedAt: targetStatus === LogStatus.RESOLVED ? new Date() : null,
+                resolvedBy: targetStatus === LogStatus.RESOLVED ? params.adminUserId || 'admin' : null,
+            },
+        });
+
+        return {
+            count: result.count,
+            matchedPattern: searchPattern,
+            status: targetStatus,
+        };
     }
 
     /**

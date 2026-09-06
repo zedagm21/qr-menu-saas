@@ -219,6 +219,8 @@ export const systemLogsApi = {
         api.patch(`/admin/logs/${id}/status`, { status }).then(r => r.data),
     batchUpdateStatus: (ids: string[], status: string) =>
         api.post('/admin/logs/batch-status', { ids, status }).then(r => r.data),
+    resolveByType: (params: { logId?: string; message?: string; status?: string; matchMode?: 'exact' | 'prefix' }) =>
+        api.post('/admin/logs/resolve-type', params).then(r => r.data),
     purgeLogs: (params: { olderThanDays?: number; status?: string }) =>
         api.delete('/admin/logs/purge', { params }).then(r => r.data),
 };

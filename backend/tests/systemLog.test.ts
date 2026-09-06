@@ -144,3 +144,59 @@ describe('SystemLog: ErrorHandler Log Recording Interception', () => {
         }
     });
 });
+
+import prisma from '../src/config/database';
+
+describe('SystemLog: Resolve by Error Type / Signature', () => {
+    it('should resolve all unresolved logs matching an error message prefix', async () => {
+        const uniquePrefix = `TestErrSignature_${Date.now()}`;
+        const log1 = await prisma.systemLog.create({
+            data: {
+                message: `${uniquePrefix}: Same error signature\nRoute A context: detail 1`,
+                level: LogLevel.ERROR,
+                status: 'UNRESOLVED',
+            },
+        });
+        const log2 = await prisma.systemLog.create({
+            data: {
+                message: `${uniquePrefix}: Same error signature\nRoute B context: detail 2`,
+                level: LogLevel.ERROR,
+                status: 'UNRESOLVED',
+            },
+        });
+        const logDifferent = await prisma.systemLog.create({
+            data: {
+                message: `DifferentError_${Date.now()}`,
+                level: LogLevel.WARN,
+                status: 'UNRESOLVED',
+            },
+        });
+
+        try {
+            const result = await systemLogService.resolveByType({
+                logId: log1.id,
+                adminUserId: 'admin_test_runner',
+            });
+
+            assert.strictEqual(result.count, 2);
+            assert.strictEqual(result.status, 'RESOLVED');
+
+            // Verify both logs are now RESOLVED
+            const updatedLogs = await prisma.systemLog.findMany({
+                where: { id: { in: [log1.id, log2.id] } },
+            });
+            assert.strictEqual(updatedLogs.every(l => l.status === 'RESOLVED'), true);
+            assert.strictEqual(updatedLogs.every(l => l.resolvedBy === 'admin_test_runner'), true);
+
+            // Verify the different error is still UNRESOLVED
+            const checkDifferent = await prisma.systemLog.findUnique({
+                where: { id: logDifferent.id },
+            });
+            assert.strictEqual(checkDifferent?.status, 'UNRESOLVED');
+        } finally {
+            await prisma.systemLog.deleteMany({
+                where: { id: { in: [log1.id, log2.id, logDifferent.id] } },
+            });
+        }
+    });
+});

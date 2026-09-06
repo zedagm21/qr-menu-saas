@@ -77,6 +77,33 @@ export const batchUpdateSystemLogStatus = async (req: Request, res: Response, ne
     }
 };
 
+export const resolveSystemLogType = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { logId, message, status, matchMode } = req.body;
+
+        if (!logId && !message) {
+            throw createError('Either logId or message is required', 400);
+        }
+
+        if (status && !['UNRESOLVED', 'RESOLVED', 'IGNORED'].includes(status)) {
+            throw createError('Invalid status value', 400);
+        }
+
+        const adminUserId = (req as any).user?.id || (req as any).user?.email || 'admin';
+        const result = await systemLogService.resolveByType({
+            logId,
+            message,
+            status: (status as LogStatus) || LogStatus.RESOLVED,
+            adminUserId,
+            matchMode,
+        });
+
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const purgeSystemLogs = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const olderThanDays = req.query.olderThanDays ? Number(req.query.olderThanDays) : 30;

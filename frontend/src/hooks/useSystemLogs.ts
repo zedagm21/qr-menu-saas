@@ -55,6 +55,18 @@ export const useBatchUpdateSystemLogStatus = () => {
     });
 };
 
+export const useResolveSystemLogsByType = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (params: { logId?: string; message?: string; status?: string; matchMode?: 'exact' | 'prefix' }) =>
+            systemLogsApi.resolveByType(params),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['system-logs'] });
+            qc.invalidateQueries({ queryKey: ['system-logs-metrics'] });
+        },
+    });
+};
+
 export const usePurgeSystemLogs = () => {
     const qc = useQueryClient();
     return useMutation({

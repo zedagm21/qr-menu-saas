@@ -11,6 +11,7 @@ import {
     useSystemLogs,
     useSystemLogMetrics,
     useUpdateSystemLogStatus,
+    useResolveSystemLogsByType,
     usePurgeSystemLogs,
 } from '../../hooks/useSystemLogs';
 import type { SystemLogEntry, LogLevel, LogStatus, LogSource } from '../../types';
@@ -61,6 +62,7 @@ export default function AdminLogsPage() {
     );
 
     const updateStatusMutation = useUpdateSystemLogStatus();
+    const resolveByTypeMutation = useResolveSystemLogsByType();
     const purgeMutation = usePurgeSystemLogs();
 
     const logs = Array.isArray(logsData?.data) ? logsData.data : [];
@@ -111,6 +113,27 @@ export default function AdminLogsPage() {
             }
         } catch (err: any) {
             toast.error(err?.response?.data?.error || 'Failed to update status');
+        }
+    };
+
+    const handleResolveAllOfType = async (logOrMessage: SystemLogEntry | string) => {
+        const isEntry = typeof logOrMessage !== 'string';
+        const targetMessage = isEntry ? logOrMessage.message : logOrMessage;
+        const logId = isEntry ? logOrMessage.id : undefined;
+
+        try {
+            const res = await resolveByTypeMutation.mutateAsync({
+                logId,
+                message: targetMessage,
+                status: 'RESOLVED',
+                matchMode: 'prefix',
+            });
+            toast.success(`Resolved ${res.count} matching event${res.count === 1 ? '' : 's'}`);
+            if (selectedLog && isEntry && selectedLog.id === logOrMessage.id) {
+                setSelectedLog({ ...selectedLog, status: 'RESOLVED' });
+            }
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || 'Failed to resolve occurrences');
         }
     };
 
@@ -386,6 +409,100 @@ export default function AdminLogsPage() {
                     </div>
                 )}
 
+                {/* ── Top Recurring Issues & Quick Resolution ── */}
+                {metrics?.topIssues && metrics.topIssues.length > 0 && (
+                    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-amber-400" />
+                                    Top Recurring Diagnostic Issues
+                                </h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    High-frequency error patterns detected across the platform. Resolve all occurrences in one click.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            {metrics.topIssues.map((issue, idx) => {
+                                const unresolved = issue.unresolvedCount ?? issue.count;
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700/80 transition-all flex flex-col justify-between gap-3"
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={cn(
+                                                        'px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider',
+                                                        issue.level === 'FATAL' ? 'bg-rose-600 text-white' :
+                                                        issue.level === 'ERROR' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                                                        'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                                    )}>
+                                                        {issue.level}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-slate-400">
+                                                        {issue.count} event{issue.count === 1 ? '' : 's'}
+                                                    </span>
+                                                </div>
+
+                                                {unresolved > 0 ? (
+                                                    <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold">
+                                                        {unresolved} unresolved
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                                                        All resolved
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-xs font-semibold text-slate-200 line-clamp-2 leading-relaxed" title={issue.message}>
+                                                {issue.message}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
+                                            <span className="text-[10px] text-slate-500">
+                                                Last seen {issue.lastSeen ? new Date(issue.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                            </span>
+
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearch(issue.message);
+                                                        setPage(1);
+                                                    }}
+                                                    className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
+                                                    title="Filter table by this error message"
+                                                >
+                                                    <Filter className="w-3 h-3" />
+                                                    <span>Filter</span>
+                                                </button>
+
+                                                {unresolved > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleResolveAllOfType(issue.message)}
+                                                        disabled={resolveByTypeMutation.isPending}
+                                                        className="px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-emerald-600 hover:bg-emerald-500 shadow-sm shadow-emerald-600/30 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" />
+                                                        <span>Resolve All ({unresolved})</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Filter & Search Toolbar ── */}
                 <div className="bg-slate-900/90 p-4 rounded-3xl border border-slate-800 space-y-3">
                     <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
@@ -609,18 +726,30 @@ export default function AdminLogsPage() {
                                                 {/* Quick Action Button */}
                                                 <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                                     {log.status === 'UNRESOLVED' ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleToggleStatus(log, 'RESOLVED')}
-                                                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all"
-                                                        >
-                                                            Resolve
-                                                        </button>
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleStatus(log, 'RESOLVED')}
+                                                                className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer"
+                                                                title="Resolve this single log"
+                                                            >
+                                                                Resolve
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleResolveAllOfType(log)}
+                                                                disabled={resolveByTypeMutation.isPending}
+                                                                className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50"
+                                                                title="Resolve all occurrences of this error across the system"
+                                                            >
+                                                                Resolve All
+                                                            </button>
+                                                        </div>
                                                     ) : (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleToggleStatus(log, 'UNRESOLVED')}
-                                                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-bold transition-all"
+                                                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-bold transition-all cursor-pointer"
                                                         >
                                                             Reopen
                                                         </button>
@@ -767,11 +896,24 @@ export default function AdminLogsPage() {
                         </div>
 
                         {/* Modal Footer Actions */}
-                        <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
+                        <div className="p-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/50">
                             <span className="text-[11px] text-slate-500">
                                 Recorded at {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString() : '—'}
                             </span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                {selectedLog.status === 'UNRESOLVED' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleResolveAllOfType(selectedLog)}
+                                        disabled={resolveByTypeMutation.isPending}
+                                        className="px-4 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                                        title="Mark all events sharing this error signature as resolved"
+                                    >
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        <span>Resolve All Occurrences</span>
+                                    </button>
+                                )}
+
                                 <button
                                     type="button"
                                     onClick={() => handleToggleStatus(selectedLog, selectedLog.status === 'RESOLVED' ? 'UNRESOLVED' : 'RESOLVED')}
@@ -782,7 +924,7 @@ export default function AdminLogsPage() {
                                             : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/30'
                                     )}
                                 >
-                                    {selectedLog.status === 'RESOLVED' ? 'Reopen Issue' : 'Mark as Resolved'}
+                                    {selectedLog.status === 'RESOLVED' ? 'Reopen Issue' : 'Resolve This Log'}
                                 </button>
                                 <button
                                     type="button"
