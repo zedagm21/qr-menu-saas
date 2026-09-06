@@ -91,24 +91,24 @@ const RegisterPage: React.FC = () => {
                 {/* Subtle Ambient Radial Glow */}
                 <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,119,6,0.18),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,119,6,0.15),rgba(0,0,0,0))] blur-3xl opacity-75" />
 
-                {/* Top Utility Header */}
-                <header className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                {/* Top Utility Header - Corner to Corner */}
+                <header className="relative z-10 w-full px-6 sm:px-10 lg:px-12 py-5 sm:py-6 flex items-center justify-between">
                     <Link
                         to="/"
-                        className="inline-flex items-center gap-2.5 text-neutral-900 dark:text-neutral-100 font-bold text-lg tracking-tight hover:opacity-85 transition-opacity"
+                        className="inline-flex items-center gap-3 text-neutral-900 dark:text-neutral-100 font-bold text-xl tracking-tight hover:opacity-85 transition-opacity"
                     >
-                        <div className="w-9 h-9 bg-gradient-to-tr from-amber-600 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+                        <div className="w-10 h-10 bg-gradient-to-tr from-amber-600 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-amber-500/20">
                             <QrCode className="w-5 h-5" />
                         </div>
-                        <span>OurMenu</span>
+                        <span className="text-xl font-bold tracking-tight">OurMenu</span>
                     </Link>
 
                     {/* Controls: Language & Theme */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             type="button"
                             onClick={toggleLanguage}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors shadow-sm cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors shadow-sm cursor-pointer"
                         >
                             <Globe className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500" />
                             <span>{i18n.language === 'am' ? 'English' : 'አማርኛ'}</span>
@@ -118,7 +118,7 @@ const RegisterPage: React.FC = () => {
                             type="button"
                             onClick={toggleTheme}
                             aria-label="Toggle theme"
-                            className="p-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors shadow-sm cursor-pointer"
+                            className="p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors shadow-sm cursor-pointer"
                         >
                             {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-neutral-600" />}
                         </button>
@@ -126,23 +126,20 @@ const RegisterPage: React.FC = () => {
                 </header>
 
                 {/* Main Auth Container */}
-                <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-10">
-                    <div className="w-full max-w-md">
-                        {/* Heading */}
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-13 h-13 bg-gradient-to-tr from-amber-600 to-amber-500 rounded-2xl shadow-lg shadow-amber-500/25 mb-3 text-white">
-                                <QrCode className="w-6 h-6" />
-                            </div>
+                <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-10 w-full my-auto">
+                    <div className="w-full max-w-[440px] sm:max-w-[460px]">
+                        {/* Heading without redundant center icon */}
+                        <div className="text-center mb-6 sm:mb-8">
                             <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">
                                 {t('auth.registerTitle')}
                             </h1>
-                            <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-[14px]">
+                            <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-sm sm:text-[15px]">
                                 {t('auth.registerSubtitle')}
                             </p>
                         </div>
 
                         {/* Register Card */}
-                        <div className="bg-white/95 dark:bg-neutral-900/90 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-xl shadow-neutral-950/5 dark:shadow-black/40 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 transition-all duration-200">
+                        <div className="bg-white/90 dark:bg-neutral-900/85 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-xl shadow-neutral-950/5 dark:shadow-black/40 rounded-3xl border border-neutral-200/80 dark:border-neutral-800/80 transition-all duration-200">
                             {apiError && (
                                 <div className="mb-5 px-4 py-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 rounded-xl text-sm text-red-700 dark:text-red-300 flex items-start gap-2.5 animate-fade-in">
                                     <span className="shrink-0 mt-0.5 inline-block w-2 h-2 rounded-full bg-red-500" />
@@ -287,13 +284,16 @@ const RegisterPage: React.FC = () => {
                     </div>
                 </main>
 
-                {/* Footer */}
-                <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600 flex flex-wrap items-center justify-center gap-3">
-                    <span>&copy; {new Date().getFullYear()} OurMenu. All rights reserved.</span>
-                    <span>•</span>
-                    <Link to="/terms" className="hover:text-amber-500 transition-colors">Terms of Service</Link>
-                    <span>•</span>
-                    <Link to="/privacy" className="hover:text-amber-500 transition-colors">Privacy Policy</Link>
+                {/* Footer - Corner to Corner */}
+                <footer className="relative z-10 w-full px-6 sm:px-10 lg:px-12 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+                    <div>
+                        &copy; {new Date().getFullYear()} OurMenu. All rights reserved.
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <Link to="/terms" className="hover:text-amber-600 dark:hover:text-amber-500 transition-colors">Terms of Service</Link>
+                        <span>•</span>
+                        <Link to="/privacy" className="hover:text-amber-600 dark:hover:text-amber-500 transition-colors">Privacy Policy</Link>
+                    </div>
                 </footer>
             </div>
         </>
