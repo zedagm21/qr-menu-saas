@@ -13,6 +13,13 @@ import {
     getBroadcast,
     setBroadcast,
 } from '../controllers/adminController';
+import {
+    getSystemLogs,
+    getSystemLogMetrics,
+    updateSystemLogStatus,
+    batchUpdateSystemLogStatus,
+    purgeSystemLogs,
+} from '../controllers/systemLogController';
 
 const router = Router();
 
@@ -32,5 +39,12 @@ router.delete('/users/:id', deleteUser);
 router.get('/activity', listAuditLogs);
 router.get('/broadcast', getBroadcast);
 router.post('/broadcast', setBroadcast);
+
+// System diagnostics, error log tracking and reporting
+router.get('/logs', getSystemLogs);
+router.get('/logs/metrics', getSystemLogMetrics);
+router.patch('/logs/:id/status', updateSystemLogStatus);
+router.post('/logs/batch-status', batchUpdateSystemLogStatus);
+router.delete('/logs/purge', purgeSystemLogs);
 
 export default router;

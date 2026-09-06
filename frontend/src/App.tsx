@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Auth pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -26,6 +27,7 @@ const AdminOverviewPage = lazy(() => import('./pages/admin/AdminOverviewPage'));
 const AdminRestaurantsPage = lazy(() => import('./pages/admin/AdminRestaurantsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminActivityPage = lazy(() => import('./pages/admin/AdminActivityPage'));
+const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'));
 
 // Public
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
@@ -39,8 +41,9 @@ const PageLoader = () => (
 );
 
 const App: React.FC = () => (
-    <Suspense fallback={<PageLoader />}>
-        <Routes>
+    <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* Public */}
             <Route path="/r/:slug" element={<PublicMenuPage />} />
             <Route path="/camera-upload" element={<CameraUploadPage />} />
@@ -72,6 +75,7 @@ const App: React.FC = () => (
                     <Route path="restaurants" element={<AdminRestaurantsPage />} />
                     <Route path="users" element={<AdminUsersPage />} />
                     <Route path="activity" element={<AdminActivityPage />} />
+                    <Route path="logs" element={<AdminLogsPage />} />
                 </Route>
             </Route>
 
@@ -84,6 +88,7 @@ const App: React.FC = () => (
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     </Suspense>
+</ErrorBoundary>
 );
 
 export default App;

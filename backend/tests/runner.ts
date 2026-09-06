@@ -3,3 +3,4 @@ import './security.test';
 import './slug.test';
 import './menu.test';
 import './auth.test';
+import './systemLog.test';

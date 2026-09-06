@@ -386,3 +386,63 @@ export interface BroadcastAnnouncement {
     updatedAt: string;
 }
 
+// ─── Platform System Diagnostics & Error Logs ─────────────────────────────────
+export type LogLevel = 'FATAL' | 'ERROR' | 'WARN' | 'INFO';
+export type LogSource = 'BACKEND' | 'FRONTEND';
+export type LogStatus = 'UNRESOLVED' | 'RESOLVED' | 'IGNORED';
+
+export interface SystemLogEntry {
+    id: string;
+    level: LogLevel;
+    source: LogSource;
+    status: LogStatus;
+    message: string;
+    stack: string | null;
+    statusCode: number | null;
+    path: string | null;
+    method: string | null;
+    endpoint: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    metadata: any;
+    userId: string | null;
+    restaurantId: string | null;
+    resolvedAt: string | null;
+    resolvedBy: string | null;
+    createdAt: string;
+    user?: {
+        id: string;
+        name: string;
+        email: string;
+    } | null;
+    restaurant?: {
+        id: string;
+        name: string;
+        slug: string;
+    } | null;
+}
+
+export interface SystemLogMetrics {
+    unresolvedCount: number;
+    last24hErrors: number;
+    prev24hErrors: number;
+    last24hFatal: number;
+    last7dTotal: number;
+    backendCount: number;
+    frontendCount: number;
+    timeline: {
+        date: string;
+        total: number;
+        errors: number;
+        fatal: number;
+        warnings: number;
+    }[];
+    topIssues: {
+        message: string;
+        count: number;
+        lastSeen: string;
+        level: LogLevel;
+    }[];
+}
+
+

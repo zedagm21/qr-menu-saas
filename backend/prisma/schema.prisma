@@ -53,6 +53,24 @@ enum InteractionType {
   DIRECTIONS_CLICK
 }
 
+enum LogLevel {
+  FATAL
+  ERROR
+  WARN
+  INFO
+}
+
+enum LogSource {
+  BACKEND
+  FRONTEND
+}
+
+enum LogStatus {
+  UNRESOLVED
+  RESOLVED
+  IGNORED
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -74,6 +92,7 @@ model User {
   restaurantId             String?
   restaurant               Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
   auditLogs                AuditLog[]
+  systemLogs               SystemLog[]
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 
@@ -114,6 +133,7 @@ model Restaurant {
   searchQueries       SearchQueryLog[]
   profileInteractions ProfileInteraction[]
   auditLogs           AuditLog[]
+  systemLogs          SystemLog[]
   slugAliases         RestaurantSlugAlias[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -331,3 +351,34 @@ model BroadcastAnnouncement {
 
   @@map("broadcast_announcements")
 }
+
+// ─── Platform System & Operational Diagnostics Log ───────────────────────────
+model SystemLog {
+  id           String     @id @default(cuid())
+  level        LogLevel   @default(ERROR)
+  source       LogSource  @default(BACKEND)
+  status       LogStatus  @default(UNRESOLVED)
+  message      String
+  stack        String?    @db.Text
+  statusCode   Int?
+  path         String?
+  method       String?
+  endpoint     String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([level, createdAt])
+  @@index([status, createdAt])
+  @@index([source, createdAt])
+  @@map("system_logs")
+}
+

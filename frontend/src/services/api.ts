@@ -177,6 +177,27 @@ export const adminApi = {
         api.post('/admin/broadcast', data).then(r => r.data),
 };
 
+// ─── Platform System Diagnostics & Logs ───────────────────────────────────────
+export const systemLogsApi = {
+    getLogs: (params: {
+        page?: number;
+        limit?: number;
+        level?: string;
+        source?: string;
+        status?: string;
+        search?: string;
+        startDate?: string;
+        endDate?: string;
+    }) => api.get('/admin/logs', { params }).then(r => r.data),
+    getMetrics: () => api.get('/admin/logs/metrics').then(r => r.data),
+    updateStatus: (id: string, status: string) =>
+        api.patch(`/admin/logs/${id}/status`, { status }).then(r => r.data),
+    batchUpdateStatus: (ids: string[], status: string) =>
+        api.post('/admin/logs/batch-status', { ids, status }).then(r => r.data),
+    purgeLogs: (params: { olderThanDays?: number; status?: string }) =>
+        api.delete('/admin/logs/purge', { params }).then(r => r.data),
+};
+
 // ─── Global Broadcast Announcement ────────────────────────────────────────────
 export const broadcastApi = {
     getActive: () => api.get('/broadcast/active').then(r => r.data),

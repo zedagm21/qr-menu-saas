@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { LogLevel, LogSource } from '@prisma/client';
+import { systemLogService } from '../services/SystemLogService';
 
 export interface AppError extends Error {
     statusCode?: number;
@@ -9,7 +11,7 @@ export interface AppError extends Error {
 
 export const errorHandler = (
     err: any,
-    _req: Request,
+    req: Request,
     res: Response,
     _next: NextFunction
 ): void => {
@@ -33,6 +35,28 @@ export const errorHandler = (
         console.error('Error:', err);
     } else if (isUnexpected) {
         console.error('Unhandled server error:', err);
+    }
+
+    if (isUnexpected) {
+        systemLogService.recordLog({
+            level: statusCode >= 500 ? LogLevel.FATAL : LogLevel.ERROR,
+            source: LogSource.BACKEND,
+            message: err?.message || 'Internal server error',
+            stack: err?.stack || null,
+            statusCode,
+            path: req?.originalUrl || req?.url || null,
+            method: req?.method || null,
+            ipAddress: req?.ip || null,
+            userAgent: typeof req?.get === 'function' ? req.get('user-agent') || null : null,
+            userId: (req as any)?.user?.id || null,
+            restaurantId: (req as any)?.user?.restaurantId || null,
+            metadata: {
+                query: req?.query,
+                params: req?.params,
+                body: req?.body,
+                errorName: err?.name,
+            },
+        }).catch(() => {});
     }
 
     res.status(statusCode).json({

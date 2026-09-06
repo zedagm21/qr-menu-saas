@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as publicController from '../controllers/publicController';
+import { reportClientError } from '../controllers/systemLogController';
 import { publicRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
@@ -16,6 +17,9 @@ router.post('/restaurants/:slug/scan', publicController.recordPublicScan);
 router.post('/restaurants/:slug/item-click', publicController.recordPublicItemClick);
 router.post('/restaurants/:slug/search', publicController.recordPublicSearch);
 router.post('/restaurants/:slug/interaction', publicController.recordPublicInteraction);
+
+// ─── Client Error Telemetry ──────────────────────────────────────────────────
+router.post('/report-error', reportClientError);
 
 export default router;
 

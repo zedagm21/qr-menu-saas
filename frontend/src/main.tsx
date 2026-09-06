@@ -9,8 +9,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DashboardThemeProvider } from './contexts/DashboardThemeContext';
 import App from './App';
 import { registerSW } from 'virtual:pwa-register';
+import { initGlobalTelemetry } from './lib/telemetry';
 import './i18n';
 import './styles/globals.css';
+
+// Initialize global crash and unhandled promise telemetry
+initGlobalTelemetry();
 
 // Automatically register service worker for offline caching and PWA functionality
 registerSW({ immediate: true });
