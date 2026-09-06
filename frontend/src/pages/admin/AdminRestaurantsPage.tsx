@@ -8,6 +8,8 @@ import {
     SlidersHorizontal, CheckCircle2, ChevronRight, X,
     Phone, Mail, MessageSquare, CreditCard, Sparkles
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAdminRestaurants, useUpdateRestaurantAccess, useDeleteRestaurant } from '../../hooks/useAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -118,9 +120,14 @@ export default function AdminRestaurantsPage() {
         );
     };
 
-    const handleImpersonate = (r: AdminRestaurantItem) => {
+    const queryClient = useQueryClient();
+    const { refreshAuth } = useAuth();
+
+    const handleImpersonate = async (r: AdminRestaurantItem) => {
         localStorage.setItem('admin_impersonating_restaurant_id', r.id);
         localStorage.setItem('admin_impersonating_restaurant_name', r.name);
+        queryClient.clear();
+        await refreshAuth();
         toast.success(`👑 Entering "${r.name}" dashboard in Admin Mode`, { icon: '👑' });
         navigate('/dashboard');
     };
@@ -522,42 +529,120 @@ export default function AdminRestaurantsPage() {
                                 ))}
                             </div>
 
-                            {/* Subscription Expiration Extension */}
-                            <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
+                            {/* Subscription Expiration & Duration Controls */}
+                            <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 space-y-3">
                                 <div className="flex items-center justify-between text-xs">
                                     <span className="font-bold text-neutral-600 dark:text-neutral-400">Current Expiry:</span>
-                                    <span className="font-mono text-neutral-800 dark:text-neutral-200 font-bold">
-                                        {modalExpiresAt ? new Date(modalExpiresAt).toLocaleDateString() : 'Never (Unlimited)'}
-                                    </span>
+                                    {modalExpiresAt ? (
+                                        (() => {
+                                            const expDate = new Date(modalExpiresAt);
+                                            const isExpired = expDate < new Date();
+                                            const daysLeft = Math.ceil((expDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                                            return isExpired ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black uppercase bg-rose-500/20 text-rose-500 border border-rose-500/30">
+                                                    ⚠️ Expired ({expDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })})
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                                    Active until {expDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ({daysLeft}d left)
+                                                </span>
+                                            );
+                                        })()
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                            ✨ Lifetime Access (Unlimited)
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                    <span className="text-[11px] text-neutral-400 self-center mr-1">Extend:</span>
-                                    {[
-                                        { label: '+14 Days', days: 14 },
-                                        { label: '+30 Days', days: 30 },
-                                        { label: '+90 Days', days: 90 },
-                                        { label: '+1 Year', days: 365 },
-                                    ].map((ext) => (
+
+                                {/* Set Duration from Today */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                                        Set Access Duration (from Today)
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
                                         <button
-                                            key={ext.label}
                                             type="button"
                                             onClick={() => {
-                                                const base = modalExpiresAt ? new Date(modalExpiresAt) : new Date();
-                                                const newDate = new Date(base.getTime() + ext.days * 24 * 60 * 60 * 1000);
-                                                setModalExpiresAt(newDate.toISOString());
+                                                const d = new Date();
+                                                d.setDate(d.getDate() + 180);
+                                                setModalExpiresAt(d.toISOString());
                                             }}
-                                            className="px-2 py-1 rounded-lg text-[11px] font-bold bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+                                            className={cn(
+                                                'py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer',
+                                                modalExpiresAt && Math.abs(Math.ceil((new Date(modalExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) - 180) <= 2
+                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-black ring-1 ring-indigo-500'
+                                                    : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
+                                            )}
                                         >
-                                            {ext.label}
+                                            6 Months
                                         </button>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalExpiresAt(null)}
-                                        className="px-2 py-1 rounded-lg text-[11px] font-bold text-rose-500 hover:bg-rose-500/10 transition-colors"
-                                    >
-                                        Clear Expiry
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const d = new Date();
+                                                d.setFullYear(d.getFullYear() + 1);
+                                                setModalExpiresAt(d.toISOString());
+                                            }}
+                                            className={cn(
+                                                'py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer',
+                                                modalExpiresAt && Math.abs(Math.ceil((new Date(modalExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) - 365) <= 2
+                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-black ring-1 ring-indigo-500'
+                                                    : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
+                                            )}
+                                        >
+                                            1 Year
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setModalExpiresAt(null)}
+                                            className={cn(
+                                                'py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer',
+                                                modalExpiresAt === null
+                                                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black ring-1 ring-emerald-500'
+                                                    : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
+                                            )}
+                                        >
+                                            Lifetime
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Extend Active Expiry */}
+                                <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                        Extend Expiry
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const base = modalExpiresAt && new Date(modalExpiresAt) > new Date()
+                                                    ? new Date(modalExpiresAt)
+                                                    : new Date();
+                                                const nextDate = new Date(base);
+                                                nextDate.setDate(nextDate.getDate() + 180);
+                                                setModalExpiresAt(nextDate.toISOString());
+                                            }}
+                                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-neutral-100 hover:bg-indigo-500/10 hover:text-indigo-500 dark:bg-neutral-800 dark:hover:bg-indigo-500/20 text-neutral-700 dark:text-neutral-300 transition-colors border border-neutral-200 dark:border-neutral-700 cursor-pointer"
+                                        >
+                                            + Extend 6 Months
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const base = modalExpiresAt && new Date(modalExpiresAt) > new Date()
+                                                    ? new Date(modalExpiresAt)
+                                                    : new Date();
+                                                const nextDate = new Date(base);
+                                                nextDate.setFullYear(nextDate.getFullYear() + 1);
+                                                setModalExpiresAt(nextDate.toISOString());
+                                            }}
+                                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-neutral-100 hover:bg-indigo-500/10 hover:text-indigo-500 dark:bg-neutral-800 dark:hover:bg-indigo-500/20 text-neutral-700 dark:text-neutral-300 transition-colors border border-neutral-200 dark:border-neutral-700 cursor-pointer"
+                                        >
+                                            + Extend 1 Year
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

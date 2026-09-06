@@ -4,14 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { ShieldAlert, AlertTriangle, ArrowLeft, Megaphone, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useActiveBroadcast } from '../../hooks/useAdmin';
+import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { cn } from '../../lib/utils';
 
 export const DashboardLayout: React.FC = () => {
     const { t } = useTranslation();
-    const { isAuthenticated, isLoading, restaurant, user } = useAuth();
+    const { isAuthenticated, isLoading, restaurant, user, refreshAuth } = useAuth();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const [impersonatingName, setImpersonatingName] = useState<string | null>(null);
     const { data: activeBroadcast } = useActiveBroadcast();
@@ -42,10 +44,12 @@ export const DashboardLayout: React.FC = () => {
         }
     }, []);
 
-    const handleExitImpersonation = () => {
+    const handleExitImpersonation = async () => {
         localStorage.removeItem('admin_impersonating_restaurant_id');
         localStorage.removeItem('admin_impersonating_restaurant_name');
         setImpersonatingName(null);
+        queryClient.clear();
+        await refreshAuth();
         navigate('/admin/restaurants');
     };
 

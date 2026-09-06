@@ -15,6 +15,7 @@
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio",
+    "db:backup": "ts-node scripts/dbBackup.ts",
     "make:admin": "ts-node scripts/makeAdmin.ts"
   },
   "keywords": [],

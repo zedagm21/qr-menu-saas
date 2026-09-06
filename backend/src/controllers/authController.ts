@@ -11,6 +11,7 @@ import {
     resetPasswordSchema,
 } from '../validators/auth';
 import { config } from '../config/env';
+import prisma from '../config/database';
 
 const cookieOptions = {
     httpOnly: true,
@@ -90,6 +91,18 @@ export const logout = (_req: Request, res: Response): void => {
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const result = await authService.getMe(req.user!.userId);
+
+        // If an admin is impersonating another restaurant, return the target restaurant's profile
+        if (req.user?.role === 'ADMIN' && req.user.restaurantId && req.user.restaurantId !== result.user.restaurantId) {
+            const impersonated = await prisma.restaurant.findUnique({
+                where: { id: req.user.restaurantId },
+                include: { translations: true, theme: true },
+            });
+            if (impersonated) {
+                result.restaurant = impersonated;
+            }
+        }
+
         res.json(result);
     } catch (error) {
         next(error);

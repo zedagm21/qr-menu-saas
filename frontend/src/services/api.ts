@@ -7,6 +7,15 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
+// ─── Global Request Interceptor for Admin Impersonation ───────────────────────
+api.interceptors.request.use((reqConfig) => {
+    const impersonatedId = localStorage.getItem('admin_impersonating_restaurant_id');
+    if (impersonatedId) {
+        reqConfig.headers['X-Impersonate-Restaurant-Id'] = impersonatedId;
+    }
+    return reqConfig;
+});
+
 // ─── Global Response Interceptor for Auth Expiry ─────────────────────────────
 api.interceptors.response.use(
     (response) => response,

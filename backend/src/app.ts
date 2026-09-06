@@ -15,6 +15,7 @@ import uploadSessionRoutes from './routes/uploadSessionRoutes';
 import adminRoutes from './routes/admin';
 import analyticsRoutes from './routes/analytics';
 import { adminService } from './services/AdminService';
+import { BackupService } from './services/BackupService';
 
 const app = express();
 
@@ -49,7 +50,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Impersonate-Restaurant-Id'],
 }));
 
 app.use(rateLimit({
@@ -116,6 +117,9 @@ app.listen(config.port, () => {
     console.log(`🚀 Server running on http://localhost:${config.port}`);
     console.log(`📂 Uploads directory: ${uploadDir}`);
     console.log(`🌍 Frontend: ${config.frontendUrl}`);
+
+    // Initialize automated daily database backup to Cloudflare R2
+    BackupService.startDailyBackupScheduler();
 });
 
 export default app;

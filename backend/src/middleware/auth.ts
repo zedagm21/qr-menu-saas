@@ -29,6 +29,15 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     try {
         const payload = jwt.verify(token, config.jwtSecret) as AuthPayload;
         req.user = payload;
+
+        // Allow platform Super Admins to manage/impersonate another restaurant
+        if (req.user.role === 'ADMIN') {
+            const impersonateHeader = req.headers['x-impersonate-restaurant-id'];
+            if (typeof impersonateHeader === 'string' && impersonateHeader.trim()) {
+                req.user.restaurantId = impersonateHeader.trim();
+            }
+        }
+
         next();
     } catch {
         res.status(401).json({ error: 'Invalid or expired token' });
