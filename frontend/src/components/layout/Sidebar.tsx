@@ -17,8 +17,8 @@ const navItems = [
     { to: '/dashboard/restaurant', icon: Store, labelKey: 'nav.restaurant' },
     { to: '/dashboard/categories', icon: List, labelKey: 'nav.categories' },
     { to: '/dashboard/menu', icon: UtensilsCrossed, labelKey: 'nav.menu' },
-    { to: '/dashboard/qr', icon: QrCode, labelKey: 'nav.qr' },
     { to: '/dashboard/customize', icon: Palette, labelKey: 'nav.customize' },
+    { to: '/dashboard/qr', icon: QrCode, labelKey: 'nav.qr' },
     { to: '/dashboard/settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 
