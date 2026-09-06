@@ -322,7 +322,9 @@ export class AdminService {
             where: { id: restaurantId },
         });
 
-        await publicMenuService.invalidateCache(restaurant.slug);
+        if (restaurant.slug) {
+            await publicMenuService.invalidateCache(restaurant.slug);
+        }
 
         await auditService.logAction({
             action: 'RESTAURANT_DELETED',

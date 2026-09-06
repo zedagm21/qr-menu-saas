@@ -28,9 +28,8 @@ export class AuthService {
         }
 
         const passwordHash = await bcrypt.hash(input.password, 12);
-        const restaurantName = input.restaurantName?.trim() || 'My Restaurant';
-        const baseSlug = generateSlug(restaurantName);
-        const slug = await ensureUniqueSlug(baseSlug);
+        const restaurantName = input.restaurantName?.trim() || '';
+        const slug = restaurantName ? await ensureUniqueSlug(generateSlug(restaurantName)) : null;
 
         // Generate 6-digit OTP code and 15-minute expiration
         const otp = crypto.randomInt(100000, 999999).toString();
@@ -42,7 +41,7 @@ export class AuthService {
                 data: {
                     name: restaurantName,
                     slug,
-                    translations: {
+                    translations: restaurantName ? {
                         create: [
                             {
                                 language: 'EN',
@@ -52,7 +51,7 @@ export class AuthService {
                                 city: null,
                             },
                         ],
-                    },
+                    } : undefined,
                     theme: {
                         create: {
                             primaryColor: '#D97706',
@@ -347,28 +346,16 @@ export class AuthService {
                 });
             }
         } else {
-            // Brand new user: Create User + placeholder Restaurant in transaction
+            // Brand new user: Create User + uninitialized Restaurant in transaction
             isNewUser = true;
-            const restaurantName = 'My Restaurant';
-            const baseSlug = generateSlug(restaurantName);
-            const slug = await ensureUniqueSlug(baseSlug);
+            const restaurantName = '';
+            const slug = null;
 
             const result = await prisma.$transaction(async (tx) => {
                 const restaurant = await tx.restaurant.create({
                     data: {
                         name: restaurantName,
                         slug,
-                        translations: {
-                            create: [
-                                {
-                                    language: 'EN',
-                                    name: restaurantName,
-                                    description: null,
-                                    address: null,
-                                    city: null,
-                                },
-                            ],
-                        },
                         theme: {
                             create: {
                                 primaryColor: '#D97706',

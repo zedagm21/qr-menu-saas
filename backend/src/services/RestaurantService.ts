@@ -21,7 +21,8 @@ export class RestaurantService {
         return restaurant;
     }
 
-    isPlaceholderSlug(slug: string, name?: string | null): boolean {
+    isPlaceholderSlug(slug?: string | null, name?: string | null): boolean {
+        if (!slug) return true;
         return /^my-restaurant(-\d+)?$/i.test(slug) || (name?.trim().toLowerCase() === 'my restaurant');
     }
 
@@ -46,9 +47,9 @@ export class RestaurantService {
         if (candidateName) {
             slugUpdate.name = candidateName;
 
-            // ONLY if currently using an initial placeholder ('my-restaurant-*'),
+            // ONLY if currently unassigned or using an initial placeholder ('my-restaurant-*'),
             // transition cleanly to their first real restaurant name without creating an alias!
-            if (this.isPlaceholderSlug(existingRestaurant.slug, existingRestaurant.name)) {
+            if (!existingRestaurant.slug || this.isPlaceholderSlug(existingRestaurant.slug, existingRestaurant.name)) {
                 if (candidateName.toLowerCase() !== 'my restaurant') {
                     const baseSlug = generateSlug(candidateName);
                     const cleanSlug = await ensureUniqueSlug(baseSlug, restaurantId);
@@ -223,14 +224,31 @@ export class RestaurantService {
         }
 
         const oldSlug = existingRestaurant.slug;
-        const isPlaceholder = this.isPlaceholderSlug(oldSlug, existingRestaurant.name);
+        const isPlaceholder = !oldSlug || this.isPlaceholderSlug(oldSlug, existingRestaurant.name);
 
         const updated = await prisma.$transaction(async (tx) => {
-            // If the old slug was NOT a placeholder, save it to aliases so previous QR codes redirect
-            if (!isPlaceholder) {
+            // If the old slug was valid and NOT a placeholder, preserve it as an alias (max 3, FIFO discard)
+            if (oldSlug && !isPlaceholder) {
+                const existingAliases = await tx.restaurantSlugAlias.findMany({
+                    where: { restaurantId },
+                    orderBy: { createdAt: 'asc' },
+                });
+
+                // Filter out cleanSlug (which is becoming the new active slug) and oldSlug (to be updated/created)
+                const otherAliases = existingAliases.filter(a => a.oldSlug !== cleanSlug && a.oldSlug !== oldSlug);
+
+                // Enforce max 3 aliases: if adding oldSlug exceeds 3, delete the oldest alias(es)
+                if (otherAliases.length >= 3) {
+                    const discardCount = otherAliases.length - 3 + 1;
+                    const toDiscard = otherAliases.slice(0, discardCount);
+                    await tx.restaurantSlugAlias.deleteMany({
+                        where: { id: { in: toDiscard.map(a => a.id) } },
+                    });
+                }
+
                 await tx.restaurantSlugAlias.upsert({
                     where: { oldSlug },
-                    update: { restaurantId },
+                    update: { restaurantId, createdAt: new Date() },
                     create: { restaurantId, oldSlug },
                 });
             }
@@ -248,7 +266,9 @@ export class RestaurantService {
         });
 
         // Invalidate cache for both old and new slugs
-        publicMenuService.invalidateCache(oldSlug).catch(() => {});
+        if (oldSlug) {
+            publicMenuService.invalidateCache(oldSlug).catch(() => {});
+        }
         publicMenuService.invalidateCache(cleanSlug).catch(() => {});
 
         return updated;

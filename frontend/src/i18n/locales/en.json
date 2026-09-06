@@ -161,6 +161,7 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back",
+    "operations_subtitle": "Digital menu & operations overview",
     "overview": "Overview",
     "total_items": "Total Items",
     "total_categories": "Categories",

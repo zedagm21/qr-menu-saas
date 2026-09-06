@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 import {
     LayoutDashboard, Store, List, UtensilsCrossed,
     QrCode, Palette, Settings, LogOut, ChevronLeft,
-    ChevronRight, ExternalLink, BarChart3, ShieldCheck
+    ChevronRight, ExternalLink, BarChart3, ShieldCheck, Lock
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRestaurant } from '../../hooks/useRestaurant';
 import { cn } from '../../lib/utils';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
@@ -23,7 +24,11 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
     const { t } = useTranslation();
-    const { user, restaurant, logout } = useAuth();
+    const { user, restaurant: authRestaurant, logout } = useAuth();
+    const { data: liveRestaurant } = useRestaurant();
+    const restaurant = liveRestaurant || authRestaurant;
+    const isSetupNeeded = user?.role !== 'ADMIN' && (!restaurant?.slug || !restaurant?.name?.trim());
+
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -65,16 +70,20 @@ export const Sidebar: React.FC = () => {
                         {restaurant.logoUrl ? (
                             <img
                                 src={restaurant.logoUrl}
-                                alt={restaurant.name}
+                                alt={restaurant.name || 'Restaurant'}
                                 className="w-8 h-8 rounded-lg object-cover flex-shrink-0 ring-2 ring-[color:var(--color-brand-500)]/20"
                             />
                         ) : (
                             <div className="w-8 h-8 bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 rounded-lg flex items-center justify-center flex-shrink-0 ring-2 ring-[color:var(--color-brand-500)]/20">
-                                <span className="text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] font-bold text-xs">{restaurant.name[0]}</span>
+                                <span className="text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] font-bold text-xs">
+                                    {(restaurant.name && restaurant.name[0]) ? restaurant.name[0] : '🍽️'}
+                                </span>
                             </div>
                         )}
                         <div className="min-w-0">
-                            <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{restaurant.name}</p>
+                            <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">
+                                {restaurant.name || t('restaurant.setup_title', { defaultValue: 'Set Restaurant Name' })}
+                            </p>
                             <span className={cn(
                                 'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
                                 restaurant.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
@@ -88,26 +97,41 @@ export const Sidebar: React.FC = () => {
 
             {/* Nav */}
             <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-                {navItems.map(({ to, icon: Icon, labelKey, end }) => (
-                    <NavLink
-                        key={to}
-                        to={to}
-                        end={end}
-                        className={({ isActive }) =>
-                            cn(
-                                'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors duration-150',
-                                collapsed ? 'justify-center' : '',
-                                isActive
-                                    ? 'bg-gradient-to-r from-[color:var(--color-brand-50)] to-transparent dark:from-[color:var(--color-brand-500)]/10 dark:to-transparent border-l-[3px] border-[color:var(--color-brand-500)] text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] font-semibold rounded-r-lg'
-                                    : 'text-neutral-600 font-medium dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50 rounded-lg'
-                            )
-                        }
-                        title={collapsed ? t(labelKey) : undefined}
-                    >
-                        <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                        {!collapsed && <span>{t(labelKey)}</span>}
-                    </NavLink>
-                ))}
+                {navItems.map(({ to, icon: Icon, labelKey, end }) => {
+                    const isLocked = isSetupNeeded && to !== '/dashboard/restaurant';
+                    return (
+                        <NavLink
+                            key={to}
+                            to={isLocked ? '#' : to}
+                            end={end}
+                            onClick={(e) => {
+                                if (isLocked) {
+                                    e.preventDefault();
+                                }
+                            }}
+                            className={({ isActive }) =>
+                                cn(
+                                    'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors duration-150',
+                                    collapsed ? 'justify-center' : '',
+                                    isLocked
+                                        ? 'opacity-40 cursor-not-allowed text-neutral-400 dark:text-neutral-600 hover:bg-transparent'
+                                        : isActive
+                                            ? 'bg-gradient-to-r from-[color:var(--color-brand-50)] to-transparent dark:from-[color:var(--color-brand-500)]/10 dark:to-transparent border-l-[3px] border-[color:var(--color-brand-500)] text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] font-semibold rounded-r-lg'
+                                            : 'text-neutral-600 font-medium dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-50 rounded-lg'
+                                )
+                            }
+                            title={isLocked ? t('nav.locked_setup_first', { defaultValue: 'Set up restaurant name to unlock' }) : (collapsed ? t(labelKey) : undefined)}
+                        >
+                            <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                            {!collapsed && (
+                                <div className="flex items-center justify-between flex-1 min-w-0">
+                                    <span className="truncate">{t(labelKey)}</span>
+                                    {isLocked && <Lock className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0 ml-1.5" />}
+                                </div>
+                            )}
+                        </NavLink>
+                    );
+                })}
             </nav>
 
             {/* Platform Admin Switcher */}
@@ -129,7 +153,7 @@ export const Sidebar: React.FC = () => {
             )}
 
             {/* View Menu button */}
-            {restaurant && (
+            {restaurant?.slug && (
                 <div className={cn('px-3 pb-2', collapsed && 'flex justify-center')}>
                     <a
                         href={`/r/${restaurant.slug}`}

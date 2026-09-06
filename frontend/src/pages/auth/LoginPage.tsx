@@ -71,7 +71,12 @@ const LoginPage: React.FC = () => {
             if (result?.user?.role === 'ADMIN') {
                 navigate('/admin');
             } else {
-                navigate('/dashboard');
+                const isSetupNeeded = !result?.restaurant?.slug || !result?.restaurant?.name?.trim();
+                if (isSetupNeeded) {
+                    navigate('/dashboard/restaurant');
+                } else {
+                    navigate('/dashboard');
+                }
             }
         } catch (err: any) {
             const resData = err?.response?.data;
@@ -92,11 +97,14 @@ const LoginPage: React.FC = () => {
             const result = await googleAuth(credential);
             if (result?.user?.role === 'ADMIN') {
                 navigate('/admin');
-            } else if (result.isNewUser) {
-                toast.success(t('auth.google_welcome_new', { defaultValue: 'Welcome! Complete your restaurant profile.' }));
-                navigate('/dashboard/restaurant');
             } else {
-                navigate('/dashboard');
+                const isSetupNeeded = result.isNewUser || !result?.restaurant?.slug || !result?.restaurant?.name?.trim();
+                if (isSetupNeeded) {
+                    toast.success(t('auth.google_welcome_new', { defaultValue: 'Welcome! Complete your restaurant profile.' }));
+                    navigate('/dashboard/restaurant');
+                } else {
+                    navigate('/dashboard');
+                }
             }
         } catch (err: any) {
             setApiError(err?.response?.data?.error || t('errors.generic', { defaultValue: 'Google sign in failed.' }));

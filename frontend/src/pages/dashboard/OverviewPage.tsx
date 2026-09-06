@@ -115,12 +115,14 @@ export default function OverviewPage() {
 
             <div className="min-h-full bg-neutral-50/50 dark:bg-transparent p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-8 transition-colors duration-200">
 
-                {/* ── Welcome header ── */}
+                {/* ── Restaurant Overview Header ── */}
                 <div className="animate-fade-in-up delay-0">
                     <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight leading-tight">
-                        {t('dashboard.welcome')}, {user?.name?.split(' ')[0]}
+                        {restaurant?.name || t('nav.overview', { defaultValue: 'Overview' })}
                     </h1>
-                    <p className="text-[15px] font-medium text-neutral-500 dark:text-neutral-400 mt-1">{restaurant?.name}</p>
+                    <p className="text-[15px] font-medium text-neutral-500 dark:text-neutral-400 mt-1">
+                        {t('dashboard.operations_subtitle', { defaultValue: 'Digital menu & operations overview' })}
+                    </p>
                 </div>
 
                 {/* ── Hero Status Card ── */}

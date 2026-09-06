@@ -15,9 +15,10 @@ export class PublicMenuService {
                 select: { slug: true, slugAliases: { select: { oldSlug: true } } },
             });
             if (r) {
-                slug = r.slug;
-                publicMenuCache.invalidatePrefix(`restaurant:${slug}`);
-                publicMenuCache.invalidatePrefix(`menu:${slug}`);
+                if (r.slug) {
+                    publicMenuCache.invalidatePrefix(`restaurant:${r.slug}`);
+                    publicMenuCache.invalidatePrefix(`menu:${r.slug}`);
+                }
                 for (const alias of r.slugAliases) {
                     publicMenuCache.invalidatePrefix(`restaurant:${alias.oldSlug}`);
                     publicMenuCache.invalidatePrefix(`menu:${alias.oldSlug}`);

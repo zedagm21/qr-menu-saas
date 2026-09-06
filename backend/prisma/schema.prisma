@@ -101,8 +101,8 @@ model User {
 
 model Restaurant {
   id                  String               @id @default(cuid())
-  name                String
-  slug                String               @unique
+  name                String               @default("")
+  slug                String?              @unique
   description         String?
   logoUrl             String?
   coverImageUrl       String?

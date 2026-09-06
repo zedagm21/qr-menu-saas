@@ -161,6 +161,7 @@
   "dashboard": {
     "title": "ማስተዳደሪያ",
     "welcome": "እንኳን ደህና መጡ",
+    "operations_subtitle": "የዲጂታል ምግብ ዝርዝር እና የስራ እንቅስቃሴ ማጠቃለያ",
     "overview": "አጠቃላይ እይታ",
     "total_items": "ጠቅላላ ምግቦች",
     "total_categories": "ምድቦች",

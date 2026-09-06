@@ -247,6 +247,16 @@ const RestaurantPage: React.FC = () => {
 
     const logoTimer = useRef<ReturnType<typeof setTimeout>>();
     const coverTimer = useRef<ReturnType<typeof setTimeout>>();
+    const nameInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        if (restaurant && !restaurant.slug) {
+            const timer = setTimeout(() => {
+                nameInputRef.current?.focus();
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [restaurant?.slug]);
 
     useEffect(() => {
         if (restaurant) {
@@ -490,11 +500,26 @@ const RestaurantPage: React.FC = () => {
             <Helmet><title>{t('restaurant.title')} — OurMenu</title></Helmet>
             <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 lg:p-10 max-w-4xl mx-auto pb-24 lg:pb-12 transition-colors duration-200">
 
+                {/* ── Initial Setup Banner ── */}
+                {!restaurant?.slug && (
+                    <div className="animate-fade-in mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 flex items-start gap-3.5 shadow-xs">
+                        <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="font-bold text-sm sm:text-base text-amber-900 dark:text-amber-200">
+                                {t('restaurant.setup_welcome_title', { defaultValue: '👋 Welcome to OurMenu! Set up your restaurant name first' })}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/90 mt-1 leading-relaxed">
+                                {t('restaurant.setup_welcome_desc', { defaultValue: 'Please give your restaurant a name and click "Save Changes" below to activate your digital menu, start adding categories and dishes, and generate your custom QR code.' })}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Page header ── */}
                 <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('restaurant.title')}</h1>
-                        {restaurant?.slug && (
+                        {restaurant?.slug ? (
                             <div className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-2 flex-wrap">
                                 <span className="flex items-center gap-1.5 font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">
                                     <Globe className="w-3.5 h-3.5" />
@@ -503,7 +528,7 @@ const RestaurantPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setNewSlugInput(restaurant.slug);
+                                        setNewSlugInput(restaurant.slug || '');
                                         setShowSlugModal(true);
                                     }}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors cursor-pointer border border-neutral-200/80 dark:border-neutral-700"
@@ -512,6 +537,11 @@ const RestaurantPage: React.FC = () => {
                                     <Pencil className="w-3 h-3 text-[color:var(--color-brand-500)]" />
                                     <span>{t('restaurant.edit_handle', { defaultValue: 'Change Handle' })}</span>
                                 </button>
+                            </div>
+                        ) : (
+                            <div className="text-[13px] text-amber-700 dark:text-amber-400 mt-1 flex items-center gap-1.5 font-medium">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <span>{t('restaurant.handle_auto_generated', { defaultValue: 'Menu URL handle will be generated when you save your restaurant name' })}</span>
                             </div>
                         )}
                     </div>
@@ -522,7 +552,7 @@ const RestaurantPage: React.FC = () => {
                                 : t('status.draft')
                             }
                         </Badge>
-                        {restaurant && (
+                        {restaurant?.slug && (
                             <a href={`/r/${restaurant.slug}`} target="_blank" rel="noopener noreferrer">
                                 <Button variant="outline" size="sm" className="h-10 hover:-translate-y-0.5 transition-transform dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800" icon={<Eye className="w-4 h-4" />}>
                                     {t('nav.viewMenu')}
@@ -624,9 +654,17 @@ const RestaurantPage: React.FC = () => {
                         {/* Localized fields */}
                         {tab === 'en' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 animate-fade-in">
-                                {/* Restaurant Name (EN) */}
                                 <div className="md:col-span-2 relative">
-                                    <input {...register('nameEn')} type="text" placeholder={t("restaurant.ph_name_en")} className={fieldCls} />
+                                    <input
+                                        {...register('nameEn')}
+                                        ref={(e) => {
+                                            register('nameEn').ref(e);
+                                            nameInputRef.current = e;
+                                        }}
+                                        type="text"
+                                        placeholder={t("restaurant.ph_name_en")}
+                                        className={cn(fieldCls, !restaurant?.slug && 'ring-2 ring-amber-500/60 dark:ring-amber-400/60 border-amber-500')}
+                                    />
                                     <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
                                         {t('restaurant.name_en')} <span className="text-red-500">*</span>
                                     </label>

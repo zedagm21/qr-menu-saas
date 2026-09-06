@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -236,22 +237,46 @@ export default function QRPage() {
                             <Button
                                 variant="outline"
                                 onClick={handleShare}
+                                disabled={!currentSlug}
                                 className="h-10 px-4 rounded-xl border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold"
                                 icon={<Share2 className="w-4 h-4" />}
                             >
                                 {t('qr.share', { defaultValue: 'Share' })}
                             </Button>
-                            <a href={menuUrl} target="_blank" rel="noopener noreferrer">
-                                <Button
-                                    variant="outline"
-                                    className="h-10 px-4 rounded-xl border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold"
-                                    icon={<ExternalLink className="w-4 h-4" />}
-                                >
-                                    {t('qr.open_menu', { defaultValue: 'Live Menu' })}
-                                </Button>
-                            </a>
+                            {currentSlug && (
+                                <a href={menuUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button
+                                        variant="outline"
+                                        className="h-10 px-4 rounded-xl border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold"
+                                        icon={<ExternalLink className="w-4 h-4" />}
+                                    >
+                                        {t('qr.open_menu', { defaultValue: 'Live Menu' })}
+                                    </Button>
+                                </a>
+                            )}
                         </div>
                     </div>
+
+                    {!currentSlug && (
+                        <div className="p-6 sm:p-7 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
+                            <div className="flex items-start gap-3.5">
+                                <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div>
+                                    <h3 className="font-bold text-base text-amber-900 dark:text-amber-200">
+                                        {t('qr.unconfigured_title', { defaultValue: 'Restaurant Name Required' })}
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/90 mt-1 leading-relaxed">
+                                        {t('qr.unconfigured_desc', { defaultValue: 'Please set up your restaurant name first to generate your custom menu URL handle and download QR codes.' })}
+                                    </p>
+                                </div>
+                            </div>
+                            <Link to="/dashboard/restaurant">
+                                <Button variant="primary" size="sm" className="shrink-0 font-bold">
+                                    {t('restaurant.setup_title', { defaultValue: 'Set Restaurant Name' })}
+                                </Button>
+                            </Link>
+                        </div>
+                    )}
 
                     {isLoading ? (
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

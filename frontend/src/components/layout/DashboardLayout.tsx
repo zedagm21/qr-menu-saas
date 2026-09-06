@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, AlertTriangle, ArrowLeft, Megaphone, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRestaurant } from '../../hooks/useRestaurant';
 import { useActiveBroadcast } from '../../hooks/useAdmin';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
@@ -68,7 +69,16 @@ export const DashboardLayout: React.FC = () => {
         );
     }
 
+    const location = useLocation();
+    const { data: liveRestaurant } = useRestaurant();
+    const currentRestaurant = liveRestaurant || restaurant;
+    const isSetupNeeded = user?.role !== 'ADMIN' && (!currentRestaurant?.slug || !currentRestaurant?.name?.trim());
+
     if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+    if (isSetupNeeded && location.pathname !== '/dashboard/restaurant') {
+        return <Navigate to="/dashboard/restaurant" replace />;
+    }
 
     return (
         <div className="flex h-[100dvh] bg-[#fdfdfd] dark:bg-transparent overflow-hidden selection:bg-[color:var(--color-brand-50)] selection:text-[color:var(--color-brand-900)] dark:selection:bg-[color:var(--color-brand-500)]/30 dark:selection:text-[color:var(--color-brand-100)]">

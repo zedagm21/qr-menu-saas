@@ -3,7 +3,8 @@ import { createError } from '../middleware/errorHandler';
 import { config } from '../config/env';
 
 export class QRService {
-    getMenuUrl(slug: string): string {
+    getMenuUrl(slug?: string | null): string {
+        if (!slug) return '';
         return `${config.appUrl}/r/${slug}`;
     }
 
