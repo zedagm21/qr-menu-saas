@@ -382,3 +382,12 @@ model SystemLog {
   @@map("system_logs")
 }
 
+// ─── Platform Key-Value Configuration & Integration Settings ──────────────────
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+

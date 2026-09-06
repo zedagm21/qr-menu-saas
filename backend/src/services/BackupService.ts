@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import zlib from 'zlib';
 import prisma from '../config/database';
 import { config } from '../config/env';
+import { TelegramBotService } from './TelegramBotService';
 
 export class BackupService {
     /**
@@ -230,8 +231,36 @@ export class BackupService {
         // Prune older backups
         await this.pruneOldBackups(s3, bucket, 30);
 
+        // Alert via Telegram
+        TelegramBotService.sendBackupAlert({
+            success: true,
+            key,
+            sizeBytes: backupBuffer.length,
+        }).catch(() => {});
+
         return key;
     }
+
+    /**
+     * Public programmatic backup routine with structured result
+     */
+    public static async createDailyDatabaseBackup(): Promise<{ success: boolean; key?: string; sizeBytes?: number; error?: string }> {
+        try {
+            const key = await this.runDatabaseBackup();
+            if (!key) {
+                return { success: false, error: 'Storage credentials missing or dump failed' };
+            }
+            return { success: true, key };
+        } catch (err: any) {
+            const errorMsg = err?.message || String(err);
+            TelegramBotService.sendBackupAlert({
+                success: false,
+                error: errorMsg,
+            }).catch(() => {});
+            return { success: false, error: errorMsg };
+        }
+    }
+
 
     /**
      * Start background daily scheduler

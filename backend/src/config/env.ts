@@ -36,6 +36,14 @@ export const config = {
         .split(',')
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
+
+    // Telegram Admin Bot & Alerts Configuration
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    telegramAdminChatIds: (process.env.TELEGRAM_ADMIN_CHAT_IDS || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || '',
 };
 
 // ─── Production Fail-Fast Validation ──────────────────────────────────────────

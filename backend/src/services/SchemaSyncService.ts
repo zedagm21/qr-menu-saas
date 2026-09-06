@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { TelegramBotService } from './TelegramBotService';
 
 export class SchemaSyncService {
     /**
@@ -94,6 +95,15 @@ export class SchemaSyncService {
                 "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT "system_logs_pkey" PRIMARY KEY ("id")
             )`,
+            `CREATE TABLE IF NOT EXISTS "platform_settings" (
+                "key" TEXT NOT NULL,
+                "value" TEXT NOT NULL,
+                "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "platform_settings_pkey" PRIMARY KEY ("key")
+            )`,
+            `INSERT INTO "platform_settings" ("key", "value", "updatedAt")
+            VALUES ('telegram_bot_enabled', 'true', CURRENT_TIMESTAMP)
+            ON CONFLICT ("key") DO NOTHING`,
 
             // ─── 3. Columns On Existing Tables ────────────────────────────────────────
             `ALTER TABLE "menu_items" ADD COLUMN IF NOT EXISTS "discountPrice" DECIMAL(10,2)`,
@@ -134,15 +144,25 @@ export class SchemaSyncService {
         ];
 
         let executedCount = 0;
+        const failedStatements: string[] = [];
         for (const statement of statements) {
             try {
                 await prisma.$executeRawUnsafe(statement);
                 executedCount++;
-            } catch (err) {
+            } catch (err: any) {
                 console.warn(`⚠️ [SchemaSyncService] Statement skipped or reported warning:`, err);
+                failedStatements.push(String(err?.message || err));
             }
+        }
+
+        if (failedStatements.length > 0) {
+            TelegramBotService.sendDeploymentAlert({
+                error: `Schema sync completed with ${failedStatements.length} warnings/failures`,
+                details: failedStatements.slice(0, 3).join('\n'),
+            }).catch(() => {});
         }
 
         console.log(`✅ [SchemaSyncService] Schema integrity verified successfully (${executedCount}/${statements.length} checks passed).`);
     }
 }
+

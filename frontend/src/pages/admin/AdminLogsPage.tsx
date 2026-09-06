@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
     AlertOctagon, Search, RefreshCw, CheckCircle2,
     Clock, Terminal, Copy, Check, Filter,
     Server, Smartphone, Trash2, ArrowUpRight,
-    AlertTriangle, ShieldAlert, Sparkles, X, ChevronRight
+    AlertTriangle, ShieldAlert, Sparkles, X, ChevronRight,
+    Send
 } from 'lucide-react';
 import {
     useSystemLogs,
@@ -14,7 +15,9 @@ import {
 } from '../../hooks/useSystemLogs';
 import type { SystemLogEntry, LogLevel, LogStatus, LogSource } from '../../types';
 import { cn } from '../../lib/utils';
+import { adminApi } from '../../services/api';
 import toast from 'react-hot-toast';
+
 
 const AUTO_REFRESH_OPTIONS = [
     { label: 'Off', value: 0 },
@@ -33,6 +36,40 @@ export default function AdminLogsPage() {
     const [copiedStack, setCopiedStack] = useState(false);
     const [showPurgeModal, setShowPurgeModal] = useState(false);
     const [purgeDays, setPurgeDays] = useState(30);
+    const [telegramStatus, setTelegramStatus] = useState<{ isConfigured: boolean; isEnabled: boolean; adminCount: number } | null>(null);
+    const [isTogglingTelegram, setIsTogglingTelegram] = useState(false);
+    const [isSendingTest, setIsSendingTest] = useState(false);
+
+    useEffect(() => {
+        adminApi.getTelegramStatus().then(setTelegramStatus).catch(() => {});
+    }, []);
+
+    const handleToggleTelegram = async () => {
+        if (!telegramStatus) return;
+        const nextVal = !telegramStatus.isEnabled;
+        setIsTogglingTelegram(true);
+        try {
+            await adminApi.toggleTelegramBot(nextVal);
+            setTelegramStatus(prev => prev ? { ...prev, isEnabled: nextVal } : null);
+            toast.success(nextVal ? 'Telegram alerts enabled' : 'Telegram alerts paused');
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || 'Failed to toggle Telegram alerts');
+        } finally {
+            setIsTogglingTelegram(false);
+        }
+    };
+
+    const handleSendTestAlert = async () => {
+        setIsSendingTest(true);
+        try {
+            await adminApi.sendTelegramTest();
+            toast.success('Test alert sent to Telegram admins!');
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || 'Failed to dispatch test alert');
+        } finally {
+            setIsSendingTest(false);
+        }
+    };
 
     const { data: metrics, refetch: refetchMetrics } = useSystemLogMetrics(autoRefreshInterval);
     const {
@@ -157,8 +194,79 @@ export default function AdminLogsPage() {
                     </div>
                 </div>
 
+                {/* ── Telegram Admin Bot Alert Control Card ── */}
+                <div className="p-4 sm:p-5 rounded-3xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center flex-shrink-0">
+                            <Send className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-sm text-white">Telegram Admin Bot & Real-Time Alerts</span>
+                                {telegramStatus?.isConfigured ? (
+                                    <span className={cn(
+                                        'px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase',
+                                        telegramStatus.isEnabled
+                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    )}>
+                                        {telegramStatus.isEnabled ? `Active (${telegramStatus.adminCount} Admin${telegramStatus.adminCount > 1 ? 's' : ''})` : 'Paused'}
+                                    </span>
+                                ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700">
+                                        Token Not Configured
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Instant push alerts for DB outages, 500 crashes, UI client errors, and 21:00 EAT nightly digest.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                        {telegramStatus?.isConfigured && (
+                            <button
+                                type="button"
+                                onClick={handleSendTestAlert}
+                                disabled={isSendingTest || !telegramStatus.isEnabled}
+                                className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Send className={cn('w-3.5 h-3.5 text-sky-400', isSendingTest && 'animate-pulse')} />
+                                <span>{isSendingTest ? 'Sending...' : 'Send Test Alert'}</span>
+                            </button>
+                        )}
+
+                        {/* Toggle Switch */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-400">
+                                {telegramStatus?.isEnabled ? 'Alerts ON' : 'Alerts OFF'}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={telegramStatus?.isEnabled ?? false}
+                                disabled={isTogglingTelegram || !telegramStatus?.isConfigured}
+                                onClick={handleToggleTelegram}
+                                className={cn(
+                                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed',
+                                    telegramStatus?.isEnabled ? 'bg-sky-600' : 'bg-slate-700'
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out',
+                                        telegramStatus?.isEnabled ? 'translate-x-5' : 'translate-x-0'
+                                    )}
+                                />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* ── KPI Problem Summary Cards ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
                     {/* Unresolved Count */}
                     <div className={cn(
                         'p-5 rounded-3xl border transition-all',

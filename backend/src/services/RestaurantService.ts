@@ -4,6 +4,7 @@ import { createError } from '../middleware/errorHandler';
 import { imageStorage } from './ImageStorageService';
 import { ImageProcessor } from './ImageProcessor';
 import { publicMenuService } from './PublicMenuService';
+import { TelegramBotService } from './TelegramBotService';
 import { generateSlug, ensureUniqueSlug } from '../utils/slug';
 import type { UpdateRestaurantInput, UpdateThemeInput } from '../validators/restaurant';
 
@@ -44,6 +45,7 @@ export class RestaurantService {
         const candidateName = enName || scalarData.name?.trim() || amName;
 
         let slugUpdate: { name?: string; slug?: string } = {};
+        let isInitialActivation = false;
         if (candidateName) {
             slugUpdate.name = candidateName;
 
@@ -54,6 +56,7 @@ export class RestaurantService {
                     const baseSlug = generateSlug(candidateName);
                     const cleanSlug = await ensureUniqueSlug(baseSlug, restaurantId);
                     slugUpdate.slug = cleanSlug;
+                    isInitialActivation = true;
                 }
             }
         }
@@ -101,8 +104,28 @@ export class RestaurantService {
             });
         });
         publicMenuService.invalidateCache(restaurantId).catch(() => {});
+
+        // If newly activated with first real name and slug, alert administrators
+        if (isInitialActivation && updated) {
+            prisma.user.findFirst({
+                where: { restaurantId },
+                select: { email: true, name: true },
+            }).then((owner) => {
+                TelegramBotService.sendSignupAlert(
+                    {
+                        id: updated.id,
+                        name: updated.name,
+                        slug: updated.slug,
+                        city: updated.city,
+                    },
+                    owner || undefined
+                ).catch(() => {});
+            }).catch(() => {});
+        }
+
         return updated;
     }
+
 
     async updateLogo(restaurantId: string, file: Express.Multer.File, oldUrl?: string | null) {
         if (!file || !file.buffer) {

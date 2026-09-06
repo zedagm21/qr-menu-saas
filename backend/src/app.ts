@@ -14,9 +14,11 @@ import publicRoutes from './routes/public';
 import uploadSessionRoutes from './routes/uploadSessionRoutes';
 import adminRoutes from './routes/admin';
 import analyticsRoutes from './routes/analytics';
+import telegramRoutes from './routes/telegram';
 import { adminService } from './services/AdminService';
 import { BackupService } from './services/BackupService';
 import { SchemaSyncService } from './services/SchemaSyncService';
+import { TelegramBotService } from './services/TelegramBotService';
 
 const app = express();
 
@@ -81,8 +83,10 @@ app.use('/api', menuRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload-sessions', uploadSessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/telegram', telegramRoutes);
 
 // ─── Broadcast announcement for authenticated dashboard ─────────────────────
+
 app.get('/api/broadcast/active', async (_req, res, next) => {
     try {
         const broadcast = await adminService.getActiveBroadcast();
@@ -124,7 +128,12 @@ app.listen(config.port, async () => {
 
     // Initialize automated daily database backup to Cloudflare R2
     BackupService.startDailyBackupScheduler();
+
+    // Initialize Telegram Admin Bot webhook and nightly performance digest
+    TelegramBotService.initWebhook(config.appUrl);
+    TelegramBotService.startNightlyScheduler();
 });
 
 export default app;
+
 

@@ -4,3 +4,5 @@ import './slug.test';
 import './menu.test';
 import './auth.test';
 import './systemLog.test';
+import './telegramBot.test';
+

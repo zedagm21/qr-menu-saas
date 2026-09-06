@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/AdminService';
+import { TelegramBotService } from '../services/TelegramBotService';
+import { config } from '../config/env';
 
 export const getOverview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -124,3 +126,50 @@ export const setBroadcast = async (req: Request, res: Response, next: NextFuncti
         next(error);
     }
 };
+
+export const getTelegramStatus = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const isConfigured = TelegramBotService.isConfigured();
+        const isEnabled = await TelegramBotService.isAlertsEnabled();
+        const adminCount = config.telegramAdminChatIds.length;
+        res.json({ isConfigured, isEnabled, adminCount });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const toggleTelegramBot = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { enabled } = req.body;
+        const updated = await TelegramBotService.setAlertsEnabled(Boolean(enabled));
+        res.json({ success: true, isEnabled: updated });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const sendTelegramTest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!TelegramBotService.isConfigured()) {
+            res.status(400).json({ error: 'Telegram bot is not configured (missing token or admin chat IDs).' });
+            return;
+        }
+
+        const adminName = (req as any).user?.name || (req as any).user?.email || 'Super Admin';
+        const timestamp = new Date().toISOString();
+        const testMessage = [
+            `🔔 <b>OURMENU TELEGRAM BOT TEST ALERT</b>`,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `<b>Status:</b> ✅ Notifications are connected!`,
+            `<b>Triggered By:</b> ${adminName}`,
+            `<b>Server Time:</b> <code>${timestamp}</code>`,
+            `\n<i>All system crashes, database outages, and client error alerts will be delivered to this chat.</i>`,
+        ].join('\n');
+
+        await TelegramBotService.broadcastToAdmins(testMessage, true);
+        res.json({ success: true, message: 'Test alert sent to all configured admin chat IDs.' });
+    } catch (error) {
+        next(error);
+    }
+};
+

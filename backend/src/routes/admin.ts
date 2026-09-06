@@ -12,7 +12,11 @@ import {
     listAuditLogs,
     getBroadcast,
     setBroadcast,
+    getTelegramStatus,
+    toggleTelegramBot,
+    sendTelegramTest,
 } from '../controllers/adminController';
+
 import {
     getSystemLogs,
     getSystemLogMetrics,
@@ -40,7 +44,13 @@ router.get('/activity', listAuditLogs);
 router.get('/broadcast', getBroadcast);
 router.post('/broadcast', setBroadcast);
 
+// Telegram Admin Bot & Alerts Control
+router.get('/telegram/status', getTelegramStatus);
+router.post('/telegram/toggle', toggleTelegramBot);
+router.post('/telegram/test', sendTelegramTest);
+
 // System diagnostics, error log tracking and reporting
+
 router.get('/logs', getSystemLogs);
 router.get('/logs/metrics', getSystemLogMetrics);
 router.patch('/logs/:id/status', updateSystemLogStatus);

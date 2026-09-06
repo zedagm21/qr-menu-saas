@@ -184,7 +184,23 @@ export const adminApi = {
     getBroadcast: () => api.get('/admin/broadcast').then(r => r.data),
     setBroadcast: (data: { title: string; message: string; type?: string; isActive?: boolean }) =>
         api.post('/admin/broadcast', data).then(r => r.data),
+    getTelegramStatus: (): Promise<{ isConfigured: boolean; isEnabled: boolean; adminCount: number }> =>
+        api.get('/admin/telegram/status').then(r => r.data),
+    toggleTelegramBot: (enabled: boolean): Promise<{ success: boolean; isEnabled: boolean }> =>
+        api.post('/admin/telegram/toggle', { enabled }).then(r => r.data),
+    sendTelegramTest: (): Promise<{ success: boolean; message: string }> =>
+        api.post('/admin/telegram/test').then(r => r.data),
 };
+
+// ─── Public Client Error Telemetry ───────────────────────────────────────────
+export const reportClientError = (data: {
+    message: string;
+    stack?: string;
+    path?: string;
+    level?: string;
+    metadata?: any;
+}) => api.post('/public/report-error', data).catch(() => {});
+
 
 // ─── Platform System Diagnostics & Logs ───────────────────────────────────────
 export const systemLogsApi = {

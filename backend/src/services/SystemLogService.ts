@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { LogLevel, LogSource, LogStatus } from '@prisma/client';
+import { TelegramBotService } from './TelegramBotService';
 
 export interface RecordLogParams {
     level?: LogLevel;
@@ -97,11 +98,57 @@ export class SystemLogService {
                     restaurantId: params.restaurantId || null,
                 },
             });
+
+            // Asynchronously trigger Telegram alert if bot is active
+            try {
+                if (params.source === LogSource.FRONTEND) {
+                    if (params.level === LogLevel.FATAL || params.level === LogLevel.ERROR) {
+                        TelegramBotService.sendClientCrashAlert({
+                            message: cleanMessage,
+                            url: cleanPath || undefined,
+                            userAgent: cleanUserAgent || undefined,
+                            userId: params.userId || undefined,
+                            stack: cleanStack || undefined,
+                        }).catch(() => {});
+                    }
+                } else {
+                    const lowerMsg = cleanMessage.toLowerCase();
+                    const isDbError =
+                        lowerMsg.includes('prisma') ||
+                        lowerMsg.includes('database') ||
+                        lowerMsg.includes('connection pool') ||
+                        lowerMsg.includes('econnrefused') ||
+                        Boolean(params.stack && params.stack.includes('PrismaClient'));
+
+                    if (isDbError) {
+                        TelegramBotService.sendDatabaseFailureAlert({
+                            message: cleanMessage,
+                            endpoint: params.path || params.endpoint || undefined,
+                            stack: cleanStack || undefined,
+                        }).catch(() => {});
+                    } else if (params.statusCode === 500 || params.level === LogLevel.FATAL) {
+                        TelegramBotService.sendErrorAlert({
+                            statusCode: params.statusCode,
+                            message: cleanMessage,
+                            path: cleanPath,
+                            method: params.method,
+                            stack: cleanStack,
+                            userId: params.userId,
+                            restaurantId: params.restaurantId,
+                            source: params.source,
+                            metadata: sanitizedMetadata,
+                        }).catch(() => {});
+                    }
+                }
+            } catch {
+                // Non-blocking
+            }
         } catch (error) {
             // Never crash caller process if system log persistence fails
             console.error('[SystemLogService] Failed to persist system log:', error);
         }
     }
+
 
     /**
      * Paginated list of system logs with comprehensive filtering
