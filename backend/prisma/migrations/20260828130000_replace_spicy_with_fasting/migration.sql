@@ -1,3 +1,3 @@
 -- AlterTable
-ALTER TABLE "menu_items" DROP COLUMN "isSpicy",
-ADD COLUMN     "isFasting" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "menu_items" DROP COLUMN IF EXISTS "isSpicy",
+ADD COLUMN IF NOT EXISTS "isFasting" BOOLEAN NOT NULL DEFAULT true;

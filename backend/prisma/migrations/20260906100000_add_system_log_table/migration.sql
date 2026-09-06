@@ -1,14 +1,26 @@
 -- CreateEnum
-CREATE TYPE "LogLevel" AS ENUM ('FATAL', 'ERROR', 'WARN', 'INFO');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LogLevel') THEN
+        CREATE TYPE "LogLevel" AS ENUM ('FATAL', 'ERROR', 'WARN', 'INFO');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "LogSource" AS ENUM ('BACKEND', 'FRONTEND');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LogSource') THEN
+        CREATE TYPE "LogSource" AS ENUM ('BACKEND', 'FRONTEND');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "LogStatus" AS ENUM ('UNRESOLVED', 'RESOLVED', 'IGNORED');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'LogStatus') THEN
+        CREATE TYPE "LogStatus" AS ENUM ('UNRESOLVED', 'RESOLVED', 'IGNORED');
+    END IF;
+END $$;
 
 -- CreateTable
-CREATE TABLE "system_logs" (
+CREATE TABLE IF NOT EXISTS "system_logs" (
     "id" TEXT NOT NULL,
     "level" "LogLevel" NOT NULL DEFAULT 'ERROR',
     "source" "LogSource" NOT NULL DEFAULT 'BACKEND',
@@ -32,19 +44,27 @@ CREATE TABLE "system_logs" (
 );
 
 -- CreateIndex
-CREATE INDEX "system_logs_createdAt_idx" ON "system_logs"("createdAt");
+CREATE INDEX IF NOT EXISTS "system_logs_createdAt_idx" ON "system_logs"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "system_logs_level_createdAt_idx" ON "system_logs"("level", "createdAt");
+CREATE INDEX IF NOT EXISTS "system_logs_level_createdAt_idx" ON "system_logs"("level", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "system_logs_status_createdAt_idx" ON "system_logs"("status", "createdAt");
+CREATE INDEX IF NOT EXISTS "system_logs_status_createdAt_idx" ON "system_logs"("status", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "system_logs_source_createdAt_idx" ON "system_logs"("source", "createdAt");
+CREATE INDEX IF NOT EXISTS "system_logs_source_createdAt_idx" ON "system_logs"("source", "createdAt");
 
 -- AddForeignKey
-ALTER TABLE "system_logs" ADD CONSTRAINT "system_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'system_logs_userId_fkey') THEN
+        ALTER TABLE "system_logs" ADD CONSTRAINT "system_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "system_logs" ADD CONSTRAINT "system_logs_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "restaurants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'system_logs_restaurantId_fkey') THEN
+        ALTER TABLE "system_logs" ADD CONSTRAINT "system_logs_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "restaurants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;

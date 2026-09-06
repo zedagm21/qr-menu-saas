@@ -16,6 +16,7 @@ import adminRoutes from './routes/admin';
 import analyticsRoutes from './routes/analytics';
 import { adminService } from './services/AdminService';
 import { BackupService } from './services/BackupService';
+import { SchemaSyncService } from './services/SchemaSyncService';
 
 const app = express();
 
@@ -113,13 +114,17 @@ app.use((err: any, _req: express.Request, res: express.Response, next: express.N
 app.use(errorHandler);
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
     console.log(`🚀 Server running on http://localhost:${config.port}`);
     console.log(`📂 Uploads directory: ${uploadDir}`);
     console.log(`🌍 Frontend: ${config.frontendUrl}`);
+
+    // Non-destructive check ensuring all required tables and columns exist
+    await SchemaSyncService.ensureSchemaIntegrity();
 
     // Initialize automated daily database backup to Cloudflare R2
     BackupService.startDailyBackupScheduler();
 });
 
 export default app;
+
