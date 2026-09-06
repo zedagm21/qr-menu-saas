@@ -38,6 +38,37 @@ export class ErrorBoundary extends Component<Props, State> {
         });
     }
 
+    private isStaleBundle = (): boolean => {
+        const msg = this.state.error?.message || '';
+        const stack = this.state.error?.stack || '';
+        return (
+            msg.includes('Rendered more hooks') ||
+            msg.includes('Rendered fewer hooks') ||
+            msg.includes('Invalid hook call') ||
+            msg.includes('Failed to fetch dynamically imported module') ||
+            msg.includes('Importing a module script failed') ||
+            stack.includes('invariant=310') ||
+            stack.includes('invariant=300') ||
+            stack.includes('error-decoder.html?invariant=310')
+        );
+    };
+
+    private handleClearCacheAndReload = async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(r => r.unregister()));
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+        } catch {
+            // ignore
+        }
+        window.location.href = window.location.pathname + '?refresh=' + Date.now();
+    };
+
     private handleReset = () => {
         if (this.props.onReset) {
             this.props.onReset();
@@ -74,6 +105,14 @@ export class ErrorBoundary extends Component<Props, State> {
                         <p className="text-xs text-slate-400 mb-5 leading-relaxed">
                             An unexpected issue occurred while loading this view. The technical team and diagnostics logger have been notified.
                         </p>
+
+                        {/* Stale Bundle / Deploy Update Banner */}
+                        {this.isStaleBundle() && (
+                            <div className="mb-4 text-left p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed animate-fade-in">
+                                <span className="font-extrabold text-amber-400 block mb-1">🚀 New Version Deployed</span>
+                                A fresh version of OurMenu was published. Your browser held onto older cached assets. Click the button below to purge the local cache and load the latest version.
+                            </div>
+                        )}
 
                         {/* Error Message Pill */}
                         {this.state.error?.message && (
@@ -115,14 +154,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                            <button
-                                type="button"
-                                onClick={this.handleReset}
-                                className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                                <span>Reload & Try Again</span>
-                            </button>
+                            {this.isStaleBundle() ? (
+                                <button
+                                    type="button"
+                                    onClick={this.handleClearCacheAndReload}
+                                    className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 font-black text-xs shadow-lg shadow-amber-500/30 transition-all cursor-pointer"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    <span>Clear Cache & Load Latest Version</span>
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={this.handleReset}
+                                    className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    <span>Reload & Try Again</span>
+                                </button>
+                            )}
 
                             <a
                                 href="/dashboard"

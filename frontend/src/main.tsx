@@ -16,8 +16,59 @@ import './styles/globals.css';
 // Initialize global crash and unhandled promise telemetry
 initGlobalTelemetry();
 
+// Auto-reload when new deployment takes over an existing session
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    let isRefreshing = false;
+    let hadController = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController && !isRefreshing) {
+            isRefreshing = true;
+            // A previous service worker was replaced by a new deployment — reload!
+            window.location.reload();
+        }
+    });
+}
+
+// Auto-reload on Vite chunk import failures caused by new deployment (with loop prevention guard)
+window.addEventListener('vite:preloadError', async () => {
+    const lastReload = sessionStorage.getItem('last_preload_reload');
+    const now = Date.now();
+    // Prevent reload loops if the chunk is genuinely 404 (cooldown of 10s)
+    if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('last_preload_reload', String(now));
+        if ('caches' in window) {
+            try {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            } catch {}
+        }
+        window.location.reload();
+    }
+});
+
 // Automatically register service worker for offline caching and PWA functionality
-registerSW({ immediate: true });
+const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+        // Activate waiting service worker immediately
+        updateSW(true);
+    },
+    onRegisteredSW(_swScriptUrl, registration) {
+        if (registration) {
+            // Check for new deployments every 10 minutes
+            setInterval(() => {
+                registration.update().catch(() => {});
+            }, 10 * 60 * 1000);
+
+            // Check for updates whenever user returns to the tab or unlocks device
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    registration.update().catch(() => {});
+                }
+            });
+        }
+    },
+});
 
 // Global PWA beforeinstallprompt capture (before React renders)
 window.addEventListener('beforeinstallprompt', (e) => {
