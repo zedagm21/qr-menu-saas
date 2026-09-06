@@ -62,7 +62,8 @@ export class TelegramBotService {
             return;
         }
 
-        const webhookUrl = `${appUrl.replace(/\/+$/, '')}/api/telegram/webhook`;
+        const cleanBaseUrl = (appUrl || '').replace(/\/+$/, '').replace(/\/api$/, '');
+        const webhookUrl = `${cleanBaseUrl}/api/telegram/webhook`;
         try {
             console.log(`🤖 [TelegramBotService] Registering webhook: ${webhookUrl}`);
             const body: Record<string, any> = { url: webhookUrl };
@@ -90,8 +91,8 @@ export class TelegramBotService {
     /**
      * Send a formatted HTML text message to a specific Telegram chat
      */
-    static async sendMessage(chatId: string, text: string): Promise<boolean> {
-        if (!config.telegramBotToken) return false;
+    static async sendMessage(chatId: string, text: string): Promise<{ ok: boolean; description?: string }> {
+        if (!config.telegramBotToken) return { ok: false, description: 'Telegram bot token is not configured' };
         try {
             const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
                 method: 'POST',
@@ -107,10 +108,10 @@ export class TelegramBotService {
             if (!data.ok) {
                 console.warn(`⚠️ [TelegramBotService] Send failed to ${chatId}:`, data.description);
             }
-            return data.ok;
-        } catch (err) {
+            return { ok: data.ok, description: data.description };
+        } catch (err: any) {
             console.error(`⚠️ [TelegramBotService] Network error sending to ${chatId}:`, err);
-            return false;
+            return { ok: false, description: err?.message || 'Network error' };
         }
     }
 
@@ -144,16 +145,34 @@ export class TelegramBotService {
     /**
      * Broadcast a message to all allowlisted admin chat IDs (if alerts are enabled)
      */
-    static async broadcastToAdmins(text: string, force = false): Promise<void> {
-        if (!this.isConfigured()) return;
+    static async broadcastToAdmins(text: string, force = false): Promise<{ successful: number; total: number; failures: string[] }> {
+        if (!this.isConfigured()) return { successful: 0, total: 0, failures: ['Bot not configured'] };
         if (!force) {
             const enabled = await this.isAlertsEnabled();
-            if (!enabled) return;
+            if (!enabled) return { successful: 0, total: 0, failures: ['Alerts disabled'] };
         }
 
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
             config.telegramAdminChatIds.map((chatId) => this.sendMessage(chatId, text))
         );
+
+        const failures: string[] = [];
+        let successful = 0;
+
+        results.forEach((r, idx) => {
+            const chatId = config.telegramAdminChatIds[idx];
+            if (r.status === 'fulfilled') {
+                if (r.value.ok) {
+                    successful++;
+                } else {
+                    failures.push(`Chat ${chatId}: ${r.value.description || 'Unknown error'}`);
+                }
+            } else {
+                failures.push(`Chat ${chatId}: ${r.reason?.message || 'Network error'}`);
+            }
+        });
+
+        return { successful, total: config.telegramAdminChatIds.length, failures };
     }
 
     /**

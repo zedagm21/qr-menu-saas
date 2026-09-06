@@ -3,6 +3,7 @@ dotenv.config();
 
 const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const apiUrl = (process.env.API_URL || '').replace(/\/+$/, '');
 
 export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -12,6 +13,7 @@ export const config = {
     cookieSecret: process.env.COOKIE_SECRET || 'change-cookie-secret',
     frontendUrl,
     appUrl,
+    apiUrl,
     uploadDir: process.env.UPLOAD_DIR || './uploads',
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10),
     isProduction: process.env.NODE_ENV === 'production',

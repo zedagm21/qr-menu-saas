@@ -130,7 +130,7 @@ app.listen(config.port, async () => {
     BackupService.startDailyBackupScheduler();
 
     // Initialize Telegram Admin Bot webhook and nightly performance digest
-    TelegramBotService.initWebhook(config.appUrl);
+    TelegramBotService.initWebhook(config.apiUrl || config.appUrl);
     TelegramBotService.startNightlyScheduler();
 });
 

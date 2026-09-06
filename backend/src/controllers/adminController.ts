@@ -166,8 +166,20 @@ export const sendTelegramTest = async (req: Request, res: Response, next: NextFu
             `\n<i>All system crashes, database outages, and client error alerts will be delivered to this chat.</i>`,
         ].join('\n');
 
-        await TelegramBotService.broadcastToAdmins(testMessage, true);
-        res.json({ success: true, message: 'Test alert sent to all configured admin chat IDs.' });
+        const result = await TelegramBotService.broadcastToAdmins(testMessage, true);
+        if (result.successful === 0 && result.failures.length > 0) {
+            let errorMsg = result.failures.join('; ');
+            if (errorMsg.includes("can't initiate conversation") || errorMsg.includes('chat not found')) {
+                errorMsg += ' — You must open your bot in Telegram and click "Start" before it can send you alerts.';
+            }
+            res.status(400).json({ error: `Telegram alert delivery failed: ${errorMsg}` });
+            return;
+        }
+
+        res.json({
+            success: true,
+            message: `Test alert sent successfully to ${result.successful} admin chat(s).`,
+        });
     } catch (error) {
         next(error);
     }
