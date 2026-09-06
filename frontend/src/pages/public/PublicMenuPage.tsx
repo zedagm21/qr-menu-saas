@@ -741,44 +741,6 @@ export default function PublicMenuPage() {
                             </button>
                         </div>
 
-                        {/* Fasting (የጾም) Filter Toggle Switch */}
-                        <div className="flex items-center justify-between py-1.5 px-3 rounded-2xl bg-neutral-100/80 dark:bg-[#111111] border border-neutral-200/80 dark:border-[#2A2A2A]">
-                            <div
-                                className="flex items-center gap-2 select-none cursor-pointer"
-                                onClick={() => setFilters(prev => ({ ...prev, fasting: prev.fasting === 'fasting' ? 'all' : 'fasting' }))}
-                            >
-                                <span className="text-base" aria-hidden="true">🌿</span>
-                                <span className={cn(
-                                    "text-xs sm:text-[13px] font-extrabold text-neutral-800 dark:text-neutral-200",
-                                    lang === 'AM' && 'font-ethiopic'
-                                )}>
-                                    {lang === 'AM' ? 'የጾም ብቻ' : 'Fasting Only (የጾም)'}
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                role="switch"
-                                aria-checked={filters.fasting === 'fasting'}
-                                onClick={() => setFilters(prev => ({
-                                    ...prev,
-                                    fasting: prev.fasting === 'fasting' ? 'all' : 'fasting'
-                                }))}
-                                className={cn(
-                                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                                    filters.fasting === 'fasting'
-                                        ? "bg-emerald-600 shadow-sm shadow-emerald-600/30"
-                                        : "bg-neutral-300 dark:bg-neutral-700"
-                                )}
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    className={cn(
-                                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                                        filters.fasting === 'fasting' ? "translate-x-5" : "translate-x-0"
-                                    )}
-                                />
-                            </button>
-                        </div>
 
                         {/* Compact single-row horizontal capsule bar (Active only when collapsed) */}
                         {categories.length > 0 && !isCategoriesExpanded && (
