@@ -306,8 +306,12 @@ const LoginPage: React.FC = () => {
                 </main>
 
                 {/* Footer */}
-                <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600">
-                    &copy; {new Date().getFullYear()} OurMenu. All rights reserved.
+                <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600 flex flex-wrap items-center justify-center gap-3">
+                    <span>&copy; {new Date().getFullYear()} OurMenu. All rights reserved.</span>
+                    <span>•</span>
+                    <Link to="/terms" className="hover:text-amber-500 transition-colors">Terms of Service</Link>
+                    <span>•</span>
+                    <Link to="/privacy" className="hover:text-amber-500 transition-colors">Privacy Policy</Link>
                 </footer>
             </div>
         </>

@@ -33,6 +33,8 @@ const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'));
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const PublicMenuPage = lazy(() => import('./pages/public/PublicMenuPage'));
 const CameraUploadPage = lazy(() => import('./pages/public/CameraUploadPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/public/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/public/TermsOfServicePage'));
 
 const PageLoader = () => (
     <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -47,6 +49,10 @@ const App: React.FC = () => (
             {/* Public */}
             <Route path="/r/:slug" element={<PublicMenuPage />} />
             <Route path="/camera-upload" element={<CameraUploadPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />

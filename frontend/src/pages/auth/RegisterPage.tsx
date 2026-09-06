@@ -252,7 +252,7 @@ const RegisterPage: React.FC = () => {
                                         {errors.password && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.password.message}</p>}
                                     </div>
 
-                                    <div className="pt-2">
+                                    <div className="pt-2 space-y-2">
                                         <Button
                                             type="submit"
                                             className="w-full h-12 text-[15px] font-semibold bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-md shadow-amber-500/20"
@@ -261,6 +261,17 @@ const RegisterPage: React.FC = () => {
                                         >
                                             {t('auth.registerCta')}
                                         </Button>
+
+                                        <p className="text-center text-[11px] text-neutral-400 dark:text-neutral-500 pt-1">
+                                            By registering, you agree to our{' '}
+                                            <Link to="/terms" className="underline hover:text-amber-500 transition-colors font-medium">
+                                                Terms of Service
+                                            </Link>{' '}
+                                            and{' '}
+                                            <Link to="/privacy" className="underline hover:text-amber-500 transition-colors font-medium">
+                                                Privacy Policy
+                                            </Link>.
+                                        </p>
                                     </div>
                                 </form>
                             </div>
@@ -277,8 +288,12 @@ const RegisterPage: React.FC = () => {
                 </main>
 
                 {/* Footer */}
-                <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600">
-                    &copy; {new Date().getFullYear()} OurMenu. All rights reserved.
+                <footer className="relative z-10 py-4 text-center text-xs text-neutral-400 dark:text-neutral-600 flex flex-wrap items-center justify-center gap-3">
+                    <span>&copy; {new Date().getFullYear()} OurMenu. All rights reserved.</span>
+                    <span>•</span>
+                    <Link to="/terms" className="hover:text-amber-500 transition-colors">Terms of Service</Link>
+                    <span>•</span>
+                    <Link to="/privacy" className="hover:text-amber-500 transition-colors">Privacy Policy</Link>
                 </footer>
             </div>
         </>

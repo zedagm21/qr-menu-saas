@@ -1092,6 +1092,12 @@ export default function LandingPage() {
                             <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
                             <span>+251 911 22 33 44 (WhatsApp / Direct)</span>
                         </a>
+                        <Link to="/terms" className="hover:text-amber-400 transition-colors">
+                            {isAm ? 'የአገልግሎት ውል' : 'Terms'}
+                        </Link>
+                        <Link to="/privacy" className="hover:text-amber-400 transition-colors">
+                            {isAm ? 'የግላዊነት ፖሊሲ' : 'Privacy'}
+                        </Link>
                         <Link to="/login" className="hover:text-white transition-colors">
                             {isAm ? 'የባለቤት ዳሽቦርድ' : 'Owner Dashboard'}
                         </Link>
