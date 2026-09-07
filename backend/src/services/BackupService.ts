@@ -36,9 +36,10 @@ export class BackupService {
     private static async dumpViaPgDump(dbUrl: string): Promise<Buffer | null> {
         return new Promise((resolve) => {
             try {
-                const pgDump = spawn('pg_dump', ['--clean', '--if-exists', '--no-owner', dbUrl], {
+                // Pass dbUrl as direct argument with shell: false to avoid shell injection or URL special character split
+                const pgDump = spawn('pg_dump', ['--clean', '--if-exists', '--no-owner', `--dbname=${dbUrl}`], {
                     stdio: ['ignore', 'pipe', 'pipe'],
-                    shell: true,
+                    shell: false,
                 });
 
                 const gzip = zlib.createGzip({ level: 9 });
@@ -74,51 +75,38 @@ export class BackupService {
     }
 
     /**
-     * Fallback Prisma Data Exporter: exports all platform data to compressed JSON
+     * Fallback Prisma Data Exporter: exports all platform data to compressed JSON.
+     * Uses sequential reads to consume only 1 database connection at a time,
+     * ensuring zero connection pool exhaustion for active live diner traffic.
      */
     private static async dumpViaPrisma(): Promise<Buffer> {
-        console.log('[Backup] Exporting platform database entities via Prisma ORM...');
+        console.log('[Backup] Exporting platform database entities via Prisma ORM (read-only snapshot)...');
 
-        const [
-            restaurants,
-            restaurantTranslations,
-            themes,
-            slugAliases,
-            categories,
-            categoryTranslations,
-            menuItems,
-            menuItemTranslations,
-            qrCodes,
-            users,
-            broadcasts,
-            systemLogs,
-        ] = await Promise.all([
-            prisma.restaurant.findMany(),
-            prisma.restaurantTranslation.findMany(),
-            prisma.restaurantTheme.findMany(),
-            prisma.restaurantSlugAlias.findMany(),
-            prisma.category.findMany(),
-            prisma.categoryTranslation.findMany(),
-            prisma.menuItem.findMany(),
-            prisma.menuItemTranslation.findMany(),
-            prisma.qRCode.findMany(),
-            prisma.user.findMany({
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    passwordHash: true,
-                    googleId: true,
-                    emailVerified: true,
-                    role: true,
-                    restaurantId: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
-            }),
-            prisma.broadcastAnnouncement.findMany(),
-            prisma.systemLog.findMany({ take: 500, orderBy: { createdAt: 'desc' } }),
-        ]);
+        const restaurants = await prisma.restaurant.findMany();
+        const restaurantTranslations = await prisma.restaurantTranslation.findMany();
+        const themes = await prisma.restaurantTheme.findMany();
+        const slugAliases = await prisma.restaurantSlugAlias.findMany();
+        const categories = await prisma.category.findMany();
+        const categoryTranslations = await prisma.categoryTranslation.findMany();
+        const menuItems = await prisma.menuItem.findMany();
+        const menuItemTranslations = await prisma.menuItemTranslation.findMany();
+        const qrCodes = await prisma.qRCode.findMany();
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                passwordHash: true,
+                googleId: true,
+                emailVerified: true,
+                role: true,
+                restaurantId: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+        const broadcasts = await prisma.broadcastAnnouncement.findMany();
+        const systemLogs = await prisma.systemLog.findMany({ take: 500, orderBy: { createdAt: 'desc' } });
 
         const exportPayload = {
             metadata: {
@@ -184,7 +172,61 @@ export class BackupService {
     }
 
     /**
-     * Main automated database backup routine
+     * Generates a database dump buffer (either via pg_dump .sql.gz or Prisma .json.gz fallback)
+     */
+    public static async generateDatabaseDump(): Promise<{ buffer: Buffer; fileName: string; isSql: boolean }> {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const dbUrl = process.env.DATABASE_URL || '';
+
+        let backupBuffer: Buffer | null = null;
+        let fileName = `ourmenu-backup-${timestamp}.sql.gz`;
+        let isSql = true;
+
+        if (dbUrl) {
+            backupBuffer = await this.dumpViaPgDump(dbUrl);
+        }
+
+        if (!backupBuffer) {
+            backupBuffer = await this.dumpViaPrisma();
+            fileName = `ourmenu-backup-${timestamp}.json.gz`;
+            isSql = false;
+        }
+
+        return { buffer: backupBuffer, fileName, isSql };
+    }
+
+    /**
+     * Generates a database dump and delivers it directly to a Telegram chat as a document attachment
+     */
+    public static async sendBackupToTelegram(chatId: string): Promise<boolean> {
+        console.log(`[Backup] Generating database backup to send directly to Telegram chat ${chatId}...`);
+        const { buffer, fileName, isSql } = await this.generateDatabaseDump();
+        const sizeMb = (buffer.length / (1024 * 1024)).toFixed(2);
+        const formatDesc = isSql ? 'PostgreSQL SQL Dump (.sql.gz)' : 'Prisma Data Export (.json.gz)';
+
+        if (buffer.length > 49 * 1024 * 1024) {
+            await TelegramBotService.sendMessage(
+                chatId,
+                `⚠️ <b>Backup Exceeds Telegram Limit (50 MB)</b>\n\nThe archive size is ${sizeMb} MB. Telegram Bot API allows files up to 50 MB.\nPlease inspect the archive in Cloudflare R2 storage.`
+            );
+            return false;
+        }
+
+        const caption = [
+            `💾 <b>OURMENU DATABASE BACKUP</b>`,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `<b>File:</b> <code>${fileName}</code>`,
+            `<b>Size:</b> ${sizeMb} MB`,
+            `<b>Format:</b> ${formatDesc}`,
+            `<b>Timestamp:</b> <code>${new Date().toISOString()}</code>`,
+            `\n✅ <i>Snapshot attached directly.</i>`,
+        ].join('\n');
+
+        return await TelegramBotService.sendDocument(chatId, fileName, buffer, caption);
+    }
+
+    /**
+     * Main automated database backup routine (used for daily Cloudflare R2 scheduler)
      */
     public static async runDatabaseBackup(): Promise<string | null> {
         const s3 = this.getR2Client();
@@ -194,23 +236,9 @@ export class BackupService {
         }
 
         const bucket = config.cloudflareR2BucketName;
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const dbUrl = process.env.DATABASE_URL || '';
+        console.log(`[Backup] Starting automated daily database backup to Cloudflare R2 at ${new Date().toISOString()}...`);
 
-        console.log(`[Backup] Starting automated database backup at ${new Date().toISOString()}...`);
-
-        let backupBuffer: Buffer | null = null;
-        let fileName = `ourmenu-backup-${timestamp}.sql.gz`;
-
-        if (dbUrl) {
-            backupBuffer = await this.dumpViaPgDump(dbUrl);
-        }
-
-        if (!backupBuffer) {
-            backupBuffer = await this.dumpViaPrisma();
-            fileName = `ourmenu-backup-${timestamp}.json.gz`;
-        }
-
+        const { buffer: backupBuffer, fileName } = await this.generateDatabaseDump();
         const key = `backups/${fileName}`;
 
         await s3.send(

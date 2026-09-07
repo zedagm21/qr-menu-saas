@@ -18,6 +18,66 @@ interface ErrorAlertParams {
 export class TelegramBotService {
     private static errorDebounceMap = new Map<string, { count: number; firstSeen: number; lastAlert: number }>();
     private static isNightlyScheduled = false;
+    private static pendingActionMap = new Map<string, { action: 'find' | 'log' | 'backup'; timestamp: number }>();
+
+    /**
+     * Get active pending action for a chat ID
+     */
+    static getPendingAction(chatId: string): { action: 'find' | 'log' | 'backup'; timestamp: number } | undefined {
+        return this.pendingActionMap.get(chatId);
+    }
+
+    /**
+     * Set active pending action for a chat ID
+     */
+    static setPendingAction(chatId: string, action: 'find' | 'log' | 'backup'): void {
+        this.pendingActionMap.set(chatId, { action, timestamp: Date.now() });
+    }
+
+    /**
+     * Clear active pending action for a chat ID
+     */
+    static clearPendingAction(chatId: string): void {
+        this.pendingActionMap.delete(chatId);
+    }
+
+    /**
+     * Resolves incoming text into a recognized command and argument array.
+     * Supports slash-prefixed commands (/stats, /log, etc.) as well as plain command keywords.
+     */
+    static resolveCommand(text: string): { command: string; args: string[] } | null {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return null;
+
+        const parts = trimmed.split(/\s+/);
+        const rawFirst = parts[0].toLowerCase();
+        const args = parts.slice(1);
+
+        // Slash-prefixed command: e.g. /stats, /log, /find, /cancel
+        if (rawFirst.startsWith('/')) {
+            return { command: rawFirst, args };
+        }
+
+        // Plain command keyword map without leading slash
+        const commandKeywords: Record<string, string> = {
+            start: '/start',
+            help: '/help',
+            cancel: '/cancel',
+            stats: '/stats',
+            overview: '/overview',
+            top: '/top',
+            find: '/find',
+            log: '/log',
+            logs: '/logs',
+            backup: '/backup',
+        };
+
+        if (commandKeywords[rawFirst]) {
+            return { command: commandKeywords[rawFirst], args };
+        }
+
+        return null;
+    }
 
     /**
      * Checks whether the Telegram Bot has been configured with token and allowed admin chat IDs
@@ -91,7 +151,7 @@ export class TelegramBotService {
     /**
      * Send a formatted HTML text message to a specific Telegram chat
      */
-    static async sendMessage(chatId: string, text: string): Promise<{ ok: boolean; description?: string }> {
+    static async sendMessage(chatId: string, text: string, extra?: Record<string, any>): Promise<{ ok: boolean; description?: string }> {
         if (!config.telegramBotToken) return { ok: false, description: 'Telegram bot token is not configured' };
         try {
             const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
@@ -102,6 +162,7 @@ export class TelegramBotService {
                     text,
                     parse_mode: 'HTML',
                     disable_web_page_preview: true,
+                    ...extra,
                 }),
             });
             const data = await res.json() as { ok: boolean; description?: string };
@@ -123,7 +184,8 @@ export class TelegramBotService {
         try {
             const formData = new FormData();
             formData.append('chat_id', chatId);
-            const blob = new Blob([content], { type: 'text/plain' });
+            const mimeType = filename.endsWith('.gz') ? 'application/gzip' : 'text/plain';
+            const blob = new Blob([content], { type: mimeType });
             formData.append('document', blob, filename);
             if (caption) {
                 formData.append('caption', caption);
@@ -396,13 +458,47 @@ export class TelegramBotService {
      * Ingests incoming Telegram webhook update and executes commands
      */
     static async handleIncomingUpdate(update: any): Promise<void> {
+        // 1. Handle Inline Keyboard button callback queries
+        if (update?.callback_query) {
+            const callbackQuery = update.callback_query;
+            const chatId = String(callbackQuery.message?.chat?.id || callbackQuery.from?.id || '');
+            const data = callbackQuery.data?.trim();
+
+            if (config.telegramBotToken && callbackQuery.id) {
+                fetch(`https://api.telegram.org/bot${config.telegramBotToken}/answerCallbackQuery`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ callback_query_id: callbackQuery.id }),
+                }).catch(() => {});
+            }
+
+            if (!chatId || !data) return;
+
+            const isAuthorized = config.telegramAdminChatIds.includes(chatId);
+            if (!isAuthorized) {
+                await this.sendMessage(
+                    chatId,
+                    `⛔ <b>Access Denied</b>\n\nYour Telegram ID <code>${chatId}</code> is not on the OurMenu admin allowlist.`
+                );
+                return;
+            }
+
+            await this.handleIncomingUpdate({
+                message: {
+                    chat: { id: chatId },
+                    text: data,
+                },
+            });
+            return;
+        }
+
         const message = update?.message;
         if (!message || !message.text) return;
 
         const chatId = String(message.chat?.id || '');
         const text = message.text.trim();
 
-        // 1. Security Allowlist Check
+        // 2. Security Allowlist Check
         const isAuthorized = config.telegramAdminChatIds.includes(chatId);
         if (!isAuthorized) {
             await this.sendMessage(
@@ -412,46 +508,184 @@ export class TelegramBotService {
             return;
         }
 
-        const parts = text.split(/\s+/);
-        const command = parts[0].toLowerCase();
-        const args = parts.slice(1);
+        // Check if there is an active pending action for this chat (valid for 10 minutes)
+        const pending = this.pendingActionMap.get(chatId);
+        const isStale = pending && (Date.now() - pending.timestamp > 10 * 60 * 1000);
+        if (isStale) {
+            this.pendingActionMap.delete(chatId);
+        }
 
-        // 2. Command Dispatcher
-        switch (command) {
-            case '/start':
-            case '/help':
-                await this.handleHelpCommand(chatId);
-                break;
+        // 3. Resolve command (slash-commands or recognized command keywords)
+        const recognized = this.resolveCommand(text);
 
-            case '/stats':
-            case '/overview':
-                await this.handleStatsCommand(chatId);
-                break;
+        if (recognized) {
+            const { command, args } = recognized;
+            const hadPending = Boolean(pending && !isStale);
+            // Any recognized command entered cancels any existing pending prompt and proceeds to execute
+            this.pendingActionMap.delete(chatId);
 
-            case '/top':
-                await this.handleTopCommand(chatId);
-                break;
+            switch (command) {
+                case '/start':
+                case '/help':
+                    await this.handleHelpCommand(chatId);
+                    break;
 
-            case '/find':
-                await this.handleFindCommand(chatId, args.join(' '));
-                break;
+                case '/cancel':
+                    if (hadPending) {
+                        await this.sendMessage(chatId, '🚫 Action cancelled.');
+                    } else {
+                        await this.sendMessage(chatId, 'ℹ️ No active command to cancel.');
+                    }
+                    break;
 
-            case '/log':
-            case '/logs':
-                await this.handleLogCommand(chatId, args.join(' '));
-                break;
+                case '/stats':
+                case '/overview':
+                    await this.handleStatsCommand(chatId);
+                    break;
 
-            case '/backup':
-                await this.handleBackupCommand(chatId);
-                break;
+                case '/top':
+                    await this.handleTopCommand(chatId);
+                    break;
 
-            default:
+                case '/find': {
+                    const query = args.join(' ').trim();
+                    if (!query) {
+                        this.pendingActionMap.set(chatId, { action: 'find', timestamp: Date.now() });
+                        await this.sendMessage(
+                            chatId,
+                            `🔍 <b>Restaurant Search</b>\n━━━━━━━━━━━━━━━━━━━━━\nPlease reply with the <b>restaurant name</b> or <b>URL handle/slug</b> to search.\n\n<i>Example: <code>Lucy</code> or <code>bole-bistro</code>\n(Type /cancel or another command to dismiss)</i>`
+                        );
+                        return;
+                    }
+                    await this.handleFindCommand(chatId, query);
+                    break;
+                }
+
+                case '/log':
+                case '/logs': {
+                    const query = args.join(' ').trim();
+                    if (!query) {
+                        this.pendingActionMap.set(chatId, { action: 'log', timestamp: Date.now() });
+                        await this.sendMessage(
+                            chatId,
+                            [
+                                `📄 <b>System Diagnostics Logs</b>`,
+                                `━━━━━━━━━━━━━━━━━━━━━`,
+                                `Please select or reply with a time window:`,
+                                ``,
+                                `⏱️ <b>Available Options:</b>`,
+                                `• <code>10m</code> — Last 10 minutes`,
+                                `• <code>30m</code> — Last 30 minutes`,
+                                `• <code>1h</code> or <code>2h</code> — Last 1 or 2 hours`,
+                                `• <code>24h</code> or <code>1d</code> — Last 24 hours (1 day)`,
+                                `• <code>YYYY-MM-DD</code> — Specific date (e.g. <code>${new Date().toISOString().slice(0, 10)}</code>)`,
+                                ``,
+                                `<i>Tap an option below, reply with a time window, or type /cancel to dismiss.</i>`,
+                            ].join('\n'),
+                            {
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [
+                                            { text: '⏱️ 10 min', callback_data: '/log 10m' },
+                                            { text: '⏱️ 30 min', callback_data: '/log 30m' },
+                                            { text: '🕐 1 hour', callback_data: '/log 1h' },
+                                        ],
+                                        [
+                                            { text: '🕒 2 hours', callback_data: '/log 2h' },
+                                            { text: '📅 24 hours', callback_data: '/log 24h' },
+                                        ],
+                                    ],
+                                },
+                            }
+                        );
+                        return;
+                    }
+                    await this.handleLogCommand(chatId, query);
+                    break;
+                }
+
+                case '/backup': {
+                    const subCommand = args[0]?.toLowerCase();
+
+                    // If already confirmed directly (e.g. "/backup confirm" or inline button callback)
+                    if (subCommand === 'confirm' || subCommand === 'yes') {
+                        await this.executeTelegramBackup(chatId);
+                        break;
+                    }
+
+                    // Prompt for confirmation before generating backup
+                    this.pendingActionMap.set(chatId, { action: 'backup', timestamp: Date.now() });
+                    await this.sendMessage(
+                        chatId,
+                        [
+                            `💾 <b>Database Backup Confirmation</b>`,
+                            `━━━━━━━━━━━━━━━━━━━━━`,
+                            `Are you sure you want to generate a full database backup now?`,
+                            ``,
+                            `📦 <i>A compressed snapshot (.sql.gz or .json.gz) will be created and sent directly to this Telegram chat.</i>`,
+                            `☁️ <i>Note: Automated Cloudflare R2 backups run on the daily schedule.</i>`,
+                            ``,
+                            `<i>Tap a button below or reply with confirm / cancel.</i>`,
+                        ].join('\n'),
+                        {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: '✅ Confirm Backup', callback_data: '/backup confirm' },
+                                        { text: '❌ Cancel', callback_data: '/cancel' },
+                                    ],
+                                ],
+                            },
+                        }
+                    );
+                    break;
+                }
+
+                default:
+                    await this.sendMessage(
+                        chatId,
+                        `❓ Unknown command <code>${this.escapeHtml(command)}</code>.\nType /help to see all available admin diagnostic commands.`
+                    );
+                    break;
+            }
+            return;
+        }
+
+        // 4. Handle Pending User Prompts (Plain text replies without leading slash)
+        if (pending && !isStale) {
+            this.pendingActionMap.delete(chatId);
+            if (pending.action === 'find') {
+                await this.handleFindCommand(chatId, text);
+                return;
+            }
+            if (pending.action === 'log') {
+                await this.handleLogCommand(chatId, text);
+                return;
+            }
+            if (pending.action === 'backup') {
+                const clean = text.toLowerCase().trim();
+                if (['confirm', 'yes', 'y', 'proceed', 'ok'].includes(clean)) {
+                    await this.executeTelegramBackup(chatId);
+                    return;
+                }
+                if (['cancel', 'no', 'n'].includes(clean)) {
+                    await this.sendMessage(chatId, '🚫 Backup cancelled.');
+                    return;
+                }
                 await this.sendMessage(
                     chatId,
-                    `❓ Unknown command <code>${this.escapeHtml(command)}</code>.\nType /help to see all available admin diagnostic commands.`
+                    `⚠️ Please confirm the backup by tapping <b>Confirm Backup</b> or typing <code>confirm</code> (or <code>/cancel</code> to abort).`
                 );
-                break;
+                this.pendingActionMap.set(chatId, { action: 'backup', timestamp: Date.now() });
+                return;
+            }
         }
+
+        // 5. Unrecognized input with no pending action
+        await this.sendMessage(
+            chatId,
+            `❓ Unrecognized input: "<code>${this.escapeHtml(text.slice(0, 50))}</code>".\nType /help to see available commands.`
+        );
     }
 
     // ─── Command Handlers ───────────────────────────────────────────────────────
@@ -465,9 +699,10 @@ export class TelegramBotService {
             `\n<b>Available Diagnostic Commands:</b>`,
             `📊 /stats — Live overview metrics and diner scans`,
             `🏆 /top — Top 5 restaurants by scan foot traffic`,
-            `🔍 /find &lt;name or slug&gt; — Search restaurant profile & owner`,
-            `📄 /log [30m|2hr|24h|date] — Extract and download system logs`,
-            `💾 /backup — Trigger immediate database backup to R2`,
+            `🔍 /find [name or slug] — Search restaurant profile & owner (prompts if omitted)`,
+            `📄 /log [10m|30m|2hr|24h|date] — Extract and download system logs (prompts if omitted)`,
+            `💾 /backup — Request database backup archive sent to Telegram (with confirmation)`,
+            `🚫 /cancel — Cancel an active prompt or input`,
             `ℹ️ /help — View this reference cheatsheet`,
             `\n<i>Note: Administrative write actions (suspensions, broadcasts) must be performed securely in the <a href="${config.frontendUrl}/admin">Admin Portal</a>.</i>`,
         ].join('\n');
@@ -602,10 +837,21 @@ export class TelegramBotService {
             };
         }
 
-        // Match minutes: e.g. "30m", "30min", "45mins"
+        // Match minutes: e.g. "10m", "10min", "10mins", "30m", "45mins"
         const minuteMatch = clean.match(/^(\d+)\s*(m|min|mins|minute|minutes)$/);
         if (minuteMatch) {
             const mins = parseInt(minuteMatch[1], 10);
+            return {
+                from: new Date(now.getTime() - mins * 60 * 1000),
+                to: now,
+                label: `Last ${mins} minutes`,
+            };
+        }
+
+        // Match bare numbers as minutes: e.g. "10", "30"
+        const bareNumberMatch = clean.match(/^(\d+)$/);
+        if (bareNumberMatch) {
+            const mins = parseInt(bareNumberMatch[1], 10);
             return {
                 from: new Date(now.getTime() - mins * 60 * 1000),
                 to: now,
@@ -741,24 +987,22 @@ export class TelegramBotService {
         }
     }
 
-    private static async handleBackupCommand(chatId: string): Promise<void> {
-        await this.sendMessage(chatId, `⏳ Triggering database backup to Cloudflare R2...`);
+    private static async executeTelegramBackup(chatId: string): Promise<void> {
+        await this.sendMessage(chatId, `⏳ Generating database backup archive... Please wait a moment.`);
         try {
-            const result = await BackupService.createDailyDatabaseBackup();
-            if (result.success) {
-                const sizeMb = result.sizeBytes ? (result.sizeBytes / (1024 * 1024)).toFixed(2) : '0';
+            const success = await BackupService.sendBackupToTelegram(chatId);
+            if (!success) {
                 await this.sendMessage(
                     chatId,
-                    `✅ <b>Backup Complete!</b>\n\n<b>File:</b> <code>${result.key}</code>\n<b>Size:</b> ${sizeMb} MB\n<b>Storage:</b> Cloudflare R2`
-                );
-            } else {
-                await this.sendMessage(
-                    chatId,
-                    `❌ <b>Backup Failed</b>\n\n<b>Error:</b> <code>${this.escapeHtml(result.error || 'Unknown error')}</code>`
+                    `❌ <b>Backup Delivery Failed</b>\n\nFailed to upload the backup file to Telegram. Please inspect the server logs.`
                 );
             }
-        } catch (err) {
-            await this.sendMessage(chatId, `❌ Backup error: ${err}`);
+        } catch (err: any) {
+            console.error('⚠️ [TelegramBotService] Backup error:', err);
+            await this.sendMessage(
+                chatId,
+                `❌ <b>Backup Error:</b> <code>${this.escapeHtml(err?.message || String(err))}</code>`
+            );
         }
     }
 
