@@ -15,6 +15,7 @@ import {
     getTelegramStatus,
     toggleTelegramBot,
     sendTelegramTest,
+    syncTelegramCommands,
 } from '../controllers/adminController';
 
 import {
@@ -49,6 +50,7 @@ router.post('/broadcast', setBroadcast);
 router.get('/telegram/status', getTelegramStatus);
 router.post('/telegram/toggle', toggleTelegramBot);
 router.post('/telegram/test', sendTelegramTest);
+router.post('/telegram/sync', syncTelegramCommands);
 
 // System diagnostics, error log tracking and reporting
 

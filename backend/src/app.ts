@@ -62,6 +62,7 @@ app.use(rateLimit({
     message: 'Too many requests, please try again later.',
     skip: (req) =>
         req.path.startsWith('/api/public') ||
+        req.path.startsWith('/api/telegram') ||
         req.path === '/api/health' ||
         req.path === '/health',
 }));

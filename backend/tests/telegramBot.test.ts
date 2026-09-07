@@ -102,15 +102,30 @@ describe('TelegramBotService: Interactive Pending Actions & Command Resolution',
         assert.deepStrictEqual(TelegramBotService.resolveCommand('/find Lucy'), { command: '/find', args: ['Lucy'] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('/cancel'), { command: '/cancel', args: [] });
 
+        // Telegram Bot username suffix stripping (/command@botname)
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/stats@OurMenuBot'), { command: '/stats', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/STATS@OurMenu_Bot'), { command: '/stats', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/top@ourmenubot'), { command: '/top', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/find@OurMenuBot Lucy'), { command: '/find', args: ['Lucy'] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/log@OurMenuBot 10m'), { command: '/log', args: ['10m'] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/backup@OurMenuBot confirm'), { command: '/backup', args: ['confirm'] });
+
+        // Bare slash alone resolves to /help cheatsheet
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('/'), { command: '/help', args: [] });
+
         // Plain command keywords without slash
         assert.deepStrictEqual(TelegramBotService.resolveCommand('stats'), { command: '/stats', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('status'), { command: '/stats', args: [] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('overview'), { command: '/overview', args: [] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('top'), { command: '/top', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('restaurants'), { command: '/top', args: [] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('help'), { command: '/help', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('menu'), { command: '/help', args: [] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('cancel'), { command: '/cancel', args: [] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('log 10m'), { command: '/log', args: ['10m'] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('find Lucy'), { command: '/find', args: ['Lucy'] });
         assert.deepStrictEqual(TelegramBotService.resolveCommand('backup'), { command: '/backup', args: [] });
+        assert.deepStrictEqual(TelegramBotService.resolveCommand('dump'), { command: '/backup', args: [] });
 
         // Non-command user inputs
         assert.strictEqual(TelegramBotService.resolveCommand('Lucy'), null);

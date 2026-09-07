@@ -132,7 +132,48 @@ export const getTelegramStatus = async (_req: Request, res: Response, next: Next
         const isConfigured = TelegramBotService.isConfigured();
         const isEnabled = await TelegramBotService.isAlertsEnabled();
         const adminCount = config.telegramAdminChatIds.length;
-        res.json({ isConfigured, isEnabled, adminCount });
+
+        let webhookInfo = null;
+        let botInfo = null;
+
+        if (isConfigured) {
+            try {
+                [webhookInfo, botInfo] = await Promise.all([
+                    TelegramBotService.getWebhookInfo(),
+                    TelegramBotService.getBotInfo(),
+                ]);
+            } catch (fetchErr) {
+                console.warn('⚠️ [Telegram] Error retrieving Telegram API diagnostic info:', fetchErr);
+            }
+        }
+
+        res.json({
+            isConfigured,
+            isEnabled,
+            adminCount,
+            webhookInfo,
+            botInfo,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const syncTelegramCommands = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!TelegramBotService.isConfigured()) {
+            res.status(400).json({ error: 'Telegram bot is not configured (missing token or admin chat IDs).' });
+            return;
+        }
+
+        const cmdResult = await TelegramBotService.registerBotCommands();
+        const webhookResult = await TelegramBotService.initWebhook(config.apiUrl || config.appUrl);
+
+        res.json({
+            success: true,
+            commands: cmdResult,
+            webhook: webhookResult,
+        });
     } catch (error) {
         next(error);
     }

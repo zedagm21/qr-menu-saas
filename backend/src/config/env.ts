@@ -3,7 +3,7 @@ dotenv.config();
 
 const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
-const apiUrl = (process.env.API_URL || '').replace(/\/+$/, '');
+const apiUrl = (process.env.API_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '');
 
 export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -42,6 +42,7 @@ export const config = {
     // Telegram Admin Bot & Alerts Configuration
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
     telegramAdminChatIds: (process.env.TELEGRAM_ADMIN_CHAT_IDS || '')
+        .replace(/[\[\]'"]/g, '')
         .split(',')
         .map((id) => id.trim())
         .filter(Boolean),

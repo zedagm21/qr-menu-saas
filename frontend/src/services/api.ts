@@ -184,12 +184,31 @@ export const adminApi = {
     getBroadcast: () => api.get('/admin/broadcast').then(r => r.data),
     setBroadcast: (data: { title: string; message: string; type?: string; isActive?: boolean }) =>
         api.post('/admin/broadcast', data).then(r => r.data),
-    getTelegramStatus: (): Promise<{ isConfigured: boolean; isEnabled: boolean; adminCount: number }> =>
+    getTelegramStatus: (): Promise<{
+        isConfigured: boolean;
+        isEnabled: boolean;
+        adminCount: number;
+        webhookInfo?: {
+            ok: boolean;
+            url?: string;
+            pendingUpdateCount?: number;
+            lastErrorDate?: number;
+            lastErrorMessage?: string;
+        } | null;
+        botInfo?: {
+            ok: boolean;
+            id?: number;
+            username?: string;
+            firstName?: string;
+        } | null;
+    }> =>
         api.get('/admin/telegram/status').then(r => r.data),
     toggleTelegramBot: (enabled: boolean): Promise<{ success: boolean; isEnabled: boolean }> =>
         api.post('/admin/telegram/toggle', { enabled }).then(r => r.data),
     sendTelegramTest: (): Promise<{ success: boolean; message: string }> =>
         api.post('/admin/telegram/test').then(r => r.data),
+    syncTelegramCommands: (): Promise<{ success: boolean; commands: any; webhook: any }> =>
+        api.post('/admin/telegram/sync').then(r => r.data),
 };
 
 // ─── Public Client Error Telemetry ───────────────────────────────────────────

@@ -27,4 +27,15 @@ router.post('/webhook', (req: Request, res: Response) => {
     });
 });
 
+/**
+ * Health verification endpoint for Telegram webhook
+ */
+router.get(['/', '/webhook'], (_req: Request, res: Response) => {
+    res.status(200).json({
+        ok: true,
+        service: 'OurMenu Telegram Webhook',
+        timestamp: new Date().toISOString(),
+    });
+});
+
 export default router;

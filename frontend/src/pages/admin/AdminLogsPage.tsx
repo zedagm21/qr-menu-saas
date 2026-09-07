@@ -37,9 +37,27 @@ export default function AdminLogsPage() {
     const [copiedStack, setCopiedStack] = useState(false);
     const [showPurgeModal, setShowPurgeModal] = useState(false);
     const [purgeDays, setPurgeDays] = useState(30);
-    const [telegramStatus, setTelegramStatus] = useState<{ isConfigured: boolean; isEnabled: boolean; adminCount: number } | null>(null);
+    const [telegramStatus, setTelegramStatus] = useState<{
+        isConfigured: boolean;
+        isEnabled: boolean;
+        adminCount: number;
+        webhookInfo?: {
+            ok: boolean;
+            url?: string;
+            pendingUpdateCount?: number;
+            lastErrorDate?: number;
+            lastErrorMessage?: string;
+        } | null;
+        botInfo?: {
+            ok: boolean;
+            id?: number;
+            username?: string;
+            firstName?: string;
+        } | null;
+    } | null>(null);
     const [isTogglingTelegram, setIsTogglingTelegram] = useState(false);
     const [isSendingTest, setIsSendingTest] = useState(false);
+    const [isSyncingCommands, setIsSyncingCommands] = useState(false);
 
     const { data: metrics, refetch: refetchMetrics } = useSystemLogMetrics(autoRefreshInterval);
     const {
@@ -96,6 +114,20 @@ export default function AdminLogsPage() {
             toast.error(err?.response?.data?.error || 'Failed to dispatch test alert');
         } finally {
             setIsSendingTest(false);
+        }
+    };
+
+    const handleSyncCommands = async () => {
+        setIsSyncingCommands(true);
+        try {
+            await adminApi.syncTelegramCommands();
+            toast.success('Slash commands & webhook synchronized with Telegram!');
+            const updated = await adminApi.getTelegramStatus();
+            setTelegramStatus(updated);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error || 'Failed to synchronize with Telegram');
+        } finally {
+            setIsSyncingCommands(false);
         }
     };
 
@@ -228,14 +260,32 @@ export default function AdminLogsPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-extrabold text-sm text-white">Telegram Admin Bot & Real-Time Alerts</span>
                                 {telegramStatus?.isConfigured ? (
-                                    <span className={cn(
-                                        'px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase',
-                                        telegramStatus.isEnabled
-                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                    )}>
-                                        {telegramStatus.isEnabled ? `Active (${telegramStatus.adminCount} Admin${telegramStatus.adminCount > 1 ? 's' : ''})` : 'Paused'}
-                                    </span>
+                                    <>
+                                        <span className={cn(
+                                            'px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase',
+                                            telegramStatus.isEnabled
+                                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                        )}>
+                                            {telegramStatus.isEnabled ? `Active (${telegramStatus.adminCount} Admin${telegramStatus.adminCount > 1 ? 's' : ''})` : 'Paused'}
+                                        </span>
+                                        {telegramStatus.botInfo?.username && (
+                                            <a
+                                                href={`https://t.me/${telegramStatus.botInfo.username}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
+                                                title="Open bot in Telegram"
+                                            >
+                                                @{telegramStatus.botInfo.username}
+                                            </a>
+                                        )}
+                                        {telegramStatus.webhookInfo && typeof telegramStatus.webhookInfo.pendingUpdateCount === 'number' && telegramStatus.webhookInfo.pendingUpdateCount > 0 && (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20" title="Updates queued in Telegram">
+                                                {telegramStatus.webhookInfo.pendingUpdateCount} queued
+                                            </span>
+                                        )}
+                                    </>
                                 ) : (
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-slate-800 text-slate-400 border border-slate-700">
                                         Token Not Configured
@@ -243,22 +293,40 @@ export default function AdminLogsPage() {
                                 )}
                             </div>
                             <p className="text-xs text-slate-400 mt-0.5">
-                                Instant push alerts for DB outages, 500 crashes, UI client errors, and 21:00 EAT nightly digest.
+                                Instant push alerts for DB outages, 500 crashes, UI client errors, and interactive slash commands (/stats, /top, /log, /backup).
                             </p>
+                            {telegramStatus?.webhookInfo?.lastErrorMessage && (
+                                <p className="text-[11px] text-rose-400 mt-1 font-mono">
+                                    ⚠️ Telegram webhook notice: {telegramStatus.webhookInfo.lastErrorMessage}
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-wrap">
                         {telegramStatus?.isConfigured && (
-                            <button
-                                type="button"
-                                onClick={handleSendTestAlert}
-                                disabled={isSendingTest || !telegramStatus.isEnabled}
-                                className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Send className={cn('w-3.5 h-3.5 text-sky-400', isSendingTest && 'animate-pulse')} />
-                                <span>{isSendingTest ? 'Sending...' : 'Send Test Alert'}</span>
-                            </button>
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleSyncCommands}
+                                    disabled={isSyncingCommands}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Synchronize slash commands menu and webhook with Telegram servers"
+                                >
+                                    <RefreshCw className={cn('w-3.5 h-3.5 text-indigo-400', isSyncingCommands && 'animate-spin')} />
+                                    <span>{isSyncingCommands ? 'Syncing...' : 'Sync Commands'}</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleSendTestAlert}
+                                    disabled={isSendingTest || !telegramStatus.isEnabled}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700/80 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Send className={cn('w-3.5 h-3.5 text-sky-400', isSendingTest && 'animate-pulse')} />
+                                    <span>{isSendingTest ? 'Sending...' : 'Send Test Alert'}</span>
+                                </button>
+                            </>
                         )}
 
                         {/* Toggle Switch */}

@@ -43,7 +43,7 @@ export class TelegramBotService {
 
     /**
      * Resolves incoming text into a recognized command and argument array.
-     * Supports slash-prefixed commands (/stats, /log, etc.) as well as plain command keywords.
+     * Supports slash-prefixed commands (/stats, /stats@botname, /log, etc.) as well as plain command keywords.
      */
     static resolveCommand(text: string): { command: string; args: string[] } | null {
         const trimmed = (text || '').trim();
@@ -53,27 +53,39 @@ export class TelegramBotService {
         const rawFirst = parts[0].toLowerCase();
         const args = parts.slice(1);
 
-        // Slash-prefixed command: e.g. /stats, /log, /find, /cancel
+        // Bare slash alone: treat as /help
+        if (rawFirst === '/') {
+            return { command: '/help', args: [] };
+        }
+
+        // Slash-prefixed command: e.g. /stats, /stats@botname, /log, /find, /cancel
+        // Strips any Telegram bot username suffix (e.g. /stats@OurMenuBot -> /stats)
         if (rawFirst.startsWith('/')) {
-            return { command: rawFirst, args };
+            const command = rawFirst.split('@')[0];
+            return { command, args };
         }
 
         // Plain command keyword map without leading slash
         const commandKeywords: Record<string, string> = {
             start: '/start',
             help: '/help',
+            menu: '/help',
             cancel: '/cancel',
             stats: '/stats',
+            status: '/stats',
             overview: '/overview',
             top: '/top',
+            restaurants: '/top',
             find: '/find',
             log: '/log',
             logs: '/logs',
             backup: '/backup',
+            dump: '/backup',
         };
 
-        if (commandKeywords[rawFirst]) {
-            return { command: commandKeywords[rawFirst], args };
+        const commandOnly = rawFirst.split('@')[0];
+        if (commandKeywords[commandOnly]) {
+            return { command: commandKeywords[commandOnly], args };
         }
 
         return null;
@@ -115,18 +127,141 @@ export class TelegramBotService {
     }
 
     /**
-     * Initialize webhook registration with Telegram API on production boot
+     * Registers bot slash commands menu with Telegram API so they appear in chat menu & autocomplete
      */
-    static async initWebhook(appUrl: string): Promise<void> {
-        if (!this.isConfigured() || !appUrl || appUrl.includes('localhost') || appUrl.includes('127.0.0.1')) {
-            return;
+    static async registerBotCommands(): Promise<{ ok: boolean; description?: string }> {
+        if (!config.telegramBotToken) {
+            return { ok: false, description: 'Telegram bot token is not configured' };
+        }
+        const commands = [
+            { command: 'stats', description: '📊 Live overview metrics & diner scans' },
+            { command: 'top', description: '🏆 Top 5 restaurants by scan traffic' },
+            { command: 'find', description: '🔍 Search restaurant profile & owner' },
+            { command: 'log', description: '📄 Download system diagnostics log' },
+            { command: 'backup', description: '💾 Request database backup archive' },
+            { command: 'cancel', description: '🚫 Cancel active prompt or input' },
+            { command: 'help', description: 'ℹ️ View command cheatsheet & status' },
+        ];
+
+        try {
+            console.log('🤖 [TelegramBotService] Registering slash commands with Telegram...');
+            const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/setMyCommands`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commands }),
+            });
+            const data = await res.json() as { ok: boolean; description?: string };
+            if (data.ok) {
+                console.log('✅ [TelegramBotService] Slash commands successfully registered with Telegram');
+            } else {
+                console.warn('⚠️ [TelegramBotService] Webhook command registration warning:', data.description);
+            }
+            return data;
+        } catch (err: any) {
+            console.error('⚠️ [TelegramBotService] Network error registering commands:', err);
+            return { ok: false, description: err?.message || 'Network error' };
+        }
+    }
+
+    /**
+     * Retrieves current webhook status and errors directly from Telegram Bot API
+     */
+    static async getWebhookInfo(): Promise<{
+        ok: boolean;
+        url?: string;
+        hasCustomCertificate?: boolean;
+        pendingUpdateCount?: number;
+        lastErrorDate?: number;
+        lastErrorMessage?: string;
+        maxConnections?: number;
+        ipAddress?: string;
+        error?: string;
+    }> {
+        if (!config.telegramBotToken) {
+            return { ok: false, error: 'Telegram bot token is not configured' };
+        }
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getWebhookInfo`);
+            const data = await res.json() as any;
+            if (data.ok && data.result) {
+                return {
+                    ok: true,
+                    url: data.result.url,
+                    hasCustomCertificate: data.result.has_custom_certificate,
+                    pendingUpdateCount: data.result.pending_update_count,
+                    lastErrorDate: data.result.last_error_date,
+                    lastErrorMessage: data.result.last_error_message,
+                    maxConnections: data.result.max_connections,
+                    ipAddress: data.result.ip_address,
+                };
+            }
+            return { ok: false, error: data.description || 'Failed to fetch webhook info' };
+        } catch (err: any) {
+            return { ok: false, error: err?.message || 'Network error' };
+        }
+    }
+
+    /**
+     * Retrieves bot metadata (username, name) directly from Telegram Bot API
+     */
+    static async getBotInfo(): Promise<{
+        ok: boolean;
+        id?: number;
+        username?: string;
+        firstName?: string;
+        canJoinGroups?: boolean;
+        canReadAllGroupMessages?: boolean;
+        supportsInlineQueries?: boolean;
+        error?: string;
+    }> {
+        if (!config.telegramBotToken) {
+            return { ok: false, error: 'Telegram bot token is not configured' };
+        }
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getMe`);
+            const data = await res.json() as any;
+            if (data.ok && data.result) {
+                return {
+                    ok: true,
+                    id: data.result.id,
+                    username: data.result.username,
+                    firstName: data.result.first_name,
+                    canJoinGroups: data.result.can_join_groups,
+                    canReadAllGroupMessages: data.result.can_read_all_group_messages,
+                    supportsInlineQueries: data.result.supports_inline_queries,
+                };
+            }
+            return { ok: false, error: data.description || 'Failed to fetch bot info' };
+        } catch (err: any) {
+            return { ok: false, error: err?.message || 'Network error' };
+        }
+    }
+
+    /**
+     * Initialize webhook registration and slash commands with Telegram API
+     */
+    static async initWebhook(appUrl: string): Promise<{ ok: boolean; url?: string; description?: string }> {
+        if (!config.telegramBotToken) {
+            return { ok: false, description: 'Telegram bot token is not configured' };
+        }
+
+        // 1. Always register bot slash commands menu with Telegram (works regardless of localhost/production)
+        await this.registerBotCommands();
+
+        // 2. Validate appUrl for webhook
+        if (!appUrl || appUrl.includes('localhost') || appUrl.includes('127.0.0.1')) {
+            console.log(`ℹ️ [TelegramBotService] Local environment (${appUrl || 'none'}): slash commands registered, webhook registration skipped.`);
+            return { ok: true, description: 'Commands registered. Webhook skipped for local development.' };
         }
 
         const cleanBaseUrl = (appUrl || '').replace(/\/+$/, '').replace(/\/api$/, '');
         const webhookUrl = `${cleanBaseUrl}/api/telegram/webhook`;
         try {
             console.log(`🤖 [TelegramBotService] Registering webhook: ${webhookUrl}`);
-            const body: Record<string, any> = { url: webhookUrl };
+            const body: Record<string, any> = {
+                url: webhookUrl,
+                allowed_updates: ['message', 'edited_message', 'callback_query'],
+            };
             if (config.telegramWebhookSecret) {
                 body.secret_token = config.telegramWebhookSecret;
             }
@@ -143,8 +278,10 @@ export class TelegramBotService {
             } else {
                 console.warn('⚠️ [TelegramBotService] Webhook registration warning:', data.description);
             }
-        } catch (error) {
+            return { ok: data.ok, url: webhookUrl, description: data.description };
+        } catch (error: any) {
             console.error('⚠️ [TelegramBotService] Failed to register Telegram webhook:', error);
+            return { ok: false, url: webhookUrl, description: error?.message || 'Network error' };
         }
     }
 
@@ -168,6 +305,22 @@ export class TelegramBotService {
             const data = await res.json() as { ok: boolean; description?: string };
             if (!data.ok) {
                 console.warn(`⚠️ [TelegramBotService] Send failed to ${chatId}:`, data.description);
+                // Fallback: If Telegram failed due to unescaped HTML entities, retry sending as plain text
+                if (data.description?.includes("can't parse entities")) {
+                    const plainText = text.replace(/<[^>]*>/g, '');
+                    const fallbackRes = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: plainText,
+                            disable_web_page_preview: true,
+                            ...extra,
+                        }),
+                    });
+                    const fallbackData = await fallbackRes.json() as { ok: boolean; description?: string };
+                    return { ok: fallbackData.ok, description: fallbackData.description };
+                }
             }
             return { ok: data.ok, description: data.description };
         } catch (err: any) {
@@ -462,6 +615,7 @@ export class TelegramBotService {
         if (update?.callback_query) {
             const callbackQuery = update.callback_query;
             const chatId = String(callbackQuery.message?.chat?.id || callbackQuery.from?.id || '');
+            const fromId = String(callbackQuery.from?.id || '');
             const data = callbackQuery.data?.trim();
 
             if (config.telegramBotToken && callbackQuery.id) {
@@ -474,11 +628,14 @@ export class TelegramBotService {
 
             if (!chatId || !data) return;
 
-            const isAuthorized = config.telegramAdminChatIds.includes(chatId);
+            const isAuthorized =
+                config.telegramAdminChatIds.includes(chatId) ||
+                (Boolean(fromId) && config.telegramAdminChatIds.includes(fromId));
+
             if (!isAuthorized) {
                 await this.sendMessage(
                     chatId,
-                    `⛔ <b>Access Denied</b>\n\nYour Telegram ID <code>${chatId}</code> is not on the OurMenu admin allowlist.`
+                    `⛔ <b>Access Denied</b>\n\nYour Telegram ID <code>${fromId || chatId}</code> is not on the OurMenu admin allowlist.`
                 );
                 return;
             }
@@ -486,24 +643,31 @@ export class TelegramBotService {
             await this.handleIncomingUpdate({
                 message: {
                     chat: { id: chatId },
+                    from: { id: fromId },
                     text: data,
                 },
             });
             return;
         }
 
-        const message = update?.message;
+        const message = update?.message || update?.edited_message;
         if (!message || !message.text) return;
 
         const chatId = String(message.chat?.id || '');
+        const fromId = String(message.from?.id || '');
         const text = message.text.trim();
 
-        // 2. Security Allowlist Check
-        const isAuthorized = config.telegramAdminChatIds.includes(chatId);
+        // 2. Security Allowlist Check (matches chat ID or sender User ID)
+        const isAuthorized =
+            config.telegramAdminChatIds.includes(chatId) ||
+            (Boolean(fromId) && config.telegramAdminChatIds.includes(fromId));
+
         if (!isAuthorized) {
+            const senderIdentifier = fromId && fromId !== chatId ? `${fromId} (in chat ${chatId})` : chatId;
+            console.warn(`⛔ [TelegramBotService] Unauthorized message from ${senderIdentifier}: "${text.slice(0, 30)}"`);
             await this.sendMessage(
                 chatId,
-                `⛔ <b>Access Denied</b>\n\nYour Telegram ID <code>${chatId}</code> is not on the OurMenu admin allowlist.\nContact the platform administrator to add this ID to <code>TELEGRAM_ADMIN_CHAT_IDS</code>.`
+                `⛔ <b>Access Denied</b>\n\nYour Telegram ID <code>${fromId || chatId}</code> is not on the OurMenu admin allowlist.\nContact the platform administrator to add this ID to <code>TELEGRAM_ADMIN_CHAT_IDS</code>.`
             );
             return;
         }
@@ -525,8 +689,10 @@ export class TelegramBotService {
             this.pendingActionMap.delete(chatId);
 
             switch (command) {
+                case '/':
                 case '/start':
                 case '/help':
+                case '/menu':
                     await this.handleHelpCommand(chatId);
                     break;
 
@@ -539,11 +705,13 @@ export class TelegramBotService {
                     break;
 
                 case '/stats':
+                case '/status':
                 case '/overview':
                     await this.handleStatsCommand(chatId);
                     break;
 
                 case '/top':
+                case '/restaurants':
                     await this.handleTopCommand(chatId);
                     break;
 
@@ -604,7 +772,8 @@ export class TelegramBotService {
                     break;
                 }
 
-                case '/backup': {
+                case '/backup':
+                case '/dump': {
                     const subCommand = args[0]?.toLowerCase();
 
                     // If already confirmed directly (e.g. "/backup confirm" or inline button callback)
