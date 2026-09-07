@@ -13,11 +13,11 @@ import {
 import { config } from '../config/env';
 import prisma from '../config/database';
 
-const cookieOptions = {
+export const cookieOptions = {
     httpOnly: true,
     secure: config.isProduction,
     sameSite: 'lax' as const,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

@@ -16,6 +16,17 @@ import './styles/globals.css';
 // Initialize global crash and unhandled promise telemetry
 initGlobalTelemetry();
 
+// Auto-purge legacy dashboard API cache from previous service worker versions to ensure all devices fetch fresh data
+if (typeof window !== 'undefined' && 'caches' in window) {
+    caches.keys().then((keys) => {
+        keys.forEach((key) => {
+            if (key.includes('dashboard-api-cache')) {
+                caches.delete(key).catch(() => {});
+            }
+        });
+    }).catch(() => {});
+}
+
 // Auto-reload when new deployment takes over an existing session
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     let isRefreshing = false;

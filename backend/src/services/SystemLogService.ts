@@ -73,13 +73,63 @@ export class SystemLogService {
      * Non-blocking log recording. Safely catches any internal errors.
      */
     async recordLog(params: RecordLogParams): Promise<void> {
-        try {
-            const cleanMessage = String(params.message || 'Unknown Error').slice(0, 2000);
-            const cleanStack = params.stack ? String(params.stack).slice(0, 10000) : null;
-            const cleanPath = params.path ? String(params.path).slice(0, 500) : null;
-            const cleanUserAgent = params.userAgent ? String(params.userAgent).slice(0, 500) : null;
-            const sanitizedMetadata = params.metadata ? sanitizeMetadata(params.metadata) : undefined;
+        const cleanMessage = String(params.message || 'Unknown Error').slice(0, 2000);
+        const cleanStack = params.stack ? String(params.stack).slice(0, 10000) : null;
+        const cleanPath = params.path ? String(params.path).slice(0, 500) : null;
+        const cleanUserAgent = params.userAgent ? String(params.userAgent).slice(0, 500) : null;
+        const sanitizedMetadata = params.metadata ? sanitizeMetadata(params.metadata) : undefined;
 
+        // 1. Asynchronously dispatch Telegram alerts BEFORE attempting database write
+        // so database outages or crashes are never lost if PostgreSQL connection is down
+        try {
+            if (params.source === LogSource.FRONTEND) {
+                if (params.level === LogLevel.FATAL || params.level === LogLevel.ERROR) {
+                    TelegramBotService.sendClientCrashAlert({
+                        message: cleanMessage,
+                        url: cleanPath || undefined,
+                        userAgent: cleanUserAgent || undefined,
+                        userId: params.userId || undefined,
+                        stack: cleanStack || undefined,
+                    }).catch(() => {});
+                }
+            } else {
+                const lowerMsg = cleanMessage.toLowerCase();
+                const isDbError =
+                    lowerMsg.includes('prisma') ||
+                    lowerMsg.includes('database') ||
+                    lowerMsg.includes('connection pool') ||
+                    lowerMsg.includes('econnrefused') ||
+                    lowerMsg.includes('p2024') ||
+                    lowerMsg.includes('closed') ||
+                    lowerMsg.includes('can\'t reach database server') ||
+                    Boolean(params.stack && (params.stack.includes('PrismaClient') || params.stack.includes('P2024')));
+
+                if (isDbError) {
+                    TelegramBotService.sendDatabaseFailureAlert({
+                        message: cleanMessage,
+                        endpoint: params.path || params.endpoint || undefined,
+                        stack: cleanStack || undefined,
+                    }).catch(() => {});
+                } else if (params.statusCode === 500 || params.level === LogLevel.FATAL) {
+                    TelegramBotService.sendErrorAlert({
+                        statusCode: params.statusCode,
+                        message: cleanMessage,
+                        path: cleanPath,
+                        method: params.method,
+                        stack: cleanStack,
+                        userId: params.userId,
+                        restaurantId: params.restaurantId,
+                        source: params.source,
+                        metadata: sanitizedMetadata,
+                    }).catch(() => {});
+                }
+            }
+        } catch {
+            // Non-blocking alerting
+        }
+
+        // 2. Persist log to PostgreSQL database
+        try {
             await prisma.systemLog.create({
                 data: {
                     level: params.level || LogLevel.ERROR,
@@ -98,54 +148,16 @@ export class SystemLogService {
                     restaurantId: params.restaurantId || null,
                 },
             });
-
-            // Asynchronously trigger Telegram alert if bot is active
+        } catch (dbError: any) {
+            // Never crash caller process if system log persistence fails, but log to stderr and notify Telegram
+            console.error('[SystemLogService] Failed to persist system log to PostgreSQL:', dbError?.message || dbError);
             try {
-                if (params.source === LogSource.FRONTEND) {
-                    if (params.level === LogLevel.FATAL || params.level === LogLevel.ERROR) {
-                        TelegramBotService.sendClientCrashAlert({
-                            message: cleanMessage,
-                            url: cleanPath || undefined,
-                            userAgent: cleanUserAgent || undefined,
-                            userId: params.userId || undefined,
-                            stack: cleanStack || undefined,
-                        }).catch(() => {});
-                    }
-                } else {
-                    const lowerMsg = cleanMessage.toLowerCase();
-                    const isDbError =
-                        lowerMsg.includes('prisma') ||
-                        lowerMsg.includes('database') ||
-                        lowerMsg.includes('connection pool') ||
-                        lowerMsg.includes('econnrefused') ||
-                        Boolean(params.stack && params.stack.includes('PrismaClient'));
-
-                    if (isDbError) {
-                        TelegramBotService.sendDatabaseFailureAlert({
-                            message: cleanMessage,
-                            endpoint: params.path || params.endpoint || undefined,
-                            stack: cleanStack || undefined,
-                        }).catch(() => {});
-                    } else if (params.statusCode === 500 || params.level === LogLevel.FATAL) {
-                        TelegramBotService.sendErrorAlert({
-                            statusCode: params.statusCode,
-                            message: cleanMessage,
-                            path: cleanPath,
-                            method: params.method,
-                            stack: cleanStack,
-                            userId: params.userId,
-                            restaurantId: params.restaurantId,
-                            source: params.source,
-                            metadata: sanitizedMetadata,
-                        }).catch(() => {});
-                    }
-                }
-            } catch {
-                // Non-blocking
-            }
-        } catch (error) {
-            // Never crash caller process if system log persistence fails
-            console.error('[SystemLogService] Failed to persist system log:', error);
+                TelegramBotService.sendDatabaseFailureAlert({
+                    message: `SystemLog write failed: ${dbError?.message || 'Database inaccessible'}`,
+                    endpoint: cleanPath || undefined,
+                    stack: dbError?.stack || null,
+                }).catch(() => {});
+            } catch {}
         }
     }
 

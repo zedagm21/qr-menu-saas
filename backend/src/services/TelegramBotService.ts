@@ -475,7 +475,7 @@ export class TelegramBotService {
             `🔗 <a href="${config.frontendUrl}/admin/logs">View System Logs</a>`,
         ].filter(Boolean).join('\n');
 
-        await this.broadcastToAdmins(text);
+        await this.broadcastToAdmins(text, true); // Force delivery to bypass DB setting check during outage
     }
 
     /**

@@ -27,14 +27,43 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     }
 
     try {
-        const payload = jwt.verify(token, config.jwtSecret) as AuthPayload;
-        req.user = payload;
+        const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload & { exp?: number };
+        req.user = {
+            userId: decoded.userId,
+            restaurantId: decoded.restaurantId,
+            role: decoded.role,
+        };
 
         // Allow platform Super Admins to manage/impersonate another restaurant
         if (req.user.role === 'ADMIN') {
             const impersonateHeader = req.headers['x-impersonate-restaurant-id'];
             if (typeof impersonateHeader === 'string' && impersonateHeader.trim()) {
                 req.user.restaurantId = impersonateHeader.trim();
+            }
+        }
+
+        // 30-Day Rolling Session (Sliding Window):
+        // If token has less than 15 days remaining, refresh it back to 30 days
+        if (decoded.exp) {
+            const remainingSeconds = decoded.exp - Math.floor(Date.now() / 1000);
+            const fifteenDaysInSeconds = 15 * 24 * 60 * 60;
+            if (remainingSeconds < fifteenDaysInSeconds) {
+                const refreshedToken = jwt.sign(
+                    {
+                        userId: decoded.userId,
+                        restaurantId: decoded.restaurantId,
+                        role: decoded.role,
+                    },
+                    config.jwtSecret,
+                    { expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'] }
+                );
+                res.cookie('token', refreshedToken, {
+                    httpOnly: true,
+                    secure: config.isProduction,
+                    sameSite: 'lax',
+                    maxAge: 30 * 24 * 60 * 60 * 1000,
+                });
+                res.setHeader('x-token-refreshed', 'true');
             }
         }
 

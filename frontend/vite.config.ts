@@ -80,7 +80,7 @@ export default defineConfig({
                         },
                     },
                     {
-                        // 3. Public diner restaurant & menu API responses (Passive cache)
+                        // 3. Public diner restaurant & menu API responses (Passive cache for offline/spotty venue network)
                         urlPattern: /\/api\/public\/restaurants\/[^\/]+(?:\/menu)?(?:\?.*)?$/i,
                         method: 'GET',
                         handler: 'NetworkFirst',
@@ -92,24 +92,7 @@ export default defineConfig({
                             },
                             expiration: {
                                 maxEntries: 50,
-                                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-                            },
-                        },
-                    },
-                    {
-                        // 4. Restaurant Owner Dashboard APIs (Offline access)
-                        urlPattern: /\/api\/(?:restaurant(?:s)?|categories|menu-items|qr)(?:\/.*)?$/i,
-                        method: 'GET',
-                        handler: 'NetworkFirst',
-                        options: {
-                            cacheName: 'dashboard-api-cache',
-                            networkTimeoutSeconds: 3,
-                            cacheableResponse: {
-                                statuses: [0, 200],
-                            },
-                            expiration: {
-                                maxEntries: 50,
-                                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days (604800 seconds)
+                                maxAgeSeconds: 60 * 60 * 4, // 4 hours (14,400 seconds)
                             },
                         },
                     },

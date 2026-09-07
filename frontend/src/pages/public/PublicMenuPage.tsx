@@ -91,7 +91,21 @@ export default function PublicMenuPage() {
         try {
             if (!slug) return {};
             const saved = localStorage.getItem(`ourmenu_tab_${slug}`);
-            return saved ? JSON.parse(saved) : {};
+            if (!saved) return {};
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                // Check for timestamped structure with 4-hour TTL (4 * 60 * 60 * 1000 ms)
+                if ('items' in parsed && typeof parsed.savedAt === 'number') {
+                    if (Date.now() - parsed.savedAt > 4 * 60 * 60 * 1000) {
+                        localStorage.removeItem(`ourmenu_tab_${slug}`);
+                        return {};
+                    }
+                    return (parsed.items as OrderTab) || {};
+                }
+                // Backward compatibility for legacy raw tab objects
+                return parsed as OrderTab;
+            }
+            return {};
         } catch {
             return {};
         }
@@ -100,7 +114,17 @@ export default function PublicMenuPage() {
     useEffect(() => {
         if (slug) {
             try {
-                localStorage.setItem(`ourmenu_tab_${slug}`, JSON.stringify(tab));
+                if (Object.keys(tab).length === 0) {
+                    localStorage.removeItem(`ourmenu_tab_${slug}`);
+                } else {
+                    localStorage.setItem(
+                        `ourmenu_tab_${slug}`,
+                        JSON.stringify({
+                            items: tab,
+                            savedAt: Date.now(),
+                        })
+                    );
+                }
             } catch {}
         }
     }, [tab, slug]);

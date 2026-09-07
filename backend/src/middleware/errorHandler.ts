@@ -48,7 +48,7 @@ export const errorHandler = (
             method: req?.method || null,
             ipAddress: req?.ip || null,
             userAgent: typeof req?.get === 'function' ? req.get('user-agent') || null : null,
-            userId: (req as any)?.user?.id || null,
+            userId: (req as any)?.user?.userId || (req as any)?.user?.id || null,
             restaurantId: (req as any)?.user?.restaurantId || null,
             metadata: {
                 query: req?.query,
