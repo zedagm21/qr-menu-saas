@@ -179,9 +179,11 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     {/* Brand Logo */}
                     <Link to="/" className="flex items-center gap-2.5 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-                            <QrCode className="w-5 h-5 text-slate-950 stroke-[2.5]" />
-                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="OurMenu"
+                            className="w-10 h-10 rounded-xl shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform object-contain"
+                        />
                         <div className="flex flex-col">
                             <span className="text-xl font-black tracking-tight text-white flex items-center gap-1">
                                 Our<span className="text-amber-400">Menu</span>
@@ -1071,9 +1073,11 @@ export default function LandingPage() {
             <footer className="py-12 bg-slate-950 border-t border-slate-900 text-xs text-slate-400">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 flex items-center justify-center text-slate-950 font-black text-xs shadow">
-                            OM
-                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="OurMenu"
+                            className="w-8 h-8 rounded-xl shadow object-contain"
+                        />
                         <div>
                             <span className="font-extrabold text-white text-sm">OurMenu Ethiopia</span>
                             <p className="text-[11px] text-slate-500">

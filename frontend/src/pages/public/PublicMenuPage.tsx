@@ -1048,9 +1048,12 @@ export default function PublicMenuPage() {
                 </main>
 
                 <footer className="py-8 text-center bg-white dark:bg-[#0C0C0C] border-t border-black/5 dark:border-[#2A2A2A] mt-auto">
-                    <p className={cn("text-[11px] font-bold tracking-widest uppercase text-neutral-400 dark:text-[#A3A3A3]", lang === 'AM' && 'font-ethiopic normal-case')}>
-                        {t("public.powered_by")}
-                    </p>
+                    <div className="flex items-center justify-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+                        <img src="/logo-sm.png" alt="OurMenu" className="w-4 h-4 rounded object-contain shrink-0" />
+                        <p className={cn("text-[11px] font-bold tracking-widest uppercase text-neutral-400 dark:text-[#A3A3A3]", lang === 'AM' && 'font-ethiopic normal-case')}>
+                            {t("public.powered_by")}
+                        </p>
+                    </div>
                 </footer>
 
                 {/* ─── Full Page Detail Overlay ─── */}

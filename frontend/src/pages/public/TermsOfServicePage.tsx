@@ -33,9 +33,11 @@ export default function TermsOfServicePage() {
                             <ArrowLeft className="w-4 h-4" />
                         </Link>
                         <Link to="/landing" className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 flex items-center justify-center text-slate-950 font-black text-xs shadow-md shadow-amber-500/20">
-                                OM
-                            </div>
+                            <img
+                                src="/logo.png"
+                                alt="OurMenu"
+                                className="w-8 h-8 rounded-xl shadow-md shadow-amber-500/20 object-contain"
+                            />
                             <span className="font-extrabold text-white text-base tracking-tight">OurMenu</span>
                         </Link>
                     </div>

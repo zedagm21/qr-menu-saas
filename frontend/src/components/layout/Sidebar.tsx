@@ -43,17 +43,21 @@ export const Sidebar: React.FC = () => {
             {/* Header */}
             <div className={cn('flex items-center px-4 h-16 border-b border-neutral-100 dark:border-neutral-800', collapsed ? 'justify-center' : 'justify-between')}>
                 {!collapsed && (
-                    <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-[color:var(--color-brand-500)] rounded-lg flex items-center justify-center text-white">
-                            <QrCode className="w-4 h-4" />
-                        </div>
-                        <span className="font-bold text-neutral-900 dark:text-neutral-50 text-sm">{t('nav.menuQr', { defaultValue: 'OurMenu' })}</span>
+                    <div className="flex items-center gap-2.5">
+                        <img
+                            src="/logo-sm.png"
+                            alt="OurMenu"
+                            className="w-8 h-8 rounded-lg object-contain shadow-xs shrink-0"
+                        />
+                        <span className="font-bold text-neutral-900 dark:text-neutral-50 text-sm tracking-tight">{t('nav.menuQr', { defaultValue: 'OurMenu' })}</span>
                     </div>
                 )}
                 {collapsed && (
-                    <div className="w-7 h-7 bg-[color:var(--color-brand-500)] rounded-lg flex items-center justify-center text-white">
-                        <QrCode className="w-4 h-4" />
-                    </div>
+                    <img
+                        src="/logo-sm.png"
+                        alt="OurMenu"
+                        className="w-8 h-8 rounded-lg object-contain shadow-xs"
+                    />
                 )}
                 <button
                     onClick={() => setCollapsed(c => !c)}
