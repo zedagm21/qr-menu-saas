@@ -4,10 +4,9 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
-    Save, Globe, Eye, ImagePlus, UploadCloud,
+    Globe, Eye, ImagePlus, UploadCloud,
     Building2, Store, CheckCircle2, Sparkles,
-    Wifi, CreditCard, Share2, Plus, Trash2, EyeOff, Info,
-    AlertTriangle, Pencil, Link2, Crop
+    Wifi, CreditCard, EyeOff, Pencil, Link2, Crop
 } from 'lucide-react';
 import { useRestaurant, useUpdateRestaurant, useChangeSlug } from '../../hooks/useRestaurant';
 import { restaurantApi } from '../../services/api';
@@ -116,99 +115,130 @@ const UploadZone: React.FC<UploadZoneProps> = ({
     aspect, dragOver, onDragOver, onDragLeave, onDrop, onDropFile, onChange, onAdjust,
     imageUrl, label, hint, emptyIcon, uploaded, progress,
     tChangeImage, tAdjustFraming, tDropToUpload, tToUpload, tClickDragDrop
-}) => (
-    <div className="flex flex-col">
-        <div className="mb-3">
-            <span className="block text-[13px] font-bold text-neutral-700 dark:text-neutral-300">{label}</span>
-            <span className="text-[11px] text-neutral-400 font-medium">{hint}</span>
-        </div>
-        <label
-            className={cn(
-                'relative flex flex-col items-center justify-center rounded-[20px] border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden',
-                aspect,
-                dragOver
-                    ? 'border-[color:var(--color-brand-500)] bg-[color:var(--color-brand-50)]/60 dark:bg-[color:var(--color-brand-500)]/10 shadow-sm'
-                    : imageUrl
-                        ? 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800'
-                        : 'bg-neutral-50/60 dark:bg-neutral-800/60 border-neutral-200 dark:border-neutral-700 hover:border-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10 hover:shadow-md hover:shadow-[color:var(--color-brand-500)]/10'
-            )}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={e => {
-                e.preventDefault();
-                onDragLeave();
-                const file = e.dataTransfer.files?.[0];
-                if (file && onDropFile) {
-                    onDropFile(file);
-                } else {
-                    onDrop(e);
-                }
-            }}
-        >
-            {/* Progress overlay */}
-            {progress !== null && progress !== undefined && (
-                <div className="absolute inset-0 z-30 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white animate-fade-in">
-                    <div className="w-full max-w-[180px] bg-white/20 rounded-full h-2 overflow-hidden mb-2">
-                        <div
-                            className="bg-[color:var(--color-brand-400)] h-full rounded-full transition-all duration-200"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <span className="text-[12px] font-bold tracking-wider">{progress < 100 ? `Uploading ${progress}%` : 'Processing...'}</span>
-                </div>
-            )}
+}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-            {imageUrl ? (
-                <>
-                    <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
-                    {/* Hover overlay with dual actions: Adjust & Change */}
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-xs p-3">
-                        {onAdjust && (
+    return (
+        <div className="flex flex-col">
+            <div className="mb-3">
+                <span className="block text-[13px] font-bold text-neutral-700 dark:text-neutral-300">{label}</span>
+                <span className="text-[11px] text-neutral-400 font-medium">{hint}</span>
+            </div>
+            <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                    if (!imageUrl) {
+                        fileInputRef.current?.click();
+                    }
+                }}
+                onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && !imageUrl) {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                    }
+                }}
+                className={cn(
+                    'relative flex flex-col items-center justify-center rounded-[20px] border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden select-none',
+                    aspect,
+                    dragOver
+                        ? 'border-[color:var(--color-brand-500)] bg-[color:var(--color-brand-50)]/60 dark:bg-[color:var(--color-brand-500)]/10 shadow-sm'
+                        : imageUrl
+                            ? 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800'
+                            : 'bg-neutral-50/60 dark:bg-neutral-800/60 border-neutral-200 dark:border-neutral-700 hover:border-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)]/40 dark:hover:bg-[color:var(--color-brand-500)]/10 hover:shadow-md hover:shadow-[color:var(--color-brand-500)]/10'
+                )}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={e => {
+                    e.preventDefault();
+                    onDragLeave();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && onDropFile) {
+                        onDropFile(file);
+                    } else {
+                        onDrop(e);
+                    }
+                }}
+            >
+                {/* Progress overlay */}
+                {progress !== null && progress !== undefined && (
+                    <div className="absolute inset-0 z-30 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white animate-fade-in">
+                        <div className="w-full max-w-[180px] bg-white/20 rounded-full h-2 overflow-hidden mb-2">
+                            <div
+                                className="bg-[color:var(--color-brand-400)] h-full rounded-full transition-all duration-200"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <span className="text-[12px] font-bold tracking-wider">{progress < 100 ? `Uploading ${progress}%` : 'Processing...'}</span>
+                    </div>
+                )}
+
+                {imageUrl ? (
+                    <>
+                        <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
+                        {/* Hover overlay with dual actions: Adjust & Change */}
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-xs p-3">
+                            {onAdjust && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onAdjust();
+                                    }}
+                                    className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
+                                >
+                                    <Crop className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">{tAdjustFraming || 'Adjust'}</span>
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    onAdjust();
+                                    fileInputRef.current?.click();
                                 }}
-                                className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
+                                className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
                             >
-                                <Crop className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">{tAdjustFraming || 'Adjust'}</span>
+                                <UploadCloud className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{tChangeImage}</span>
                             </button>
+                        </div>
+                        {/* Success checkmark */}
+                        {uploaded && (
+                            <div className="absolute top-3 right-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
+                                <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={3} />
+                            </div>
                         )}
-                        <div className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all">
-                            <UploadCloud className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{tChangeImage}</span>
+                    </>
+                ) : dragOver ? (
+                    <div className="flex flex-col items-center gap-2 p-4">
+                        <UploadCloud className="w-8 h-8 text-[color:var(--color-brand-500)]" />
+                        <span className="text-[12px] font-bold text-[color:var(--color-brand-600)] text-center">{tDropToUpload}</span>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center gap-2 p-3 text-center">
+                        <div className="w-11 h-11 bg-white dark:bg-neutral-900 rounded-xl shadow-xs border border-neutral-100 dark:border-neutral-800 flex items-center justify-center group-hover:scale-105 group-hover:shadow-md transition-all duration-200 shrink-0">
+                            {emptyIcon}
+                        </div>
+                        <div>
+                            <span className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block">{tClickDragDrop}</span>
+                            <span className="text-[11px] text-neutral-400">{tToUpload}</span>
                         </div>
                     </div>
-                    {/* Success checkmark */}
-                    {uploaded && (
-                        <div className="absolute top-3 right-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
-                            <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={3} />
-                        </div>
-                    )}
-                </>
-            ) : dragOver ? (
-                <div className="flex flex-col items-center gap-2">
-                    <UploadCloud className="w-10 h-10 text-[color:var(--color-brand-500)]" />
-                    <span className="text-[13px] font-bold text-[color:var(--color-brand-600)]">{tDropToUpload}</span>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center gap-3 p-4">
-                    <div className="w-14 h-14 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-800 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200">
-                        {emptyIcon}
-                    </div>
-                    <div className="text-center">
-                        <span className="text-[13px] font-bold text-neutral-700 dark:text-neutral-300 block">{tClickDragDrop}</span>
-                        <span className="text-[11px] text-neutral-400">{tToUpload}</span>
-                    </div>
-                </div>
-            )}
-            <input type="file" accept="image/*,image/heic,image/heif,.heic,.heif" onChange={onChange} className="hidden" />
-        </label>
-    </div>
-);
+                )}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,image/heic,image/heif,.heic,.heif"
+                    onChange={onChange}
+                    className="hidden"
+                />
+            </div>
+        </div>
+    );
+};
 
 // ─── Field styles ─────────────────────────────────────────────────────────────
 const fieldCls = 'peer w-full h-[52px] px-4 pt-5 pb-1 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent ' +
@@ -564,19 +594,213 @@ const RestaurantPage: React.FC = () => {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-7 pb-32 sm:pb-36">
 
-                    {/* ── 1. Brand Identity ── */}
+                    {/* ── 1. Business Profile ── */}
+                    <SectionCard
+                        icon={<Building2 className="w-5 h-5" />}
+                        title={t('restaurant.biz_profile', { defaultValue: 'Business Profile' })}
+                        subtitle={t('restaurant.biz_profile_desc', { defaultValue: 'Contact information and location details.' })}
+                        delay="75ms"
+                    >
+                        {/* Language tab switcher */}
+                        <div className="flex items-center justify-between gap-2 pb-2">
+                            <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200/80 dark:border-neutral-700">
+                                {(['en', 'am'] as const).map(l => (
+                                    <button
+                                        key={l}
+                                        type="button"
+                                        onClick={() => setTab(l)}
+                                        className={cn(
+                                            'px-4 py-2 rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center gap-1.5',
+                                            tab === l
+                                                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700'
+                                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
+                                        )}
+                                    >
+                                        <span>{l === 'en' ? '🇬🇧 English' : '🇪🇹 አማርኛ'}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <span className="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 hidden sm:inline">
+                                {tab === 'en' ? t('restaurant.english_details', 'English Details') : t('restaurant.amharic_details', 'የአማርኛ ዝርዝሮች')}
+                            </span>
+                        </div>
+
+                        {/* Localized fields - Both always mounted to avoid React reconciliation field swapping */}
+                        <div className={tab === 'en' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 animate-fade-in' : 'hidden'}>
+                            <div className="md:col-span-2 relative">
+                                <input
+                                    {...register('nameEn')}
+                                    ref={(e) => {
+                                        register('nameEn').ref(e);
+                                        nameInputRef.current = e;
+                                    }}
+                                    type="text"
+                                    placeholder={t("restaurant.ph_name_en")}
+                                    className={cn(fieldCls, !restaurant?.slug && 'ring-2 ring-amber-500/60 dark:ring-amber-400/60 border-amber-500')}
+                                />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
+                                    {t('restaurant.name_en')} <span className="text-red-500">*</span>
+                                </label>
+                            </div>
+
+                            {/* Address (EN) */}
+                            <div className="relative">
+                                <input {...register('addressEn')} type="text" placeholder={t("restaurant.ph_address_en")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_en')}</label>
+                            </div>
+
+                            {/* City (EN) */}
+                            <div className="relative">
+                                <input {...register('cityEn')} type="text" placeholder={t("restaurant.ph_city_en")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_en')}</label>
+                            </div>
+
+                            {/* Description (EN) */}
+                            <div className="md:col-span-2 relative">
+                                <textarea
+                                    {...register('descEn')}
+                                    placeholder={t("restaurant.ph_desc_en")}
+                                    className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200"
+                                />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_en')}</label>
+                            </div>
+                        </div>
+
+                        <div className={tab === 'am' ? 'grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 font-ethiopic animate-fade-in' : 'hidden'}>
+                            {/* Restaurant Name (AM) */}
+                            <div className="md:col-span-2 relative">
+                                <input {...register('nameAm')} type="text" placeholder={t("restaurant.ph_name_am")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
+                                    {t('restaurant.name_am')}
+                                </label>
+                            </div>
+
+                            {/* Address (AM) */}
+                            <div className="relative">
+                                <input {...register('addressAm')} type="text" placeholder={t("restaurant.ph_address_am")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_am')}</label>
+                            </div>
+
+                            {/* City (AM) */}
+                            <div className="relative">
+                                <input {...register('cityAm')} type="text" placeholder={t("restaurant.ph_city_am")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_am')}</label>
+                            </div>
+
+                            {/* Description (AM) */}
+                            <div className="md:col-span-2 relative">
+                                <textarea
+                                    {...register('descAm')}
+                                    placeholder={t("restaurant.ph_desc_am")}
+                                    className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200 font-ethiopic"
+                                />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_am')}</label>
+                            </div>
+                        </div>
+
+                        {/* Shared contact & country fields */}
+                        <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
+                            {/* Phone */}
+                            <div className="relative">
+                                <input {...register('phone')} type="tel" inputMode="tel" placeholder={t("restaurant.ph_phone")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.phone')}</label>
+                            </div>
+
+                            {/* Email */}
+                            <div className="relative">
+                                <input {...register('email')} type="email" inputMode="email" placeholder={t("restaurant.ph_email")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.email')}</label>
+                            </div>
+
+                            {/* Country */}
+                            <div className="relative">
+                                <input {...register('country')} type="text" placeholder={t("restaurant.ph_country")} className={fieldCls} />
+                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.country')}</label>
+                            </div>
+                        </div>
+
+                        {/* Guest WiFi Details */}
+                        <div className="space-y-3 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+                            <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
+                                <Wifi className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                <span>{t('restaurant.wifi_details', { defaultValue: 'Guest WiFi Details' })}</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <input
+                                        {...register('wifiName')}
+                                        type="text"
+                                        placeholder={t('restaurant.wifi_name_ph', { defaultValue: 'e.g. BlueNile_Guest_WiFi' })}
+                                        className={fieldCls}
+                                    />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
+                                        {t('restaurant.wifi_name', { defaultValue: 'WiFi Network Name (SSID)' })}
+                                    </label>
+                                </div>
+
+                                <div className="relative">
+                                    <input
+                                        {...register('wifiPassword')}
+                                        type={showWifiPassword ? 'text' : 'password'}
+                                        placeholder={t('restaurant.wifi_password_ph', { defaultValue: 'e.g. NileGuest2026' })}
+                                        className={cn(fieldCls, 'pr-12')}
+                                    />
+                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
+                                        {t('restaurant.wifi_password', { defaultValue: 'WiFi Password' })}
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowWifiPassword(!showWifiPassword)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                                        aria-label={showWifiPassword ? t('restaurant.hide_password') : t('restaurant.show_password')}
+                                    >
+                                        {showWifiPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Payment Information */}
+                        <div className="space-y-3 pt-4 border-t border-neutral-100 dark:border-neutral-800/80">
+                            <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
+                                <CreditCard className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                <span>{t('restaurant.payment_info', { defaultValue: 'Payment Information & Methods' })}</span>
+                            </div>
+                            <p className="text-[12px] text-neutral-500 dark:text-neutral-400">
+                                {t('restaurant.payment_info_desc', { defaultValue: 'Describe accepted payment methods (bank accounts, Telebirr, CBE Birr, cards, or cash instructions).' })}
+                            </p>
+                            <textarea
+                                {...register('paymentInfo')}
+                                rows={4}
+                                placeholder={t('restaurant.payment_info_ph', { defaultValue: 'e.g. We accept Telebirr (0911...), CBE Account (1000...), Commercial Bank Cards, and Cash.' })}
+                                className={cn(
+                                    'w-full p-4 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/60 border border-neutral-200/90 dark:border-neutral-700/80 text-[14px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all resize-y min-h-[100px]'
+                                )}
+                            />
+                        </div>
+
+                        {/* Social Media Dynamic List */}
+                        <SocialLinksManager
+                            links={socialLinks}
+                            onChange={(updated) => {
+                                setSocialLinks(updated);
+                            }}
+                        />
+                    </SectionCard>
+
+                    {/* ── 2. Brand Identity ── */}
                     <SectionCard
                         icon={<ImagePlus className="w-5 h-5" />}
                         title={t('restaurant.brand_identity', { defaultValue: 'Brand Identity' })}
                         subtitle={t('restaurant.brand_identity_desc', { defaultValue: 'Upload a logo and cover image to personalize your menu.' })}
                         gradient
-                        delay="75ms"
+                        delay="150ms"
                     >
                         {/* Decorative sparkle */}
                         <Sparkles className="absolute top-6 right-20 w-32 h-32 text-[color:var(--color-brand-500)] opacity-[0.04] dark:opacity-10" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <UploadZone
-                                aspect="aspect-square"
+                                aspect="aspect-square max-h-[180px] w-full max-w-[180px]"
                                 dragOver={logoDragOver}
                                 onDragOver={e => { e.preventDefault(); setLogoDragOver(true); }}
                                 onDragLeave={() => setLogoDragOver(false)}
@@ -587,7 +811,7 @@ const RestaurantPage: React.FC = () => {
                                 imageUrl={restaurant?.logoUrl}
                                 label={t('restaurant.logo')}
                                 hint={t('restaurant.logoHint')}
-                                emptyIcon={<Store className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />}
+                                emptyIcon={<Store className="w-6 h-6 text-neutral-300 dark:text-neutral-600" />}
                                 uploaded={logoUploaded}
                                 progress={logoProgress}
                                 tChangeImage={t("restaurant.change_image")}
@@ -617,134 +841,6 @@ const RestaurantPage: React.FC = () => {
                                 tToUpload={t("restaurant.to_upload")}
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
                             />
-                        </div>
-                    </SectionCard>
-
-                    {/* ── 2. Business Profile ── */}
-                    <SectionCard
-                        icon={<Building2 className="w-5 h-5" />}
-                        title={t('restaurant.biz_profile', { defaultValue: 'Business Profile' })}
-                        subtitle={t('restaurant.biz_profile_desc', { defaultValue: 'Contact information and location details.' })}
-                        delay="150ms"
-                    >
-                        {/* Language tab switcher */}
-                        <div className="flex items-center justify-between gap-2 pb-2">
-                            <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl border border-neutral-200/80 dark:border-neutral-700">
-                                {(['en', 'am'] as const).map(l => (
-                                    <button
-                                        key={l}
-                                        type="button"
-                                        onClick={() => setTab(l)}
-                                        className={cn(
-                                            'px-4 py-2 rounded-lg text-[13px] font-bold transition-all duration-200 flex items-center gap-1.5',
-                                            tab === l
-                                                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 shadow-sm ring-1 ring-neutral-200 dark:ring-neutral-700'
-                                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
-                                        )}
-                                    >
-                                        <span>{l === 'en' ? '🇬🇧 English' : '🇪🇹 አማርኛ'}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <span className="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 hidden sm:inline">
-                                {tab === 'en' ? t('restaurant.english_details', 'English Details') : t('restaurant.amharic_details', 'የአማርኛ ዝርዝሮች')}
-                            </span>
-                        </div>
-
-                        {/* Localized fields */}
-                        {tab === 'en' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 animate-fade-in">
-                                <div className="md:col-span-2 relative">
-                                    <input
-                                        {...register('nameEn')}
-                                        ref={(e) => {
-                                            register('nameEn').ref(e);
-                                            nameInputRef.current = e;
-                                        }}
-                                        type="text"
-                                        placeholder={t("restaurant.ph_name_en")}
-                                        className={cn(fieldCls, !restaurant?.slug && 'ring-2 ring-amber-500/60 dark:ring-amber-400/60 border-amber-500')}
-                                    />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
-                                        {t('restaurant.name_en')} <span className="text-red-500">*</span>
-                                    </label>
-                                </div>
-
-                                {/* Address (EN) */}
-                                <div className="relative">
-                                    <input {...register('addressEn')} type="text" placeholder={t("restaurant.ph_address_en")} className={fieldCls} />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_en')}</label>
-                                </div>
-
-                                {/* City (EN) */}
-                                <div className="relative">
-                                    <input {...register('cityEn')} type="text" placeholder={t("restaurant.ph_city_en")} className={fieldCls} />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_en')}</label>
-                                </div>
-
-                                {/* Description (EN) */}
-                                <div className="md:col-span-2 relative">
-                                    <textarea
-                                        {...register('descEn')}
-                                        placeholder={t("restaurant.ph_desc_en")}
-                                        className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200"
-                                    />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_en')}</label>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 font-ethiopic animate-fade-in">
-                                {/* Restaurant Name (AM) */}
-                                <div className="md:col-span-2 relative">
-                                    <input {...register('nameAm')} type="text" placeholder={t("restaurant.ph_name_am")} className={fieldCls} />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none transition-all">
-                                        {t('restaurant.name_am')}
-                                    </label>
-                                </div>
-
-                                {/* Address (AM) */}
-                                <div className="relative">
-                                    <input {...register('addressAm')} type="text" placeholder={t("restaurant.ph_address_am")} className={fieldCls} />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.address_am')}</label>
-                                </div>
-
-                                {/* City (AM) */}
-                                <div className="relative">
-                                    <input {...register('cityAm')} type="text" placeholder={t("restaurant.ph_city_am")} className={fieldCls} />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.city_am')}</label>
-                                </div>
-
-                                {/* Description (AM) */}
-                                <div className="md:col-span-2 relative">
-                                    <textarea
-                                        {...register('descAm')}
-                                        placeholder={t("restaurant.ph_desc_am")}
-                                        className="peer w-full min-h-[110px] px-4 pt-7 pb-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/60 dark:bg-neutral-800/50 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder-transparent resize-none leading-relaxed focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/50 focus:border-[color:var(--color-brand-500)] focus:bg-white dark:focus:bg-neutral-900 transition-all duration-200 font-ethiopic"
-                                    />
-                                    <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.desc_am')}</label>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Shared contact & country fields */}
-                        <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
-                            {/* Phone */}
-                            <div className="relative">
-                                <input {...register('phone')} type="tel" inputMode="tel" placeholder={t("restaurant.ph_phone")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.phone')}</label>
-                            </div>
-
-                            {/* Email */}
-                            <div className="relative">
-                                <input {...register('email')} type="email" inputMode="email" placeholder={t("restaurant.ph_email")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.email')}</label>
-                            </div>
-
-                            {/* Country */}
-                            <div className="relative">
-                                <input {...register('country')} type="text" placeholder={t("restaurant.ph_country")} className={fieldCls} />
-                                <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">{t('restaurant.country')}</label>
-                            </div>
                         </div>
                     </SectionCard>
 
@@ -791,85 +887,6 @@ const RestaurantPage: React.FC = () => {
                                     <option value="PUBLISHED">🟢 {t('status.published')}</option>
                                 </select>
                             </div>
-                        </div>
-                    </SectionCard>
-
-                    {/* ── 4. Additional Information (WiFi, Payment, Social) ── */}
-                    <SectionCard
-                        icon={<Info className="w-5 h-5" />}
-                        title={t('restaurant.additional_info', { defaultValue: 'Additional Information' })}
-                        subtitle={t('restaurant.additional_info_desc', { defaultValue: 'Configure guest WiFi, payment methods, and social links.' })}
-                        delay="275ms"
-                    >
-                        <div className="space-y-6">
-                            {/* A. WiFi Details */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
-                                    <Wifi className="w-4 h-4 text-[color:var(--color-brand-500)]" />
-                                    <span>{t('restaurant.wifi_details', { defaultValue: 'Guest WiFi Details' })}</span>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="relative">
-                                        <input
-                                            {...register('wifiName')}
-                                            type="text"
-                                            placeholder={t('restaurant.wifi_name_ph', { defaultValue: 'e.g. BlueNile_Guest_WiFi' })}
-                                            className={fieldCls}
-                                        />
-                                        <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
-                                            {t('restaurant.wifi_name', { defaultValue: 'WiFi Network Name (SSID)' })}
-                                        </label>
-                                    </div>
-
-                                    <div className="relative">
-                                        <input
-                                            {...register('wifiPassword')}
-                                            type={showWifiPassword ? 'text' : 'password'}
-                                            placeholder={t('restaurant.wifi_password_ph', { defaultValue: 'e.g. NileGuest2026' })}
-                                            className={cn(fieldCls, 'pr-12')}
-                                        />
-                                        <label className="absolute left-4 top-2.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wide pointer-events-none">
-                                            {t('restaurant.wifi_password', { defaultValue: 'WiFi Password' })}
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowWifiPassword(!showWifiPassword)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors cursor-pointer"
-                                            aria-label={showWifiPassword ? t('restaurant.hide_password') : t('restaurant.show_password')}
-                                        >
-                                            {showWifiPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* B. Payment Information */}
-                            <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800/80">
-                                <div className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-bold text-[14px]">
-                                    <CreditCard className="w-4 h-4 text-[color:var(--color-brand-500)]" />
-                                    <span>{t('restaurant.payment_info', { defaultValue: 'Payment Information & Methods' })}</span>
-                                </div>
-                                <p className="text-[12px] text-neutral-500 dark:text-neutral-400">
-                                    {t('restaurant.payment_info_desc', { defaultValue: 'Describe accepted payment methods (bank accounts, Telebirr, CBE Birr, cards, or cash instructions).' })}
-                                </p>
-                                <textarea
-                                    {...register('paymentInfo')}
-                                    rows={4}
-                                    placeholder={t('restaurant.payment_info_ph', { defaultValue: 'e.g. We accept Telebirr (0911...), CBE Account (1000...), Commercial Bank Cards, and Cash.' })}
-                                    className={cn(
-                                        'w-full p-4 rounded-2xl bg-neutral-50/80 dark:bg-neutral-800/60 border border-neutral-200/90 dark:border-neutral-700/80 text-[14px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-brand-500)]/30 focus:border-[color:var(--color-brand-500)] transition-all resize-y min-h-[100px]'
-                                    )}
-                                />
-                            </div>
-
-                            {/* C. Social Media Dynamic List */}
-                            <SocialLinksManager
-                                links={socialLinks}
-                                onChange={(updated) => {
-                                    setSocialLinks(updated);
-                                    initialSocialJson.current = JSON.stringify(updated);
-                                }}
-                            />
                         </div>
                     </SectionCard>
 

@@ -3,13 +3,11 @@ import { useTranslation } from 'react-i18next';
 import {
     Share2, Plus, Trash2, ExternalLink, Link2,
     Instagram, Facebook, Youtube, Linkedin, Twitter,
-    Send, MessageCircle, Globe, Sparkles, Save, Check,
+    Send, MessageCircle, Globe, Sparkles, Check,
     ChevronUp, X
 } from 'lucide-react';
 import type { SocialMediaEntry } from '../../types';
 import { cn } from '../../lib/utils';
-import { useUpdateRestaurant } from '../../hooks/useRestaurant';
-import toast from 'react-hot-toast';
 
 export interface SocialPlatformConfig {
     id: string;
@@ -179,7 +177,6 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
     onChange,
 }) => {
     const { t } = useTranslation();
-    const { mutateAsync: updateRestaurant, isPending } = useUpdateRestaurant();
     const [activePlatform, setActivePlatform] = useState<string | null>(null);
     const [inputValue, setInputValue] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -208,13 +205,12 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
         }
     };
 
-    const handleSaveCurrent = async () => {
+    const handleSaveCurrent = () => {
         if (!activePlatform) return;
         const config = getPlatformConfig(activePlatform);
         const trimmed = inputValue.trim();
 
         if (!trimmed) {
-            toast.error(t('restaurant.enter_url_first', { defaultValue: 'Please enter a username or link first.' }));
             return;
         }
 
@@ -232,27 +228,15 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
         // Clean any invalid / empty
         const cleanLinks = updatedLinks.filter(l => l.url.trim() !== '');
 
-        try {
-            await updateRestaurant({ socialMedia: cleanLinks });
-            onChange(cleanLinks);
-            toast.success(t('toast.saved', { defaultValue: 'Social link saved!' }), { id: `social-${activePlatform}` });
-            // Collapse the add/edit interface after saving
-            setActivePlatform(null);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.error || t('toast.error', { defaultValue: 'Failed to save social link' }));
-        }
+        onChange(cleanLinks);
+        // Collapse the add/edit interface after saving locally
+        setActivePlatform(null);
     };
 
-    const handleRemoveCurrent = async (platformId: string) => {
+    const handleRemoveCurrent = (platformId: string) => {
         const cleanLinks = links.filter(l => l.platform.toLowerCase() !== platformId.toLowerCase());
-        try {
-            await updateRestaurant({ socialMedia: cleanLinks });
-            onChange(cleanLinks);
-            toast.success(t('toast.saved', { defaultValue: 'Link removed' }));
-            setActivePlatform(null);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.error || t('toast.error'));
-        }
+        onChange(cleanLinks);
+        setActivePlatform(null);
     };
 
     const handleTestLink = () => {
@@ -374,26 +358,27 @@ export const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                             />
                         </div>
 
-                        {/* Action buttons: Save, Test, Remove */}
+                        {/* Action buttons: Add/Update, Test, Remove */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                                type="button"
-                                onClick={handleSaveCurrent}
-                                disabled={isPending || !inputValue.trim()}
-                                className={cn(
-                                    "h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs",
-                                    inputValue.trim()
-                                        ? "bg-blue-600 hover:bg-blue-700 active:scale-95 text-white"
-                                        : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
-                                )}
-                            >
-                                {isPending ? (
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Save className="w-4 h-4" />
-                                )}
-                                <span>{t('actions.save', { defaultValue: 'Save' })}</span>
-                            </button>
+                            {(() => {
+                                const isConfigured = links.some(l => l.platform.toLowerCase() === activePlatform.toLowerCase() && l.url.trim() !== '');
+                                return (
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveCurrent}
+                                        disabled={!inputValue.trim()}
+                                        className={cn(
+                                            "h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs",
+                                            inputValue.trim()
+                                                ? "bg-blue-600 hover:bg-blue-700 active:scale-95 text-white"
+                                                : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
+                                        )}
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        <span>{isConfigured ? t('common.update', { defaultValue: 'Update' }) : t('common.add', { defaultValue: 'Add' })}</span>
+                                    </button>
+                                );
+                            })()}
 
                             {Boolean(inputValue.trim()) && (
                                 <button

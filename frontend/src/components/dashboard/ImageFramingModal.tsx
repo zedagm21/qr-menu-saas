@@ -45,36 +45,59 @@ export const ImageFramingModal: React.FC<ImageFramingModalProps> = ({
         }
 
         setIsLoading(true);
+        let cancelled = false;
         let objectUrl: string | null = null;
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+
+        const attachHandlersAndSet = (src: string) => {
+            img.onload = () => {
+                if (cancelled) return;
+                setLoadedImg(img);
+                setIsLoading(false);
+                // Reset transforms on new image load
+                setZoom(1);
+                setRotation(0);
+                setOffset({ x: 0, y: 0 });
+            };
+
+            img.onerror = () => {
+                if (cancelled) return;
+                setIsLoading(false);
+                console.error('[ImageFramingModal] Failed to load image');
+                toast.error(t('toast.error', { defaultValue: 'Failed to load image for framing' }));
+            };
+
+            img.src = src;
+        };
 
         if (imageSource instanceof File) {
             objectUrl = URL.createObjectURL(imageSource);
-            img.src = objectUrl;
+            attachHandlersAndSet(objectUrl);
         } else {
-            img.src = imageSource;
+            // Fetch as blob to prevent canvas CORS taint issues with S3 / external URLs
+            fetch(imageSource)
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.blob();
+                })
+                .then((blob) => {
+                    if (cancelled) return;
+                    objectUrl = URL.createObjectURL(blob);
+                    attachHandlersAndSet(objectUrl);
+                })
+                .catch((err) => {
+                    if (cancelled) return;
+                    console.warn('[ImageFramingModal] Fetch blob failed, falling back to direct load:', err);
+                    img.crossOrigin = 'anonymous';
+                    attachHandlersAndSet(imageSource);
+                });
         }
 
-        img.onload = () => {
-            setLoadedImg(img);
-            setIsLoading(false);
-            // Reset transforms on new image load
-            setZoom(1);
-            setRotation(0);
-            setOffset({ x: 0, y: 0 });
-        };
-
-        img.onerror = () => {
-            setIsLoading(false);
-            console.error('[ImageFramingModal] Failed to load image');
-            toast.error(t('toast.error', { defaultValue: 'Failed to load image for framing' }));
-        };
-
         return () => {
+            cancelled = true;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [isOpen, imageSource]);
+    }, [isOpen, imageSource, t]);
 
     // Viewport dimensions in CSS pixels
     const [viewportSize, setViewportSize] = useState({ width: 320, height: 320 });
