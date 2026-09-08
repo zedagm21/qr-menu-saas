@@ -979,6 +979,7 @@ export default function PublicMenuPage() {
                                                     quantityInTab={tab[item.id]?.quantity || 0}
                                                     onUpdateQuantity={(delta) => handleUpdateTabQuantity(item, delta)}
                                                     searchQuery={search}
+                                                    hideFeaturedBadge={true}
                                                 />
                                             </div>
                                         ))}
@@ -1217,6 +1218,7 @@ const MenuItemCard = ({
     quantityInTab = 0,
     onUpdateQuantity,
     searchQuery,
+    hideFeaturedBadge = false,
 }: {
     item: any;
     lang: string;
@@ -1225,12 +1227,14 @@ const MenuItemCard = ({
     quantityInTab?: number;
     onUpdateQuantity?: (delta: number) => void;
     searchQuery?: string;
+    hideFeaturedBadge?: boolean;
 }) => {
     const { t } = useTranslation();
     const name = item.translations?.length ? getTranslation(item.translations, lang) : item.name ?? '';
     const desc = item.translations?.length ? getTranslation(item.translations, lang, 'description') : item.description ?? '';
     const isAm = lang === 'AM';
     const hasImage = !!item.imageUrl;
+    const showFeaturedBadge = item.isFeatured && !hideFeaturedBadge;
 
     const hasDiscount = item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price);
     const regularPriceFormatted = formatCurrency(item.price, item.currency);
@@ -1298,7 +1302,7 @@ const MenuItemCard = ({
                 className={cn(
                     "w-full flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-200",
                     "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] text-left",
-                    item.isFeatured
+                    showFeaturedBadge
                         ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
                         : "border-neutral-200/80 dark:border-neutral-800/80",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
@@ -1311,7 +1315,7 @@ const MenuItemCard = ({
                             alt={name}
                             className="transition-transform duration-300 group-hover:scale-105"
                         />
-                        {item.isFeatured && (
+                        {showFeaturedBadge && (
                             <span className="absolute top-1 left-1 bg-amber-500 text-white text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold uppercase z-10">
                                 ⭐
                             </span>
@@ -1325,7 +1329,10 @@ const MenuItemCard = ({
                             <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount && (
-                            <span className="bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded">
+                            <span className={cn(
+                                "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-2xs leading-none whitespace-nowrap",
+                                isAm && "font-ethiopic"
+                            )}>
                                 {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                             </span>
                         )}
@@ -1372,7 +1379,7 @@ const MenuItemCard = ({
                 onClick={onClick}
                 className={cn(
                     "w-full h-full text-left bg-white dark:bg-neutral-900/90 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-none group flex flex-col border",
-                    item.isFeatured
+                    showFeaturedBadge
                         ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 shadow-md"
                         : "border-neutral-200/80 dark:border-[#2A2A2A]",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
@@ -1383,18 +1390,13 @@ const MenuItemCard = ({
                         <DishImage src={item.imageUrl} alt={name} className="transition-transform duration-700 group-hover:scale-105" />
                         <div className="absolute inset-0 bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 dark:opacity-20 flex-none pointer-events-none" />
 
-                        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 pr-8 z-10">
-                            {item.isFeatured && (
+                        {showFeaturedBadge && (
+                            <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 pr-8 z-10">
                                 <div className={cn("bg-amber-500 text-white text-[8px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
                                     <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-white text-white" /> {t('public.featured')}
                                 </div>
-                            )}
-                            {hasDiscount && (
-                                <div className={cn("bg-emerald-600 text-white text-[8px] sm:text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md uppercase tracking-wider", isAm && 'font-ethiopic')}>
-                                    <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                                </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 ) : null}
 
@@ -1404,12 +1406,18 @@ const MenuItemCard = ({
                             <HighlightText text={name} highlight={searchQuery} />
                         </h3>
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                                 <span className={cn("text-sm sm:text-lg font-bold text-emerald-600 dark:text-emerald-400", elegantFontClass)}>
                                     {discountPriceFormatted}
                                 </span>
                                 <span className="text-[10px] sm:text-xs font-medium line-through text-neutral-400 dark:text-[#A3A3A3]">
                                     {regularPriceFormatted}
+                                </span>
+                                <span className={cn(
+                                    "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow-2xs leading-none whitespace-nowrap",
+                                    isAm && "font-ethiopic"
+                                )}>
+                                    {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             </div>
                         ) : (
@@ -1448,7 +1456,7 @@ const MenuItemCard = ({
                     "w-full h-full bg-white dark:bg-[#1A1A1A] rounded-2xl sm:rounded-3xl p-3 sm:p-4 text-left transition-all duration-300",
                     "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] group",
                     "flex items-stretch gap-3.5 sm:gap-4.5 overflow-hidden",
-                    item.isFeatured
+                    showFeaturedBadge
                         ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
                         : "border-neutral-200/80 dark:border-neutral-800/80",
                     !item.isAvailable && "opacity-60 grayscale-[50%]"
@@ -1469,14 +1477,9 @@ const MenuItemCard = ({
                     )}
 
                     {/* Badges */}
-                    {item.isFeatured && (
+                    {showFeaturedBadge && (
                         <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm z-10", isAm && 'font-ethiopic')}>
                             ⭐ {t('public.featured')}
-                        </span>
-                    )}
-                    {hasDiscount && (
-                        <span className={cn("absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10", isAm && 'font-ethiopic')}>
-                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                         </span>
                     )}
                 </div>
@@ -1497,12 +1500,18 @@ const MenuItemCard = ({
 
                     <div className="mt-2.5 pt-1.5 flex items-center justify-between gap-2 border-t border-black/5 dark:border-white/5">
                         {hasDiscount ? (
-                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
                                     {discountPriceFormatted}
                                 </span>
                                 <span className="text-[11px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500">
                                     {regularPriceFormatted}
+                                </span>
+                                <span className={cn(
+                                    "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-2xs whitespace-nowrap",
+                                    isAm && "font-ethiopic"
+                                )}>
+                                    {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                                 </span>
                             </div>
                         ) : (
@@ -1531,7 +1540,7 @@ const MenuItemCard = ({
             className={cn(
                 "w-full h-full flex flex-col items-stretch text-left bg-white dark:bg-neutral-900/95 rounded-2xl group transition-all duration-300",
                 "border shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]",
-                item.isFeatured
+                showFeaturedBadge
                     ? "border-amber-500/40 dark:border-amber-500/30 ring-1 ring-amber-500/20 bg-amber-50/15 dark:bg-amber-950/10"
                     : "border-neutral-200/80 dark:border-neutral-800/80",
                 "overflow-hidden",
@@ -1551,14 +1560,9 @@ const MenuItemCard = ({
                         <span className="text-3xl filter drop-shadow-sm">🍽️</span>
                     </div>
                 )}
-                {item.isFeatured && (
+                {showFeaturedBadge && (
                     <span className={cn("absolute top-1.5 left-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
                         <Star className="w-2.5 h-2.5 fill-white text-white" /> {t('public.featured')}
-                    </span>
-                )}
-                {hasDiscount && (
-                    <span className={cn("absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-sm", isAm && 'font-ethiopic')}>
-                        <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                     </span>
                 )}
             </div>
@@ -1577,12 +1581,18 @@ const MenuItemCard = ({
 
                 <div className="mt-auto pt-1 flex items-center justify-between">
                     {hasDiscount ? (
-                        <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                             <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">
                                 {discountPriceFormatted}
                             </span>
                             <span className="text-[10px] sm:text-xs font-bold line-through text-neutral-400 dark:text-neutral-500 leading-none">
                                 {regularPriceFormatted}
+                            </span>
+                            <span className={cn(
+                                "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-2xs leading-none whitespace-nowrap",
+                                isAm && "font-ethiopic"
+                            )}>
+                                {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
                             </span>
                         </div>
                     ) : (

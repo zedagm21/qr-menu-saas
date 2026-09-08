@@ -72,11 +72,6 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({
                                     <Star className="w-4 h-4 fill-white" /> {t('public.featured')}
                                 </span>
                             )}
-                            {hasDiscount && (
-                                <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[12px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 uppercase tracking-widest">
-                                    <span>🏷️</span> {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                                </span>
-                            )}
                         </div>
                     </div>
                 ) : (
@@ -89,11 +84,6 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
                         <div>
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                {hasDiscount && !hasImage && (
-                                    <span className="bg-emerald-600 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
-                                        🏷️ {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
-                                    </span>
-                                )}
                                 {item.isFeatured && !hasImage && (
                                     <span className="bg-amber-500 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
                                         ⭐ {isAm ? 'ተመራጭ' : 'Featured'}
@@ -108,9 +98,17 @@ export const FoodDetail: React.FC<FoodDetailProps> = ({
                         <div className="flex flex-col sm:items-end shrink-0 mt-1">
                             {hasDiscount ? (
                                 <>
-                                    <span className="text-[28px] sm:text-[32px] font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                                        {formatCurrency(item.discountPrice, item.currency)}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[28px] sm:text-[32px] font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                                            {formatCurrency(item.discountPrice, item.currency)}
+                                        </span>
+                                        <span className={cn(
+                                            "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30 text-xs sm:text-sm font-black px-2 py-0.5 rounded-lg shadow-xs whitespace-nowrap",
+                                            isAm && "font-ethiopic"
+                                        )}>
+                                            {discountPercent}% {isAm ? 'ቅናሽ' : 'OFF'}
+                                        </span>
+                                    </div>
                                     <span className="text-[16px] font-bold line-through text-neutral-400 dark:text-[#A3A3A3] mt-1">
                                         {formatCurrency(item.price, item.currency)}
                                     </span>
