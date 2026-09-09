@@ -143,6 +143,7 @@ const CustomizePage: React.FC = () => {
     const { data: menuItemsData } = useMenuItems();
     const { mutate: updateTheme, isPending } = useUpdateTheme();
     const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+    const [mobileTab, setMobileTab] = useState<'styles' | 'preview'>('styles');
     // Key used to trigger fade-in animation on preview when theme changes
     const [previewKey, setPreviewKey] = useState(0);
 
@@ -225,21 +226,21 @@ const CustomizePage: React.FC = () => {
     return (
         <>
             <Helmet><title>{t('customize.title')} — OurMenu</title></Helmet>
-            <div className="p-4 lg:p-8 max-w-7xl mx-auto pb-28 lg:pb-24 space-y-6">
+            <div className="px-3.5 py-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-28 lg:pb-24 space-y-4 sm:space-y-6">
 
                 {/* ── Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('customize.title')}</h1>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{t('customize.subtitle')}</p>
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('customize.title')}</h1>
+                        <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5 sm:mt-1">{t('customize.subtitle')}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         {slug && (
                             <a href={`/r/${slug}`} target="_blank" rel="noopener noreferrer">
                                 <Button
                                     variant="outline"
-                                    className="h-10 px-4 rounded-xl text-sm dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                    icon={<ExternalLink className="w-4 h-4" />}
+                                    className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                                    icon={<ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                                 >
                                     {t('customize.view_live_menu')}
                                 </Button>
@@ -247,9 +248,9 @@ const CustomizePage: React.FC = () => {
                         )}
                         <Button
                             variant="ghost"
-                            className="h-10 px-4 rounded-xl text-sm text-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-800"
                             onClick={handleReset}
-                            icon={<RotateCcw className="w-4 h-4" />}
+                            icon={<RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         >
                             {t('customize.reset_to_default')}
                         </Button>
@@ -257,34 +258,64 @@ const CustomizePage: React.FC = () => {
                 </div>
 
                 {/* ── Theme Summary Card ── */}
-                <div className="bg-white dark:bg-neutral-900/95 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] p-4 flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Palette className="w-4 h-4 text-neutral-400" />
-                        <span className="text-[12px] font-bold text-neutral-500 uppercase tracking-widest">{t('customize.current_theme')}</span>
+                <div className="bg-white dark:bg-neutral-900/95 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-xs p-3 sm:p-4 flex flex-wrap items-center gap-2.5 sm:gap-4">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400" />
+                        <span className="text-[11px] sm:text-[12px] font-bold text-neutral-500 uppercase tracking-widest">{t('customize.current_theme')}</span>
                     </div>
                     {/* Primary color swatch + hex */}
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full ring-1 ring-black/10 shadow-sm transition-all duration-300" style={{ background: watched.primaryColor }} />
-                        <span className="text-[12px] font-mono font-bold text-neutral-700 dark:text-neutral-300">{watched.primaryColor}</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-1 ring-black/10 shadow-xs transition-all duration-300" style={{ background: watched.primaryColor }} />
+                        <span className="text-[11px] sm:text-[12px] font-mono font-bold text-neutral-700 dark:text-neutral-300">{watched.primaryColor}</span>
                     </div>
                     {/* Accent color swatch + hex */}
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full ring-1 ring-black/10 shadow-sm transition-all duration-300" style={{ background: watched.accentColor }} />
-                        <span className="text-[12px] font-mono font-bold text-neutral-700 dark:text-neutral-300">{watched.accentColor}</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-1 ring-black/10 shadow-xs transition-all duration-300" style={{ background: watched.accentColor }} />
+                        <span className="text-[11px] sm:text-[12px] font-mono font-bold text-neutral-700 dark:text-neutral-300">{watched.accentColor}</span>
                     </div>
-                    <span className="text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2.5 py-1 rounded-lg">{watched.fontFamily}</span>
-                    <span className="text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2.5 py-1 rounded-lg">{watched.menuStyle}</span>
-                    <span className="text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2.5 py-1 rounded-lg">{watched.darkMode}</span>
+                    <span className="text-[11px] sm:text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg">{watched.fontFamily}</span>
+                    <span className="text-[11px] sm:text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg">{watched.menuStyle}</span>
+                    <span className="text-[11px] sm:text-[12px] font-bold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg">{watched.darkMode}</span>
+                </div>
+
+                {/* ── Mobile Segmented Control (Styles vs Preview) ── */}
+                <div className="flex xl:hidden p-1 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80">
+                    <button
+                        type="button"
+                        onClick={() => setMobileTab('styles')}
+                        className={cn(
+                            'flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all',
+                            mobileTab === 'styles'
+                                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs font-extrabold'
+                                : 'text-neutral-500 dark:text-neutral-400'
+                        )}
+                    >
+                        <Palette className="w-3.5 h-3.5" />
+                        <span>{t('customize.tab_styles', { defaultValue: 'Theme & Styles' })}</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMobileTab('preview')}
+                        className={cn(
+                            'flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all',
+                            mobileTab === 'preview'
+                                ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs font-extrabold'
+                                : 'text-neutral-500 dark:text-neutral-400'
+                        )}
+                    >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>{t('customize.tab_preview', { defaultValue: 'Live Preview' })}</span>
+                    </button>
                 </div>
 
                 {/* ── 2-col layout ── */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:items-start">
 
                     {/* ─── Controls form ─── */}
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 lg:space-y-5">
+                    <form onSubmit={handleSubmit(onSubmit)} className={cn("space-y-4 lg:space-y-5", mobileTab !== 'styles' && "hidden xl:block")}>
 
                         {/* Layout Style */}
-                        <div className="bg-white dark:bg-neutral-900/95 rounded-[24px] border border-neutral-200/60 dark:border-neutral-800/60 p-4 sm:p-5 lg:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                        <div className="bg-white dark:bg-neutral-900/95 rounded-2xl sm:rounded-[24px] border border-neutral-200/60 dark:border-neutral-800/60 p-4 sm:p-5 lg:p-7 shadow-xs sm:shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
                             <h2 className="text-[17px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight mb-5">{t('customize.layout_style')}</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {STYLES.map(s => {
@@ -420,7 +451,10 @@ const CustomizePage: React.FC = () => {
                     />
 
                     {/* ─── Visual Preview ─── */}
-                    <div className="bg-neutral-50 dark:bg-neutral-900 lg:bg-white lg:dark:bg-neutral-900/95 rounded-2xl lg:border border-neutral-100 dark:border-neutral-800 lg:p-6 xl:sticky xl:top-6 shadow-[0_4px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                    <div className={cn(
+                        "bg-neutral-50 dark:bg-neutral-900 lg:bg-white lg:dark:bg-neutral-900/95 rounded-2xl lg:border border-neutral-100 dark:border-neutral-800 lg:p-6 xl:sticky xl:top-6 shadow-xs sm:shadow-[0_4px_24px_rgba(0,0,0,0.05)]",
+                        mobileTab !== 'preview' && "hidden xl:block"
+                    )}>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="font-bold text-neutral-900 dark:text-neutral-50">{t('customize.preview')}</h2>
                             {/* Device switcher */}

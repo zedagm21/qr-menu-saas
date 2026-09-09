@@ -38,7 +38,7 @@ export const FloatingSaveBar: React.FC<FloatingSaveBarProps> = ({
     }
 
     return (
-        <div className={cn("fixed bottom-0 lg:bottom-6 left-0 right-0 z-40 px-4 flex justify-center pointer-events-none pb-20 lg:pb-0 animate-in fade-in slide-in-from-bottom-3 duration-300", className)}>
+        <div className={cn("fixed bottom-[calc(66px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-0 right-0 z-40 px-3 sm:px-4 flex justify-center pointer-events-none animate-in fade-in slide-in-from-bottom-3 duration-300", className)}>
             <div className="pointer-events-auto max-w-3xl w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/40 p-3 sm:px-6 flex items-center justify-between gap-4 transition-all duration-300">
                 {/* Status Indicator */}
                 <div className="flex items-center gap-2.5 min-w-0">

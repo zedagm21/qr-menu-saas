@@ -32,10 +32,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
+  touch-action: manipulation;
 }
 
 body {
@@ -44,6 +46,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #fafafa;
   color: #1a1a1a;
+  overscroll-behavior-y: none;
 }
 
 /* ─── Amharic text support ───────────────────────────────────────────────────── */
@@ -214,4 +217,76 @@ select {
   animation-delay: 450ms;
 }
 
-/* ─── Removed shake, gradient border, and stat-glow utilities for a cleaner UI ─────────────────────────────────────────── */
+/* ─── Mobile Safe Area & Native App Utilities ────────────────────────────────── */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.top-safe {
+  top: env(safe-area-inset-top, 0px);
+}
+
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.h-safe-screen {
+  min-height: 100dvh;
+}
+
+/* Mobile bottom sheet slide up animation */
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Prevent iOS Safari auto-zooming on focus while keeping desktop crisp */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* High-contrast selection color for dark mode inputs to prevent value from being hidden */
+.dark input::selection,
+.dark textarea::selection {
+  background-color: #D97706 !important;
+  color: #ffffff !important;
+}
+
+input::selection,
+textarea::selection {
+  background-color: #D97706 !important;
+  color: #ffffff !important;
+}

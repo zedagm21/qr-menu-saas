@@ -29,7 +29,8 @@ import {
     Plus, Pencil, Trash2, X, Check, Image as ImageIcon,
     Star, Tag, UtensilsCrossed, Beef, Search, UploadCloud,
     Sparkles, GripVertical, ToggleLeft, ToggleRight, Camera,
-    Smartphone, Loader2, MoreVertical, CheckSquare
+    Smartphone, Loader2, MoreVertical, CheckSquare,
+    ArrowUpDown, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { PhoneCameraModal } from '../../components/dashboard/PhoneCameraModal';
 import { isHeicFile } from '../../lib/imageCompression';
@@ -706,14 +707,22 @@ const MenuItemCardBase: React.FC<{
     isSelected?: boolean;
     onToggleSelect?: (e: React.MouseEvent) => void;
     orderIndex?: number;
+    isReorderMode?: boolean;
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
     isDragging?: boolean;
     dragOverlay?: boolean;
     attributes?: any;
     listeners?: any;
     setNodeRef?: any;
     style?: React.CSSProperties;
-}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, isSelected, onToggleSelect, orderIndex, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
+}> = ({ item, cats, onEdit, onDelete, onToggleAvailability, isSelected, onToggleSelect, orderIndex, isReorderMode, onMoveUp, onMoveDown, isDragging, dragOverlay, attributes, listeners, setNodeRef, style }) => {
     const { t, i18n } = useTranslation();
+    const { mutate: updatePrice, isPending: isUpdatingPrice } = useUpdateMenuItem();
+    const [isEditingPrice, setIsEditingPrice] = useState(false);
+    const [priceInput, setPriceInput] = useState(String(item.price));
+    const priceInputRef = useRef<HTMLInputElement>(null);
+
     const [showDropdown, setShowDropdown] = useState(false);
     const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number } | null>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -721,6 +730,39 @@ const MenuItemCardBase: React.FC<{
 
     const catName = getTranslation(cats.find(c => c.id === item.categoryId)?.translations ?? [], i18n.language);
     const name = getTranslation(item.translations, i18n.language);
+
+    useEffect(() => {
+        setPriceInput(String(item.price));
+    }, [item.price]);
+
+    useEffect(() => {
+        if (isEditingPrice) {
+            priceInputRef.current?.focus();
+            priceInputRef.current?.select();
+        }
+    }, [isEditingPrice]);
+
+    const handleSavePrice = () => {
+        const parsed = parseFloat(priceInput);
+        if (isNaN(parsed) || parsed <= 0) {
+            toast.error(t('menu_items.price_positive', { defaultValue: 'Price must be greater than 0' }));
+            return;
+        }
+        const payload: any = { price: parsed };
+        if (item.discountPrice && parseFloat(item.discountPrice) >= parsed) {
+            payload.discountPrice = null;
+        }
+        updatePrice({ id: item.id, data: payload }, {
+            onSuccess: () => {
+                setIsEditingPrice(false);
+            },
+        });
+    };
+
+    const handleCancelPrice = () => {
+        setPriceInput(String(item.price));
+        setIsEditingPrice(false);
+    };
 
     const handleToggleDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
@@ -833,21 +875,54 @@ const MenuItemCardBase: React.FC<{
                 </button>
             )}
 
-            {/* Drag Handle */}
-            <div
-                {...attributes}
-                {...listeners}
-                className={cn(
-                    "touch-none flex items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
-                    (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
+            {/* Drag Handle & Reorder Nudge Arrows */}
+            <div className="flex shrink-0">
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className={cn(
+                        "touch-none items-center justify-center w-10 sm:w-11 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                        isReorderMode ? "flex text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)] bg-[color:var(--color-brand-50)]/40 dark:bg-[color:var(--color-brand-500)]/10" : "hidden sm:flex",
+                        (isDragging || dragOverlay) && "!flex cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
+                    )}
+                >
+                    <GripVertical className="w-5 h-5" />
+                </div>
+
+                {isReorderMode && !dragOverlay && (
+                    <div className="flex flex-col border-r border-neutral-200/60 dark:border-neutral-800/80 shrink-0 bg-neutral-50/80 dark:bg-neutral-900/80">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onMoveUp?.();
+                            }}
+                            disabled={!onMoveUp}
+                            className="flex-1 w-8 sm:w-9 flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:text-[color:var(--color-brand-600)] hover:bg-white dark:hover:bg-neutral-800 active:scale-90 transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer"
+                            title="Move up"
+                        >
+                            <ChevronUp className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                        <div className="h-px bg-neutral-200/60 dark:bg-neutral-800/80" />
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onMoveDown?.();
+                            }}
+                            disabled={!onMoveDown}
+                            className="flex-1 w-8 sm:w-9 flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:text-[color:var(--color-brand-600)] hover:bg-white dark:hover:bg-neutral-800 active:scale-90 transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer"
+                            title="Move down"
+                        >
+                            <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                    </div>
                 )}
-            >
-                <GripVertical className="w-5 h-5 sm:w-5 sm:h-5" />
             </div>
 
-            <div className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+            <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-4 p-2.5 sm:p-4">
                 {/* Thumbnail with position badge */}
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-sm">
+                <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0 shadow-xs sm:shadow-sm">
                     {item.imageUrl ? (
                         <img
                             src={item.imageUrl}
@@ -859,11 +934,11 @@ const MenuItemCardBase: React.FC<{
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[color:var(--color-brand-50)] to-neutral-100 dark:from-[color:var(--color-brand-900)] dark:to-neutral-800">
-                            <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
+                            <UtensilsCrossed className="w-4 h-4 sm:w-6 sm:h-6 text-[color:var(--color-brand-400)] dark:text-[color:var(--color-brand-600)]" />
                         </div>
                     )}
                     {typeof orderIndex === 'number' && (
-                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[9px] font-black text-white shadow-xs">
+                        <span className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[8px] sm:text-[9px] font-black text-white shadow-xs">
                             #{orderIndex}
                         </span>
                     )}
@@ -872,100 +947,162 @@ const MenuItemCardBase: React.FC<{
                 {/* Content Details */}
                 <div className="flex-1 min-w-0 pr-1 flex flex-col justify-center">
                     {/* Title & Badges */}
-                    <div className="flex items-center gap-2 flex-wrap mb-1 sm:mb-1.5">
-                        <h3 className="text-[14px] sm:text-[16px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-0.5 sm:mb-1.5">
+                        <h3 className="text-[13px] sm:text-[16px] font-bold sm:font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight truncate group-hover:text-[color:var(--color-brand-600)] transition-colors min-w-0">
                             {name}
                         </h3>
 
                         {item.isFeatured && (
-                            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
-                                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
+                            <span className="shrink-0 inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200/80 dark:border-amber-500/20">
+                                <Star className="w-2 h-2 sm:w-2.5 sm:h-2.5 fill-amber-500 text-amber-500 dark:text-amber-400" /> {t('menu_items.featured')}
                             </span>
                         )}
                     </div>
 
-                    {/* Category & Price */}
-                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
-                            <Tag className="w-3 h-3" />
-                            <span className="text-[11px] font-extrabold truncate max-w-[120px]">{catName}</span>
+                    {/* Category & Price (with quick inline edit) */}
+                    <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
+                        <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 shrink-0">
+                            <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            <span className="text-[10px] sm:text-[11px] font-extrabold truncate max-w-[100px] sm:max-w-[120px]">{catName}</span>
                         </div>
 
-                        {item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price) ? (
-                            <div className="flex items-baseline gap-1.5 flex-wrap">
-                                <span className="text-[15px] sm:text-[16px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                                    {formatCurrency(item.discountPrice, item.currency)}
-                                </span>
-                                <span className="text-[12px] font-bold line-through text-neutral-400 dark:text-neutral-500">
-                                    {formatCurrency(item.price, item.currency)}
-                                </span>
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                                    -{Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)}%
-                                </span>
+                        {/* Inline Price Editing or Display */}
+                        {isEditingPrice ? (
+                            <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                                <input
+                                    ref={priceInputRef}
+                                    type="number"
+                                    step="any"
+                                    min="0.01"
+                                    value={priceInput}
+                                    onChange={e => setPriceInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') handleSavePrice();
+                                        if (e.key === 'Escape') handleCancelPrice();
+                                    }}
+                                    disabled={isUpdatingPrice}
+                                    className="w-20 sm:w-24 h-7 sm:h-8 px-2 text-[12px] sm:text-[13px] font-black rounded-lg border-2 border-[color:var(--color-brand-500)] bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-xs focus:outline-none focus:ring-1 focus:ring-[color:var(--color-brand-500)] selection:bg-[color:var(--color-brand-500)] selection:text-white dark:selection:bg-[color:var(--color-brand-500)] dark:selection:text-white"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleSavePrice}
+                                    disabled={isUpdatingPrice}
+                                    title={t('common.save', { defaultValue: 'Save' })}
+                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center active:scale-90 transition-all shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+                                >
+                                    <Check className="w-4 h-4 stroke-[3]" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancelPrice}
+                                    disabled={isUpdatingPrice}
+                                    title={t('common.cancel', { defaultValue: 'Discard' })}
+                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-500/20 dark:hover:bg-red-500/30 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-xs shrink-0"
+                                >
+                                    <X className="w-4 h-4 stroke-[3]" />
+                                </button>
                             </div>
                         ) : (
-                            <div className="text-[15px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
-                                {formatCurrency(item.price, item.currency)}
+                            <div className="flex items-center gap-1">
+                                {item.discountPrice && parseFloat(item.discountPrice) < parseFloat(item.price) ? (
+                                    <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap">
+                                        <span className="text-[13px] sm:text-[16px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                            {formatCurrency(item.discountPrice, item.currency)}
+                                        </span>
+                                        <span className="text-[11px] sm:text-[12px] font-bold line-through text-neutral-400 dark:text-neutral-500">
+                                            {formatCurrency(item.price, item.currency)}
+                                        </span>
+                                        <span className="text-[8px] sm:text-[9px] font-black px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                            -{Math.round(((parseFloat(item.price) - parseFloat(item.discountPrice)) / parseFloat(item.price)) * 100)}%
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="text-[13px] sm:text-[16px] font-black text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] tracking-tight">
+                                        {formatCurrency(item.price, item.currency)}
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowDropdown(false);
+                                        setPriceInput(String(item.price));
+                                        setIsEditingPrice(true);
+                                    }}
+                                    title={t('menu_items.edit_price', { defaultValue: 'Edit price' })}
+                                    className="p-1 -mr-1 rounded-md text-neutral-400 hover:text-[color:var(--color-brand-600)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-90 transition-colors cursor-pointer"
+                                    aria-label="Edit price"
+                                >
+                                    <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                </button>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Desktop Action Buttons (sm:flex) */}
-                <div className="hidden sm:flex items-center gap-1.5 shrink-0 pl-1">
+                {/* Actions: Direct 1-tap availability toggle for both mobile & desktop */}
+                <div className="flex items-center gap-1.5 shrink-0 pl-1">
                     {/* Sliding Toggle Switch */}
                     <button
                         type="button"
-                        onClick={onToggleAvailability}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleAvailability();
+                        }}
                         title={item.isAvailable ? t('menu_items.mark_sold_out') : t('menu_items.mark_available')}
                         className={cn(
-                            'w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
+                            'w-8 h-4.5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 active:scale-95 cursor-pointer focus:outline-none shrink-0 border border-neutral-200/50 dark:border-neutral-700/50',
                             item.isAvailable
-                                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30 border-transparent'
+                                ? 'bg-emerald-500 shadow-xs sm:shadow-sm shadow-emerald-500/30 border-transparent'
                                 : 'bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600'
                         )}
                     >
                         <div className={cn(
-                            'bg-white w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full shadow-sm transition-transform duration-200 ease-out',
-                            item.isAvailable ? 'translate-x-[16px] sm:translate-x-[18px]' : 'translate-x-0'
+                            'bg-white w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 rounded-full shadow-xs transition-transform duration-200 ease-out',
+                            item.isAvailable ? 'translate-x-[12px] sm:translate-x-[18px]' : 'translate-x-0'
                         )} />
                     </button>
 
-                    {/* Edit */}
-                    <button
-                        onClick={onEdit}
-                        title={t('menu_items.edit')}
-                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-[color:var(--color-brand-600)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 hover:border-[color:var(--color-brand-200)] dark:hover:border-[color:var(--color-brand-500)]/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                    >
-                        <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+                    {/* Desktop Edit & Delete Buttons (sm:flex) - Hidden when editing price to avoid overlap */}
+                    {!isEditingPrice && (
+                        <div className="hidden sm:flex items-center gap-1.5">
+                            <button
+                                onClick={onEdit}
+                                title={t('menu_items.edit')}
+                                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-[color:var(--color-brand-600)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 hover:border-[color:var(--color-brand-200)] dark:hover:border-[color:var(--color-brand-500)]/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
+                            >
+                                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
 
-                    {/* Delete */}
-                    <button
-                        onClick={onDelete}
-                        title={t('menu_items.delete')}
-                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
-                    >
-                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                </div>
+                            <button
+                                onClick={onDelete}
+                                title={t('menu_items.delete')}
+                                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-neutral-500 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/30 active:scale-90 transition-all duration-150 shrink-0 shadow-xs"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        </div>
+                    )}
 
-                {/* Mobile Kebab Menu Button (sm:hidden) */}
-                <div className="sm:hidden shrink-0 pl-1">
-                    <button
-                        ref={buttonRef}
-                        type="button"
-                        onClick={handleToggleDropdown}
-                        aria-label="More options"
-                        className={cn(
-                            "w-9 h-9 flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white border transition-all shadow-xs active:scale-95",
-                            showDropdown
-                                ? "bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/20 border-[color:var(--color-brand-500)]/50 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]"
-                                : "bg-neutral-100 dark:bg-neutral-800 border-neutral-200/80 dark:border-neutral-700/80"
-                        )}
-                    >
-                        <MoreVertical className="w-4 h-4" />
-                    </button>
+                    {/* Mobile Kebab Menu Button (sm:hidden) - Hidden when editing price to prevent overlap */}
+                    {!isEditingPrice && (
+                        <div className="sm:hidden">
+                            <button
+                                ref={buttonRef}
+                                type="button"
+                                onClick={handleToggleDropdown}
+                                aria-label="More options"
+                                className={cn(
+                                    "w-8 h-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white border transition-all shadow-xs active:scale-95",
+                                    showDropdown
+                                        ? "bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/20 border-[color:var(--color-brand-500)]/50 text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)]"
+                                        : "bg-neutral-100 dark:bg-neutral-800 border-neutral-200/80 dark:border-neutral-700/80"
+                                )}
+                            >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -1045,6 +1182,9 @@ const SortableMenuItemCard: React.FC<{
     isSelected?: boolean;
     onToggleSelect?: (e: React.MouseEvent) => void;
     orderIndex?: number;
+    isReorderMode?: boolean;
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
 }> = (props) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
 
@@ -1075,6 +1215,7 @@ export default function MenuItemsPage() {
 
     const [editing, setEditing] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [isReorderMode, setIsReorderMode] = useState(false);
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
     const [isConfirmingBatchDelete, setIsConfirmingBatchDelete] = useState(false);
@@ -1310,17 +1451,17 @@ export default function MenuItemsPage() {
         <>
             <Helmet><title>{t('menu_items.title')} — OurMenu</title></Helmet>
 
-            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 pb-28 lg:pb-12 transition-colors duration-200">
+            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 px-3.5 py-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-28 lg:pb-12 transition-colors duration-200">
 
                 {/* ── Header ── */}
-                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
                     <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/20">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-400)] border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/20">
                                 {t('menu_items.catalog_management')}
                             </span>
                         </div>
-                        <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('menu_items.food_and_drinks')}</h1>
+                        <h1 className="text-xl sm:text-4xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('menu_items.food_and_drinks')}</h1>
 
                         {/* Stats pill counters */}
                         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
@@ -1342,36 +1483,68 @@ export default function MenuItemsPage() {
                     </div>
 
                     {cats.length > 0 ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                             {items.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (isSelectMode) {
-                                            exitSelectMode();
-                                        } else {
-                                            setIsSelectMode(true);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "h-12 px-4 sm:px-5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all border flex items-center gap-2 cursor-pointer select-none",
-                                        isSelectMode
-                                            ? "bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
-                                            : "bg-white/95 dark:bg-neutral-900/95 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 shadow-xs"
+                                <>
+                                    {/* Reorder Mode Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (isSelectMode) exitSelectMode();
+                                            setIsReorderMode(!isReorderMode);
+                                        }}
+                                        className={cn(
+                                            "h-12 px-3 sm:px-4 rounded-2xl text-xs sm:text-sm font-extrabold transition-all border flex items-center gap-1.5 cursor-pointer select-none",
+                                            isReorderMode
+                                                ? "bg-[color:var(--color-brand-500)] border-[color:var(--color-brand-500)] text-white shadow-xs"
+                                                : "bg-white/95 dark:bg-neutral-900/95 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 shadow-xs"
+                                        )}
+                                    >
+                                        {isReorderMode ? (
+                                            <>
+                                                <Check className="w-4 h-4 text-white stroke-[3]" />
+                                                <span>{t('common.done', { defaultValue: 'Done' })}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ArrowUpDown className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                                <span>{t('menu_items.reorder', { defaultValue: 'Reorder' })}</span>
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {/* Select / Edit Mode Button */}
+                                    {!isReorderMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (isSelectMode) {
+                                                    exitSelectMode();
+                                                } else {
+                                                    setIsSelectMode(true);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "h-12 px-3.5 sm:px-5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all border flex items-center gap-2 cursor-pointer select-none",
+                                                isSelectMode
+                                                    ? "bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
+                                                    : "bg-white/95 dark:bg-neutral-900/95 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 shadow-xs"
+                                            )}
+                                        >
+                                            {isSelectMode ? (
+                                                <>
+                                                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                                                    <span>{t('common.done', { defaultValue: 'Done' })}</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckSquare className="w-4 h-4 text-[color:var(--color-brand-500)]" />
+                                                    <span>{t('menu_items.edit', { defaultValue: 'Edit' })}</span>
+                                                </>
+                                            )}
+                                        </button>
                                     )}
-                                >
-                                    {isSelectMode ? (
-                                        <>
-                                            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
-                                            <span>{t('common.done', { defaultValue: 'Done' })}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckSquare className="w-4 h-4 text-[color:var(--color-brand-500)]" />
-                                            <span>{t('menu_items.edit', { defaultValue: 'Edit' })}</span>
-                                        </>
-                                    )}
-                                </button>
+                                </>
                             )}
 
                             <Button
@@ -1589,6 +1762,24 @@ export default function MenuItemsPage() {
                     ) : (
                         /* List of items */
                         <div className="space-y-6">
+                            {/* Reorder Mode Guidance Banner */}
+                            {isReorderMode && (
+                                <div className="p-3 sm:p-4 rounded-2xl bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/25 flex items-center justify-between gap-3 animate-fade-in shadow-xs">
+                                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[color:var(--color-brand-800)] dark:text-[color:var(--color-brand-300)]">
+                                        <ArrowUpDown className="w-4 h-4 shrink-0 text-[color:var(--color-brand-500)]" />
+                                        <span>{t('menu_items.reorder_instructions', { defaultValue: 'Reorder mode: drag items or use up/down arrows. Tap Done when finished.' })}</span>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        className="h-8 px-3.5 text-xs font-bold shrink-0 bg-[color:var(--color-brand-500)] text-white"
+                                        onClick={() => setIsReorderMode(false)}
+                                    >
+                                        {t('common.done', { defaultValue: 'Done' })}
+                                    </Button>
+                                </div>
+                            )}
+
                             <DndContext
                                 sensors={sensors}
                                 collisionDetection={closestCenter}
@@ -1614,6 +1805,25 @@ export default function MenuItemsPage() {
                                                 {catItems.map((item, idx) => {
                                                     const catIndex = catItems.findIndex(i => i.id === item.id);
                                                     const orderIndex = catIndex >= 0 ? catIndex + 1 : undefined;
+                                                    const canMoveUp = idx > 0;
+                                                    const canMoveDown = idx < catItems.length - 1;
+
+                                                    const handleMove = (direction: 'up' | 'down') => {
+                                                        const fromIndex = catItems.findIndex(i => i.id === item.id);
+                                                        const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+                                                        if (toIndex < 0 || toIndex >= catItems.length) return;
+
+                                                        const newCatItems = [...catItems];
+                                                        const [moved] = newCatItems.splice(fromIndex, 1);
+                                                        newCatItems.splice(toIndex, 0, moved);
+
+                                                        setLocalItems(prev => {
+                                                            const otherItems = prev.filter(i => i.categoryId !== cat.id);
+                                                            return [...otherItems, ...newCatItems];
+                                                        });
+
+                                                        reorderMenuItems(newCatItems.map((it, index) => ({ id: it.id, displayOrder: index })));
+                                                    };
 
                                                     return deletingId === item.id ? (
                                                         <ConfirmDialog
@@ -1636,6 +1846,9 @@ export default function MenuItemsPage() {
                                                             isSelected={isSelectMode && selectedItemIds.has(item.id)}
                                                             onToggleSelect={isSelectMode ? () => toggleSelectItem(item.id) : undefined}
                                                             orderIndex={orderIndex}
+                                                            isReorderMode={isReorderMode}
+                                                            onMoveUp={canMoveUp ? () => handleMove('up') : undefined}
+                                                            onMoveDown={canMoveDown ? () => handleMove('down') : undefined}
                                                         />
                                                     );
                                                 })}
@@ -1672,10 +1885,10 @@ export default function MenuItemsPage() {
 
                 {/* Mobile FAB */}
                 {!editing && selectedItemIds.size === 0 && (
-                    <div className="fixed bottom-20 right-5 sm:hidden z-40">
+                    <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 sm:hidden z-40">
                         <button
                             onClick={() => cats.length === 0 ? setQuickCatOpen(true) : setEditing('new')}
-                            className="w-14 h-14 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                            className="w-13 h-13 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                         >
                             <Plus className="w-6 h-6 stroke-[2.5]" />
                         </button>
@@ -1720,6 +1933,7 @@ export default function MenuItemsPage() {
                     onClose={() => setEditing(null)}
                     title={editing === 'new' ? t('menu_items.add_food_item') : t('menu_items.edit_food_item')}
                     size="lg"
+                    fullScreenOnMobile={true}
                 >
                     <ItemFormPanel
                         initial={editing === 'new' ? undefined : editingItem}

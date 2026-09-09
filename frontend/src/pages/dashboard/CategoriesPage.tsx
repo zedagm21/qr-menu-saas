@@ -88,52 +88,53 @@ const CategoryItemBase: React.FC<{
             className={cn(
                 'group relative flex items-stretch overflow-hidden',
                 'backdrop-blur-md bg-white/80 dark:bg-neutral-900/90 border border-white/70 dark:border-neutral-800/80',
-                'rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]',
-                !dragOverlay && 'hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,0,0,0.10)] dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-250',
+                'rounded-2xl sm:rounded-[20px] shadow-xs sm:shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-none sm:dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]',
+                !dragOverlay && 'hover:-translate-y-0.5 sm:hover:-translate-y-1 hover:shadow-md transition-all duration-200',
                 !cat.isActive && 'opacity-70 dark:opacity-60',
                 dragOverlay && 'shadow-2xl ring-2 ring-[color:var(--color-brand-500)]/60 cursor-grabbing select-none pointer-events-none'
             )}
         >
             <div className={cn(
-                'w-1.5 flex-shrink-0 rounded-l-[20px] transition-all duration-300',
+                'w-1.5 flex-shrink-0 rounded-l-2xl sm:rounded-l-[20px] transition-all duration-300',
                 cat.isActive
                     ? 'bg-gradient-to-b from-[color:var(--color-brand-400)] to-[color:var(--color-accent-500)]'
                     : 'bg-neutral-200 dark:bg-neutral-700'
             )} />
 
+            {/* Drag handle */}
             <div
                 {...attributes}
                 {...listeners}
                 className={cn(
-                    "touch-none flex items-center justify-center w-11 sm:w-12 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
-                    (isDragging || dragOverlay) && "cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
+                    "touch-none flex items-center justify-center w-10 sm:w-12 bg-neutral-50/80 dark:bg-neutral-900/80 border-r border-neutral-200/60 dark:border-neutral-800/80 flex-shrink-0 cursor-grab text-neutral-400 dark:text-neutral-500 hover:text-[color:var(--color-brand-500)] dark:hover:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10 transition-colors",
+                    (isDragging || dragOverlay) && "!flex cursor-grabbing bg-[color:var(--color-brand-50)] dark:bg-[color:var(--color-brand-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]"
                 )}
             >
                 <GripVertical className="w-5 h-5" />
             </div>
 
-            <div className="flex-1 min-w-0 flex items-center gap-3 p-3.5 sm:p-5">
+            <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-5">
                 <div className="relative flex-shrink-0">
                     <div className={cn(
-                        'w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm',
+                        'w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xs sm:shadow-sm',
                         cat.isActive
                             ? 'bg-gradient-to-br from-[color:var(--color-brand-50)] to-[color:var(--color-accent-50)] dark:from-[color:var(--color-brand-500)]/20 dark:to-[color:var(--color-accent-500)]/10 text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)]'
                             : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500'
                     )}>
-                        <Tag className="w-4 h-4" />
+                        <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
-                    <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-white dark:border-neutral-700 text-[10px] font-black text-neutral-600 dark:text-neutral-300 flex items-center justify-center shadow-xs">
+                    <span className="absolute -top-1 -left-1 sm:-top-1.5 sm:-left-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-neutral-200 dark:bg-neutral-800 border border-white dark:border-neutral-700 text-[8px] sm:text-[10px] font-black text-neutral-600 dark:text-neutral-300 flex items-center justify-center shadow-xs">
                         {idx + 1}
                     </span>
                 </div>
 
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-[15px] sm:text-[17px] font-extrabold text-neutral-900 dark:text-neutral-50 truncate tracking-tight">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <h3 className="text-[14px] sm:text-[17px] font-bold sm:font-extrabold text-neutral-900 dark:text-neutral-50 truncate tracking-tight">
                             {getTranslation(cat.translations, i18n.language)}
                         </h3>
                         {!cat.isActive && (
-                            <span className="text-[9px] font-black uppercase tracking-widest bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 px-1.5 py-0.5 rounded-full flex-shrink-0">
                                 {t('categories.status_hidden')}
                             </span>
                         )}
@@ -141,12 +142,12 @@ const CategoryItemBase: React.FC<{
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 pr-3 sm:pr-4 flex-shrink-0">
+            <div className="flex items-center gap-1 pr-2.5 sm:pr-4 flex-shrink-0">
                 <button
                     onClick={() => update({ id: cat.id, data: { isActive: !cat.isActive } as any })}
                     title={cat.isActive ? t('actions.hide') : t('actions.show')}
                     className={cn(
-                        'w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-90',
+                        'w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl transition-all duration-200 active:scale-90',
                         cat.isActive
                             ? 'text-[color:var(--color-brand-500)] dark:text-[color:var(--color-brand-400)] hover:bg-[color:var(--color-brand-50)] dark:hover:bg-[color:var(--color-brand-500)]/10'
                             : 'text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
@@ -156,15 +157,15 @@ const CategoryItemBase: React.FC<{
                 </button>
                 <button
                     onClick={() => setEditing(cat.id)}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-90 transition-all duration-200"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 active:scale-90 transition-all duration-200"
                 >
-                    <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <button
                     onClick={() => setDeletingId(cat.id)}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:scale-90 transition-all duration-200"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl text-neutral-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:scale-90 transition-all duration-200"
                 >
-                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
             </div>
         </div>
@@ -272,13 +273,13 @@ const CategoriesPage: React.FC = () => {
     return (
         <>
             <Helmet><title>{t('categories.title')} — OurMenu</title></Helmet>
-            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 transition-colors duration-200 p-4 lg:p-10 max-w-3xl mx-auto pb-24 lg:pb-12">
+            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 transition-colors duration-200 px-3.5 py-4 sm:p-6 lg:p-10 max-w-3xl mx-auto pb-28 lg:pb-12">
 
                 {/* ── Page header ── */}
-                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-5 sm:mb-8">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('categories.title')}</h1>
-                        <p className="text-[14px] text-neutral-500 dark:text-neutral-400 mt-1">{t("categories.organize_desc")}</p>
+                        <h1 className="text-xl sm:text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('categories.title')}</h1>
+                        <p className="text-xs sm:text-[14px] text-neutral-500 dark:text-neutral-400 mt-0.5 sm:mt-1">{t("categories.organize_desc")}</p>
                     </div>
                     {!editing && cats.length > 0 && (
                         <Button
@@ -377,12 +378,12 @@ const CategoriesPage: React.FC = () => {
 
                 {/* ── Mobile FAB ── */}
                 {!editing && cats.length > 0 && (
-                    <div className="fixed bottom-20 right-5 lg:hidden z-40">
+                    <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 sm:hidden z-40">
                         <button
                             onClick={() => setEditing('new')}
-                            className="w-14 h-14 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-all duration-200 hover:scale-105"
+                            className="w-13 h-13 rounded-full bg-[color:var(--color-brand-500)] text-white flex items-center justify-center shadow-lg active:scale-95 transition-all duration-200"
                         >
-                            <Plus className="w-6 h-6" />
+                            <Plus className="w-6 h-6 stroke-[2.5]" />
                         </button>
                     </div>
                 )}

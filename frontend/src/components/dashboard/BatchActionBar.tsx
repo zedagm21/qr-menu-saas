@@ -61,8 +61,8 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
     return (
         <>
             {/* Floating Island Toolbar */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-bottom-5 duration-200">
-                <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-neutral-900/95 dark:bg-neutral-800/95 text-white backdrop-blur-xl border border-neutral-700/80 shadow-2xl overflow-x-auto hide-scrollbar">
+            <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-bottom-5 duration-200">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-neutral-900/95 dark:bg-neutral-800/95 text-white backdrop-blur-xl border border-neutral-700/80 shadow-2xl overflow-x-auto hide-scrollbar">
                     {/* Selected Badge */}
                     <div className="flex items-center gap-2 pr-2 border-r border-neutral-700/80 shrink-0">
                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[color:var(--color-brand-500)] text-[12px] font-black text-white">

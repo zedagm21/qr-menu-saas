@@ -8,6 +8,7 @@ import { useActiveBroadcast } from '../../hooks/useAdmin';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { MobileTopBar } from './MobileTopBar';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { cn } from '../../lib/utils';
 
@@ -86,7 +87,9 @@ export const DashboardLayout: React.FC = () => {
             <Sidebar />
 
             {/* Main content area */}
-            <main className="flex-1 overflow-y-auto pb-[64px] lg:pb-0 bg-neutral-50/50 dark:bg-neutral-900/50 transition-colors duration-200 flex flex-col">
+            <main className="flex-1 overflow-y-auto pb-[calc(68px+env(safe-area-inset-bottom,0px))] lg:pb-0 bg-neutral-50/50 dark:bg-neutral-900/50 transition-colors duration-200 flex flex-col">
+                <MobileTopBar />
+
                 {/* Impersonation Banner for Super Admin */}
                 {impersonatingName && (
                     <div className="bg-amber-400 text-amber-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-xs sticky top-0 z-40 border-b border-amber-500 animate-fade-in">

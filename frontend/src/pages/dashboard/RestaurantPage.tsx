@@ -56,7 +56,7 @@ const SectionCard: React.FC<{
 }> = ({ icon, title, subtitle, children, className, gradient, delay }) => (
     <div
         className={cn(
-            'animate-fade-in-up relative overflow-hidden rounded-[28px] border shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-6 lg:p-8 space-y-6',
+            'animate-fade-in-up relative overflow-hidden rounded-2xl sm:rounded-[28px] border shadow-xs sm:shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-none sm:dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6',
             'backdrop-blur-sm bg-white/95 dark:bg-neutral-900/95 border-neutral-200/90 dark:border-neutral-800/90',
             gradient && 'lg:bg-gradient-to-br from-[color:var(--color-brand-50)]/40 via-white to-white dark:from-[color:var(--color-brand-500)]/5 dark:via-neutral-900/95 dark:to-neutral-900/95',
             className
@@ -66,18 +66,18 @@ const SectionCard: React.FC<{
         {/* Gradient top bar */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[color:var(--color-brand-500)]/30 to-transparent" />
         {/* Decorative bg icon */}
-        <div className="absolute top-4 right-4 opacity-[0.04] pointer-events-none">
+        <div className="hidden sm:block absolute top-4 right-4 opacity-[0.04] pointer-events-none">
             {icon}
         </div>
 
         <div className="relative z-10">
-            <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[color:var(--color-brand-400)] to-[color:var(--color-accent-500)] flex items-center justify-center shadow-md shadow-[color:var(--color-brand-500)]/20 text-white shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 mb-0.5 sm:mb-1">
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-[color:var(--color-brand-400)] to-[color:var(--color-accent-500)] flex items-center justify-center shadow-xs sm:shadow-md shadow-[color:var(--color-brand-500)]/20 text-white shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5">
                     {icon}
                 </div>
-                <h2 className="text-[17px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{title}</h2>
+                <h2 className="text-[15px] sm:text-[17px] font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{title}</h2>
             </div>
-            <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 ml-11">{subtitle}</p>
+            <p className="text-xs sm:text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5 sm:mt-1 ml-9 sm:ml-11">{subtitle}</p>
         </div>
 
         <div className="relative z-10">
@@ -176,8 +176,8 @@ const UploadZone: React.FC<UploadZoneProps> = ({
                 {imageUrl ? (
                     <>
                         <img src={imageUrl} alt={label} className="absolute inset-0 w-full h-full object-cover rounded-[18px]" />
-                        {/* Hover overlay with dual actions: Adjust & Change */}
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-[18px] backdrop-blur-xs p-3">
+                        {/* Mobile bottom action strip / Desktop hover overlay */}
+                        <div className="absolute inset-x-0 bottom-0 sm:inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent sm:bg-black/60 flex items-center justify-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 rounded-b-[18px] sm:rounded-[18px] sm:backdrop-blur-xs p-2 sm:p-3">
                             {onAdjust && (
                                 <button
                                     type="button"
@@ -186,7 +186,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({
                                         e.stopPropagation();
                                         onAdjust();
                                     }}
-                                    className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
+                                    className="flex-1 max-w-[130px] h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-white/25 sm:bg-white/20 hover:bg-white/35 text-white flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold border border-white/20 shadow-xs cursor-pointer active:scale-95 transition-all"
                                 >
                                     <Crop className="w-3.5 h-3.5 shrink-0" />
                                     <span className="truncate">{tAdjustFraming || 'Adjust'}</span>
@@ -199,7 +199,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({
                                     e.stopPropagation();
                                     fileInputRef.current?.click();
                                 }}
-                                className="flex-1 max-w-[130px] h-9 px-2.5 rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                                className="flex-1 max-w-[130px] h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-[color:var(--color-brand-500)] hover:bg-[color:var(--color-brand-600)] text-white flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
                             >
                                 <UploadCloud className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{tChangeImage}</span>
@@ -207,24 +207,24 @@ const UploadZone: React.FC<UploadZoneProps> = ({
                         </div>
                         {/* Success checkmark */}
                         {uploaded && (
-                            <div className="absolute top-3 right-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
-                                <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={3} />
+                            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
+                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" strokeWidth={3} />
                             </div>
                         )}
                     </>
                 ) : dragOver ? (
-                    <div className="flex flex-col items-center gap-2 p-4">
-                        <UploadCloud className="w-8 h-8 text-[color:var(--color-brand-500)]" />
-                        <span className="text-[12px] font-bold text-[color:var(--color-brand-600)] text-center">{tDropToUpload}</span>
+                    <div className="flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4">
+                        <UploadCloud className="w-6 h-6 sm:w-8 sm:h-8 text-[color:var(--color-brand-500)]" />
+                        <span className="text-[11px] sm:text-[12px] font-bold text-[color:var(--color-brand-600)] text-center">{tDropToUpload}</span>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center gap-2 p-3 text-center">
-                        <div className="w-11 h-11 bg-white dark:bg-neutral-900 rounded-xl shadow-xs border border-neutral-100 dark:border-neutral-800 flex items-center justify-center group-hover:scale-105 group-hover:shadow-md transition-all duration-200 shrink-0">
+                    <div className="flex flex-col items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 text-center">
+                        <div className="w-9 h-9 sm:w-11 sm:h-11 bg-white dark:bg-neutral-900 rounded-xl shadow-xs border border-neutral-100 dark:border-neutral-800 flex items-center justify-center group-hover:scale-105 group-hover:shadow-md transition-all duration-200 shrink-0 [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
                             {emptyIcon}
                         </div>
                         <div>
-                            <span className="text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block">{tClickDragDrop}</span>
-                            <span className="text-[11px] text-neutral-400">{tToUpload}</span>
+                            <span className="text-[11px] sm:text-[12px] font-bold text-neutral-700 dark:text-neutral-300 block">{tClickDragDrop}</span>
+                            <span className="text-[10px] sm:text-[11px] text-neutral-400">{tToUpload}</span>
                         </div>
                     </div>
                 )}
@@ -528,11 +528,11 @@ const RestaurantPage: React.FC = () => {
     return (
         <>
             <Helmet><title>{t('restaurant.title')} — OurMenu</title></Helmet>
-            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 p-4 lg:p-10 max-w-4xl mx-auto pb-24 lg:pb-12 transition-colors duration-200">
+            <div className="min-h-full bg-gradient-to-br from-neutral-50 via-white to-neutral-100/80 dark:from-neutral-950 dark:via-neutral-900/90 dark:to-neutral-900 px-3.5 py-4 sm:p-6 lg:p-10 max-w-4xl mx-auto pb-24 lg:pb-12 transition-colors duration-200">
 
                 {/* ── Initial Setup Banner ── */}
                 {!restaurant?.slug && (
-                    <div className="animate-fade-in mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 flex items-start gap-3.5 shadow-xs">
+                    <div className="animate-fade-in mb-4 sm:mb-6 p-3.5 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 flex items-start gap-3 shadow-xs">
                         <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div>
                             <h3 className="font-bold text-sm sm:text-base text-amber-900 dark:text-amber-200">
@@ -546,9 +546,9 @@ const RestaurantPage: React.FC = () => {
                 )}
 
                 {/* ── Page header ── */}
-                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div className="animate-fade-in-up delay-0 flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-5 sm:mb-8">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('restaurant.title')}</h1>
+                        <h1 className="text-xl sm:text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight">{t('restaurant.title')}</h1>
                         {restaurant?.slug ? (
                             <div className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 flex items-center gap-2 flex-wrap">
                                 <span className="flex items-center gap-1.5 font-mono text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-400)] font-semibold">
@@ -821,7 +821,7 @@ const RestaurantPage: React.FC = () => {
                                 tClickDragDrop={t("restaurant.click_drag_drop")}
                             />
                             <UploadZone
-                                aspect="aspect-[3/2]"
+                                aspect="aspect-[16/9] sm:aspect-[3/2]"
                                 dragOver={coverDragOver}
                                 onDragOver={e => { e.preventDefault(); setCoverDragOver(true); }}
                                 onDragLeave={() => setCoverDragOver(false)}

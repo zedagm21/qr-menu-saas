@@ -575,64 +575,66 @@ export default function PublicMenuPage() {
 
                 {/* ─── Sticky Top Bar ─── */}
                 <div className={cn(
-                    "sticky top-0 z-50 h-14 px-3.5 sm:px-4 flex items-center justify-between transition-all duration-200",
+                    "sticky top-0 z-50 pt-safe px-3.5 sm:px-4 transition-all duration-200",
                     "bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-b border-black/5 dark:border-[#222222] shadow-2xs"
                 )}>
-                    {/* Left side: Logo + Restaurant Name (Clickable -> Opens Restaurant Info Modal) */}
-                    <button
-                        type="button"
-                        onClick={handleOpenRestaurantInfo}
-                        aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                        className="flex items-center gap-2.5 p-1 -ml-1 rounded-2xl hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer group min-w-0"
-                    >
-                        {restaurant.logoUrl ? (
-                            <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-black/10 dark:border-white/20 shadow-xs object-cover group-hover:scale-105 transition-transform shrink-0" />
-                        ) : (
-                            <div className="w-8 h-8 rounded-full bg-[color:var(--color-brand-500)]/15 dark:bg-[color:var(--color-brand-500)]/25 text-[color:var(--color-brand-500)] flex items-center justify-center font-bold text-sm shrink-0">
-                                {restaurant.name?.[0] || '🍽️'}
-                            </div>
-                        )}
-                        <span className={cn(
-                            "text-neutral-900 dark:text-[#F5F5F5] group-hover:text-[color:var(--color-brand-500)] font-black text-sm sm:text-base tracking-tight truncate max-w-[150px] xs:max-w-[200px] sm:max-w-[320px] transition-colors",
-                            lang === 'AM' && 'font-ethiopic font-bold'
-                        )}>
-                            {restaurant.name}
-                        </span>
-                    </button>
-
-                    {/* Right side: Info + Share + Language + Theme Toggle */}
-                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <div className="h-14 flex items-center justify-between">
+                        {/* Left side: Logo + Restaurant Name (Clickable -> Opens Restaurant Info Modal) */}
                         <button
                             type="button"
                             onClick={handleOpenRestaurantInfo}
                             aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                            title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
-                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
+                            className="flex items-center gap-2.5 p-1 -ml-1 rounded-2xl hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer group min-w-0"
                         >
-                            <Info className="w-4 h-4" />
+                            {restaurant.logoUrl ? (
+                                <img src={restaurant.logoUrl} alt="Logo" className="w-8 h-8 rounded-full border border-black/10 dark:border-white/20 shadow-xs object-cover group-hover:scale-105 transition-transform shrink-0" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-[color:var(--color-brand-500)]/15 dark:bg-[color:var(--color-brand-500)]/25 text-[color:var(--color-brand-500)] flex items-center justify-center font-bold text-sm shrink-0">
+                                    {restaurant.name?.[0] || '🍽️'}
+                                </div>
+                            )}
+                            <span className={cn(
+                                "text-neutral-900 dark:text-[#F5F5F5] group-hover:text-[color:var(--color-brand-500)] font-black text-sm sm:text-base tracking-tight truncate max-w-[150px] xs:max-w-[200px] sm:max-w-[320px] transition-colors",
+                                lang === 'AM' && 'font-ethiopic font-bold'
+                            )}>
+                                {restaurant.name}
+                            </span>
                         </button>
-                        <button
-                            type="button"
-                            onClick={handleShare}
-                            aria-label={t("public.share_menu", { defaultValue: "Share Menu" })}
-                            title={t("public.share_menu", { defaultValue: "Share Menu" })}
-                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
-                        >
-                            <Share2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            onClick={handleLanguageToggle}
-                            aria-label={t("public.language_switch")}
-                            className="px-2.5 sm:px-3 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors text-neutral-800 dark:text-neutral-200 text-xs font-bold border border-neutral-200/80 dark:border-[#333333]"
-                        >
-                            {lang === 'EN' ? 'አማ' : 'EN'}
-                        </button>
-                        <button
-                            onClick={toggleDarkMode}
-                            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-[#333333]"
-                        >
-                            {isDark ? '☀️' : '🌙'}
-                        </button>
+
+                        {/* Right side: Info + Share + Language + Theme Toggle */}
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                            <button
+                                type="button"
+                                onClick={handleOpenRestaurantInfo}
+                                aria-label={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                                title={t("public.about_restaurant", { defaultValue: "About Restaurant" })}
+                                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
+                            >
+                                <Info className="w-4 h-4" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleShare}
+                                aria-label={t("public.share_menu", { defaultValue: "Share Menu" })}
+                                title={t("public.share_menu", { defaultValue: "Share Menu" })}
+                                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] active:scale-95 transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 cursor-pointer border border-neutral-200/80 dark:border-[#333333]"
+                            >
+                                <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={handleLanguageToggle}
+                                aria-label={t("public.language_switch")}
+                                className="px-2.5 sm:px-3 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors text-neutral-800 dark:text-neutral-200 text-xs font-bold border border-neutral-200/80 dark:border-[#333333]"
+                            >
+                                {lang === 'EN' ? 'አማ' : 'EN'}
+                            </button>
+                            <button
+                                onClick={toggleDarkMode}
+                                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-[#222222] dark:hover:bg-[#2e2e2e] transition-colors flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-200/80 dark:border-[#333333]"
+                            >
+                                {isDark ? '☀️' : '🌙'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 

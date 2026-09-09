@@ -3,17 +3,15 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
-    UtensilsCrossed, List, QrCode, ExternalLink, Plus,
-    CheckCircle2, Circle, TrendingUp, Zap, BarChart3, ArrowUpRight,
+    UtensilsCrossed, List, QrCode, Plus,
+    CheckCircle2, Circle, TrendingUp, BarChart3, ArrowUpRight, Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRestaurant, useRestaurantStats, useUpdateRestaurant } from '../../hooks/useRestaurant';
+import { useRestaurant, useRestaurantStats } from '../../hooks/useRestaurant';
 import { useCategories } from '../../hooks/useCategories';
 import { useMenuItems } from '../../hooks/useMenuItems';
 import { Button } from '../../components/ui/Button';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { getTranslation, cn } from '../../lib/utils';
-import toast from 'react-hot-toast';
 
 // ─── Animated counter hook ────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 900, enabled = true) {
@@ -43,9 +41,6 @@ export default function OverviewPage() {
     const { data: liveRestaurant } = useRestaurant();
     const restaurant = liveRestaurant || authRestaurant;
 
-    const { mutate: updateRestaurant, isPending: isUpdatingStatus } = useUpdateRestaurant();
-    const [showDraftConfirm, setShowDraftConfirm] = useState(false);
-
     const { data: stats, isLoading: statsLoading } = useRestaurantStats();
     const { data: categories } = useCategories();
     const { data: menuItems, isLoading: itemsLoading } = useMenuItems();
@@ -54,23 +49,6 @@ export default function OverviewPage() {
     const itemCount = Array.isArray(menuItems) ? menuItems.length : 0;
     const availableItems = Array.isArray(menuItems) ? menuItems.filter(i => i.isAvailable).length : 0;
     const isPublished = restaurant?.status === 'PUBLISHED';
-
-    const handlePublish = () => {
-        updateRestaurant({ status: 'PUBLISHED' }, {
-            onSuccess: () => {
-                toast.success(t('dashboard.published_success', { defaultValue: '🎉 Your menu is now LIVE! Customers can view it via QR code.' }), { duration: 4000 });
-            }
-        });
-    };
-
-    const handleConfirmDraft = () => {
-        setShowDraftConfirm(false);
-        updateRestaurant({ status: 'DRAFT' }, {
-            onSuccess: () => {
-                toast.success(t('dashboard.draft_success', { defaultValue: '🔒 Menu set to Draft mode (hidden from customers).' }), { duration: 3500 });
-            }
-        });
-    };
 
     // Animated counter targets
     const displayItems = stats?.itemCount ?? itemCount;
@@ -113,124 +91,85 @@ export default function OverviewPage() {
         <>
             <Helmet><title>Dashboard — OurMenu</title></Helmet>
 
-            <div className="min-h-full bg-neutral-50/50 dark:bg-transparent p-4 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-8 transition-colors duration-200">
+            <div className="min-h-full bg-neutral-50/50 dark:bg-transparent px-3.5 py-3 sm:p-6 lg:p-8 pb-24 lg:pb-12 space-y-3.5 sm:space-y-6 transition-colors duration-200">
 
-                {/* ── Restaurant Overview Header ── */}
-                <div className="animate-fade-in-up delay-0">
-                    <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight leading-tight">
+                {/* ── Restaurant Overview Header (Desktop only) ── */}
+                <div className="hidden sm:block animate-fade-in-up delay-0">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-neutral-50 tracking-tight leading-tight">
                         {restaurant?.name || t('nav.overview', { defaultValue: 'Overview' })}
                     </h1>
-                    <p className="text-[15px] font-medium text-neutral-500 dark:text-neutral-400 mt-1">
+                    <p className="text-[14px] font-medium text-neutral-500 dark:text-neutral-400 mt-0.5">
                         {t('dashboard.operations_subtitle', { defaultValue: 'Digital menu & operations overview' })}
                     </p>
                 </div>
 
-                {/* ── Hero Status Card ── */}
-                <div className={cn(
-                    'animate-fade-in-up delay-75 relative overflow-hidden rounded-3xl p-6 sm:p-8',
-                    'flex flex-col sm:flex-row sm:items-center justify-between gap-6 border transition-all duration-300 shadow-xs',
-                    isPublished
-                        ? 'bg-gradient-to-br from-emerald-500/10 via-[color:var(--color-brand-50)] to-white dark:from-emerald-950/20 dark:via-neutral-900 dark:to-neutral-900 border-emerald-500/30 dark:border-emerald-500/20 shadow-emerald-500/5'
-                        : 'bg-gradient-to-br from-amber-500/10 via-neutral-100 to-white dark:from-amber-950/20 dark:via-neutral-900 dark:to-neutral-900 border-amber-500/30 dark:border-amber-500/20'
-                )}>
-                    {/* Background glow circle */}
-                    <div className={cn(
-                        'absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-25 pointer-events-none',
-                        isPublished ? 'bg-emerald-400' : 'bg-amber-400'
-                    )} />
-
-                    {/* Left content */}
-                    <div className="relative z-10 space-y-2">
-                        <div className="flex items-center gap-2.5">
-                            {isPublished ? (
-                                <span className="inline-flex items-center gap-2 bg-emerald-100/80 dark:bg-emerald-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-emerald-800 dark:text-emerald-300 text-[11px] font-black tracking-widest uppercase border border-emerald-300/60 dark:border-emerald-500/30 shadow-xs">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                                    </span>
-                                    {t('dashboard.live_badge', { defaultValue: 'LIVE MENU' })}
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-2 bg-amber-100/80 dark:bg-amber-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-amber-900 dark:text-amber-300 text-[11px] font-black tracking-widest uppercase border border-amber-300/60 dark:border-amber-500/30 shadow-xs">
-                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                                    {t('dashboard.draft_badge', { defaultValue: 'DRAFT MODE (HIDDEN)' })}
-                                </span>
-                            )}
+                {/* ── Menu Status & Preview Banner (Live / Draft status + Preview link) ── */}
+                <div className="bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/80 dark:border-neutral-800/90 rounded-2xl p-3 sm:p-4 shadow-xs flex items-center justify-between gap-3 animate-fade-in-up">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={cn(
+                            'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0',
+                            isPublished ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                        )}>
+                            {isPublished ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Circle className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
-                        <p className="text-neutral-700 dark:text-neutral-300 text-[15px] font-medium max-w-md leading-relaxed">
-                            {isPublished
-                                ? t('dashboard.live_desc', { defaultValue: 'Your digital menu is live. Customers can scan your QR code to view it.' })
-                                : t('dashboard.draft_desc', { defaultValue: 'Your menu is hidden. Complete setup and publish when ready to welcome customers.' })}
-                        </p>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className={cn('w-2 h-2 rounded-full', isPublished ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500')} />
+                                <h2 className="text-xs sm:text-sm font-extrabold text-neutral-900 dark:text-white truncate">
+                                    {isPublished ? t('dashboard.menu_live_title', { defaultValue: 'Your Menu is Live' }) : t('status.draft', { defaultValue: 'Draft Mode' })}
+                                </h2>
+                            </div>
+                            <p className="text-[10px] sm:text-[11px] text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
+                                {isPublished
+                                    ? t('dashboard.accessible_desc', { defaultValue: 'Customers can scan and view your menu' })
+                                    : t('dashboard.not_accessible_desc', { defaultValue: 'Only you can see the menu until published' })}
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Right buttons */}
-                    <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0 w-full sm:w-auto">
-                        {isPublished ? (
-                            <>
-                                {restaurant?.slug && (
-                                    <a href={`/r/${restaurant?.slug}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-white/90 hover:bg-white dark:bg-neutral-900 hover:dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-100 font-bold shadow-xs"
-                                            icon={<ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                                        >
-                                            {t('nav.viewMenu', { defaultValue: 'View Live Menu' })}
-                                        </Button>
-                                    </a>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDraftConfirm(true)}
-                                    disabled={isUpdatingStatus}
-                                    className="w-full sm:w-auto h-11 px-4 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-neutral-200 dark:border-neutral-700/80 hover:border-red-200 dark:hover:border-red-500/20 transition-all cursor-pointer"
-                                >
-                                    {t('dashboard.switch_to_draft', { defaultValue: 'Switch to Draft' })}
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="primary"
-                                    onClick={handlePublish}
-                                    isLoading={isUpdatingStatus}
-                                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
-                                    icon={<Zap className="w-4 h-4 fill-black" />}
-                                >
-                                    {t('dashboard.publish_now', { defaultValue: '🚀 Publish Menu Now' })}
-                                </Button>
-                                {restaurant?.slug && (
-                                    <a href={`/r/${restaurant?.slug}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full sm:w-auto h-11 px-4 rounded-xl bg-white/80 hover:bg-white dark:bg-neutral-900 hover:dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold"
-                                            icon={<ExternalLink className="w-4 h-4" />}
-                                        >
-                                            {t('dashboard.preview_draft', { defaultValue: 'Preview' })}
-                                        </Button>
-                                    </a>
-                                )}
-                            </>
-                        )}
-                    </div>
+                    {/* Live Menu Preview Button */}
+                    {restaurant?.slug && (
+                        <a
+                            href={`/r/${restaurant.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold bg-[color:var(--color-brand-50)] hover:bg-[color:var(--color-brand-100)] dark:bg-[color:var(--color-brand-500)]/15 dark:hover:bg-[color:var(--color-brand-500)]/25 text-[color:var(--color-brand-700)] dark:text-[color:var(--color-brand-300)] border border-[color:var(--color-brand-200)] dark:border-[color:var(--color-brand-500)]/20 active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+                        >
+                            <span>{t('nav.preview', { defaultValue: 'Live Menu' })}</span>
+                            <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </a>
+                    )}
                 </div>
 
-                {/* Confirm Dialog for switching to Draft mode */}
-                <ConfirmDialog
-                    isOpen={showDraftConfirm}
-                    onClose={() => setShowDraftConfirm(false)}
-                    onConfirm={handleConfirmDraft}
-                    title={t('dashboard.confirm_draft_title', { defaultValue: 'Switch Menu to Draft Mode?' })}
-                    description={t('dashboard.confirm_draft_desc', {
-                        defaultValue: 'Your public menu will be hidden from customers. Visitors scanning your QR code will see a "Menu Updating" message.',
-                    })}
-                    confirmText={t('dashboard.set_draft_btn', { defaultValue: 'Yes, Set to Draft' })}
-                    cancelText={t('dashboard.keep_live_btn', { defaultValue: 'Keep Menu Live' })}
-                    isDestructive={true}
-                />
+                {/* ── Mobile 2-Column Metric Strip (< sm) ── */}
+                <div className="sm:hidden grid grid-cols-2 divide-x divide-neutral-200/70 dark:divide-neutral-800/80 bg-white/95 dark:bg-neutral-900/95 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/90 p-3 shadow-xs animate-fade-in-up">
+                    <Link to="/dashboard/menu" className="flex flex-col items-center justify-center text-center px-2 active:scale-95 transition-transform">
+                        <span className="text-[10px] font-extrabold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-0.5 truncate w-full">
+                            {t('dashboard.total_items')}
+                        </span>
+                        <span className="text-xl font-black text-neutral-900 dark:text-neutral-50 tracking-tight">
+                            {statsLoading ? '—' : animItems}
+                        </span>
+                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                            {animAvail} {t('dashboard.active')}
+                        </span>
+                    </Link>
 
-                {/* ── 3 Stat Cards ── */}
-                <div className="animate-fade-in-up delay-150 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <Link to="/dashboard/categories" className="flex flex-col items-center justify-center text-center px-2 active:scale-95 transition-transform">
+                        <span className="text-[10px] font-extrabold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-0.5 truncate w-full">
+                            {t('dashboard.total_categories')}
+                        </span>
+                        <span className="text-xl font-black text-neutral-900 dark:text-neutral-50 tracking-tight">
+                            {statsLoading ? '—' : animCats}
+                        </span>
+                        <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5 truncate">
+                            {t('dashboard.organized')}
+                        </span>
+                    </Link>
+                </div>
+
+                {/* ── Desktop 2 Stat Cards (sm:) ── */}
+                <div className="hidden sm:grid animate-fade-in-up delay-150 grid-cols-2 gap-5">
                     {/* Items card */}
                     <div className="group relative bg-white dark:bg-neutral-900 rounded-[18px] p-6 shadow-sm border border-neutral-200 dark:border-neutral-800 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                         <div className="flex items-start justify-between mb-4">
@@ -286,55 +225,32 @@ export default function OverviewPage() {
                             </div>
                         )}
                     </div>
-
-                    {/* QR / Status card */}
-                    <div className="group relative bg-white dark:bg-neutral-900 rounded-[18px] p-6 shadow-sm border border-neutral-200 dark:border-neutral-800 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
-                                <QrCode className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                            </div>
-                            <span className={cn(
-                                'flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full border',
-                                isPublished ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20' : 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20'
-                            )}>
-                                <span className={cn('w-1.5 h-1.5 rounded-full', isPublished ? 'bg-emerald-500' : 'bg-amber-500')} />
-                                {isPublished ? t('dashboard.status_published') : t('dashboard.status_draft')}
-                            </span>
-                        </div>
-                        <p className="text-[12px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-1">{t('dashboard.menu_status_label')}</p>
-                        <p className={cn('text-2xl font-extrabold tracking-tight', isPublished ? 'text-neutral-900 dark:text-white' : 'text-neutral-900 dark:text-white')}>
-                            {isPublished ? t('dashboard.status_live') : t('status.draft')}
-                        </p>
-                        <p className="text-[12px] text-neutral-500 font-medium mt-1 leading-snug max-w-[90%]">
-                            {isPublished ? t('dashboard.accessible_desc') : t('dashboard.not_accessible_desc')}
-                        </p>
-                    </div>
                 </div>
 
-                {/* ── {t('dashboard.quick_actions')} + Onboarding ── */}
-                <div className="animate-fade-in-up delay-225 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* ── Quick Actions + Onboarding ── */}
+                <div className="animate-fade-in-up delay-225 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
 
-                    {/* {t('dashboard.quick_actions')} */}
+                    {/* Quick Actions */}
                     <div className="lg:col-span-8">
-                        <h3 className="text-[12px] font-bold text-neutral-400 tracking-widest uppercase mb-4 ml-1 flex items-center gap-2">
-                            <Zap className="w-3.5 h-3.5" /> {t('dashboard.quick_actions')}
+                        <h3 className="text-[11px] sm:text-[12px] font-bold text-neutral-400 dark:text-neutral-500 tracking-widest uppercase mb-2.5 sm:mb-4 ml-1 flex items-center gap-1.5">
+                            <Zap className="w-3 h-3 text-[color:var(--color-brand-500)]" /> {t('dashboard.quick_actions')}
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
                             {quickActions.map((item, i) => (
                                 <Link
                                     key={t(item.labelKey)}
                                     to={item.to}
                                     style={{ animationDelay: `${i * 60 + 225}ms` }}
-                                    className="animate-fade-in-up group relative p-5 bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none hover:-translate-y-2 hover:shadow-xl hover:border-neutral-200 dark:hover:border-neutral-700 active:scale-[0.97] transition-all duration-300 flex flex-col overflow-hidden"
+                                    className="animate-fade-in-up group relative p-3.5 sm:p-5 bg-white/95 dark:bg-neutral-900/95 border border-neutral-200/80 dark:border-neutral-800/90 rounded-2xl sm:rounded-[20px] shadow-xs hover:-translate-y-1 hover:shadow-md active:scale-[0.97] transition-all duration-200 flex flex-col overflow-hidden"
                                 >
                                     <div className={cn(
-                                        'w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-transform duration-200 group-hover:scale-105',
+                                        'w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mb-2 sm:mb-3 transition-transform duration-200 group-hover:scale-105',
                                         item.bg
                                     )}>
-                                        <item.icon className="w-5 h-5" />
+                                        <item.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                                     </div>
-                                    <span className="text-[14px] font-bold text-neutral-900 dark:text-neutral-50 leading-tight mb-0.5">{t(item.labelKey)}</span>
-                                    <span className="text-[12px] text-neutral-500 dark:text-neutral-400">{t(item.subKey)}</span>
+                                    <span className="text-[13px] sm:text-[14px] font-bold text-neutral-900 dark:text-neutral-50 leading-tight mb-0.5 truncate">{t(item.labelKey)}</span>
+                                    <span className="text-[11px] sm:text-[12px] text-neutral-500 dark:text-neutral-400 line-clamp-1">{t(item.subKey)}</span>
                                 </Link>
                             ))}
                         </div>

@@ -24,6 +24,7 @@ export interface QRStyleConfig {
 
 export type QRCardScale =
     | 'full'
+    | 'compact'
     | 'sheet_1'
     | 'sheet_2'
     | 'sheet_4'
@@ -48,6 +49,7 @@ export interface QRDesignerPreviewProps {
     logoUrl?: string | null;
     canvasRef?: React.RefObject<HTMLDivElement>;
     isVector?: boolean;
+    scale?: QRCardScale;
 }
 
 export const getFallbackLogo = (name?: string, color: string = '#18181b') => {
@@ -85,6 +87,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
 
     // Calculate dimensions based on scale
     const isFull = scale === 'full';
+    const isCompact = scale === 'compact';
     const isS1 = scale === 'sheet_1';
     const isS2 = scale === 'sheet_2';
     const isS4 = scale === 'sheet_4';
@@ -102,6 +105,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
         isP4 ? 260 :
         isP6 ? 190 :
         isFull ? 190 :
+        isCompact ? 130 :
         isS1 ? 120 :
         isS2 ? 72 :
         isS4 ? 48 : 36;
@@ -126,6 +130,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 className={cn(
                     'w-full rounded-2xl shadow-sm border transition-all duration-200 flex flex-col items-center text-center relative overflow-hidden',
                     isFull && 'max-w-[340px] rounded-3xl p-6 sm:p-7 pt-8 sm:pt-9 shadow-2xl border',
+                    isCompact && 'w-full max-w-[230px] sm:max-w-[270px] rounded-2xl p-3 sm:p-4 pt-3.5 sm:pt-4 shadow-md border',
                     isP1 && 'w-full max-w-[880px] p-12 pt-16 rounded-[40px] shadow-none border-4',
                     isP2 && 'w-full max-w-[680px] p-8 pt-12 rounded-[32px] shadow-none border-3',
                     isP4 && 'w-full max-w-[500px] p-6 pt-9 rounded-[24px] shadow-none border-2',
@@ -152,13 +157,14 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
 
                 {/* Content Container (z-10 ensures zero border overlap) */}
                 <div className="relative z-10 w-full flex flex-col items-center">
-                    {(isFull || isPrint) && hasCustomLogo && resolvedLogo && (
+                    {(isFull || isPrint || isCompact) && hasCustomLogo && resolvedLogo && (
                         <div className={cn(
                             'bg-white shadow-xs border border-neutral-100 overflow-hidden flex items-center justify-center',
                             isP1 ? 'w-24 h-24 rounded-2xl mb-4 p-2' :
                             isP2 ? 'w-18 h-18 rounded-2xl mb-3 p-1.5' :
                             isP4 ? 'w-14 h-14 rounded-xl mb-2.5 p-1' :
                             isP6 ? 'w-10 h-10 rounded-lg mb-1.5 p-1' :
+                            isCompact ? 'w-7 h-7 rounded-lg mb-1 p-0.5' :
                             'w-12 h-12 rounded-xl p-1 mb-2.5'
                         )}>
                             <img src={resolvedLogo} alt="Logo" className="w-full h-full object-cover rounded-lg" />
@@ -173,6 +179,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP4 ? 'text-3xl mb-1.5' :
                             isP6 ? 'text-xl mb-1' :
                             isFull ? 'text-xl mb-1' :
+                            isCompact ? 'text-[12px] mb-0.5' :
                             isS1 ? 'text-sm mb-1' :
                             isS2 ? 'text-xs mb-0.5' :
                             isS4 ? 'text-[9px] mb-0.5' : 'text-[8px] mb-0.5'
@@ -190,6 +197,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP4 ? 'text-lg mb-3' :
                             isP6 ? 'text-sm mb-2' :
                             isFull ? 'text-xs mb-3' :
+                            isCompact ? 'text-[8.5px] mb-1' :
                             isS1 ? 'text-[11px] mb-2' : 'text-[7px] mb-1'
                         )}>
                             {config.subText}
@@ -203,7 +211,8 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP2 ? 'p-6 my-3 rounded-2xl border-2' :
                             isP4 ? 'p-4 my-2.5 rounded-2xl border-2' :
                             isP6 ? 'p-3 my-2 rounded-xl border' :
-                            isFull ? 'p-3.5 my-2.5 rounded-2xl' : 'p-1 my-0.5'
+                            isFull ? 'p-3.5 my-2.5 rounded-2xl' :
+                            isCompact ? 'p-1.5 my-1 rounded-xl' : 'p-1 my-0.5'
                         )}
                         style={{ borderColor: `${config.fgColor}20` }}
                     >
@@ -225,6 +234,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP4 ? 'mt-4 px-5 py-2.5 text-base rounded-2xl' :
                             isP6 ? 'mt-3 px-3 py-1.5 text-xs rounded-xl' :
                             isFull ? 'mt-4 px-4 py-2.5 text-[11px] rounded-2xl' :
+                            isCompact ? 'mt-1.5 px-2 py-0.5 text-[7.5px] rounded-lg' :
                             isS1 ? 'mt-2 px-3 py-1 text-[9px]' : 'mt-1 px-1.5 py-0.5 text-[6.5px]'
                         )}
                         style={{
@@ -236,16 +246,17 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                         <span className="break-words">{config.ctaText || 'Scan to View Menu • የምግብ ዝርዝር ለማየት በስልክዎ ስካን ያድርጉ'}</span>
                     </div>
 
-                    {config.showWifi && config.wifiName && (isFull || isPrint || isS1 || isS2) && (
+                    {config.showWifi && config.wifiName && (isFull || isPrint || isS1 || isS2 || isCompact) && (
                         <div className={cn(
                             'text-neutral-400 font-medium flex items-center gap-1.5',
                             isP1 ? 'mt-6 text-xl' :
                             isP2 ? 'mt-4 text-lg' :
                             isP4 ? 'mt-3 text-sm' :
                             isP6 ? 'mt-2 text-xs' :
-                            isFull ? 'mt-3 text-[11px]' : 'mt-1 text-[8px]'
+                            isFull ? 'mt-3 text-[11px]' :
+                            isCompact ? 'mt-1 text-[7.5px]' : 'mt-1 text-[8px]'
                         )}>
-                            <Wifi className={isP1 ? 'w-5 h-5' : isP2 ? 'w-4 h-4' : 'w-3 h-3'} />
+                            <Wifi className={isP1 ? 'w-5 h-5' : isP2 ? 'w-4 h-4' : isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
                             <span>Wi-Fi: <strong className="text-neutral-700">{config.wifiName}</strong></span>
                         </div>
                     )}
@@ -261,6 +272,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 className={cn(
                     'w-full rounded-2xl shadow-sm border transition-all duration-200 flex flex-col items-center text-center relative overflow-hidden bg-neutral-950 text-white',
                     isFull && 'max-w-[340px] rounded-3xl p-7 sm:p-8 shadow-2xl border-2',
+                    isCompact && 'w-full max-w-[230px] sm:max-w-[270px] rounded-2xl p-3 sm:p-4 pt-3.5 sm:pt-4 shadow-md border-2',
                     isP1 && 'w-full max-w-[880px] p-14 rounded-[40px] shadow-none border-4',
                     isP2 && 'w-full max-w-[680px] p-10 rounded-[32px] shadow-none border-3',
                     isP4 && 'w-full max-w-[500px] p-7 rounded-[24px] shadow-none border-2',
@@ -277,25 +289,25 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 <div
                     className={cn(
                         'absolute rounded-xl border border-dashed pointer-events-none opacity-40 z-0',
-                        isP1 ? 'inset-6 rounded-3xl' : isP2 ? 'inset-5 rounded-2xl' : isP4 ? 'inset-3.5 rounded-xl' : isFull ? 'inset-3 rounded-2xl' : 'inset-1'
+                        isP1 ? 'inset-6 rounded-3xl' : isP2 ? 'inset-5 rounded-2xl' : isP4 ? 'inset-3.5 rounded-xl' : isFull ? 'inset-3 rounded-2xl' : isCompact ? 'inset-1.5 rounded-xl' : 'inset-1'
                     )}
                     style={{ borderColor: config.fgColor }}
                 />
 
                 {/* Content Container (z-10 guarantees no border crosses text) */}
                 <div className="relative z-10 w-full flex flex-col items-center">
-                    <div className={cn('flex items-center gap-1.5', isP1 ? 'mb-4' : isP2 ? 'mb-3' : isP4 ? 'mb-2' : isFull ? 'mb-2' : 'mb-0.5')}>
-                        <Sparkles className={isP1 ? 'w-6 h-6' : isP2 ? 'w-5 h-5' : isP4 ? 'w-4 h-4' : 'w-3.5 h-3.5'} style={{ color: config.fgColor }} />
+                    <div className={cn('flex items-center gap-1.5', isP1 ? 'mb-4' : isP2 ? 'mb-3' : isP4 ? 'mb-2' : isFull ? 'mb-2' : isCompact ? 'mb-0.5' : 'mb-0.5')}>
+                        <Sparkles className={isP1 ? 'w-6 h-6' : isP2 ? 'w-5 h-5' : isP4 ? 'w-4 h-4' : isFull ? 'w-3.5 h-3.5' : 'w-2.5 h-2.5'} style={{ color: config.fgColor }} />
                         <span
                             className={cn(
                                 'font-black uppercase tracking-widest',
-                                isP1 ? 'text-lg' : isP2 ? 'text-base' : isP4 ? 'text-xs' : isFull ? 'text-[10px]' : 'text-[6px]'
+                                isP1 ? 'text-lg' : isP2 ? 'text-base' : isP4 ? 'text-xs' : isFull ? 'text-[10px]' : isCompact ? 'text-[7.5px]' : 'text-[6px]'
                             )}
                             style={{ color: config.fgColor }}
                         >
                             Exquisite Dining
                         </span>
-                        <Sparkles className={isP1 ? 'w-6 h-6' : isP2 ? 'w-5 h-5' : isP4 ? 'w-4 h-4' : 'w-3.5 h-3.5'} style={{ color: config.fgColor }} />
+                        <Sparkles className={isP1 ? 'w-6 h-6' : isP2 ? 'w-5 h-5' : isP4 ? 'w-4 h-4' : isFull ? 'w-3.5 h-3.5' : 'w-2.5 h-2.5'} style={{ color: config.fgColor }} />
                     </div>
 
                     <h2
@@ -306,6 +318,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP4 ? 'text-3xl mb-1.5' :
                             isP6 ? 'text-xl mb-1' :
                             isFull ? 'text-2xl mb-1' :
+                            isCompact ? 'text-[12px] mb-0.5' :
                             isS1 ? 'text-sm mb-1' :
                             isS2 ? 'text-xs mb-0.5' :
                             isS4 ? 'text-[9px] mb-0.5' : 'text-[8px] mb-0.5'
@@ -321,6 +334,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP2 ? 'text-lg mb-4' :
                             isP4 ? 'text-sm mb-3' :
                             isFull ? 'text-[11px] mb-3' :
+                            isCompact ? 'text-[8px] mb-1' :
                             isS1 ? 'text-[9px] mb-2' : 'text-[6.5px] mb-1'
                         )}>
                             {config.subText}
@@ -334,7 +348,8 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                             isP2 ? 'p-6 my-3 rounded-2xl border-3' :
                             isP4 ? 'p-4 my-2.5 rounded-2xl border-2' :
                             isP6 ? 'p-3 my-2 rounded-xl border' :
-                            isFull ? 'p-3.5 my-2 rounded-2xl border-2' : 'p-1 my-0.5'
+                            isFull ? 'p-3.5 my-2 rounded-2xl border-2' :
+                            isCompact ? 'p-1.5 my-1 rounded-xl border' : 'p-1 my-0.5'
                         )}
                         style={{ borderColor: config.fgColor }}
                     >
@@ -348,10 +363,10 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                         />
                     </div>
 
-                    <div className={cn('text-center leading-snug w-full px-1', isP1 ? 'mt-8' : isP2 ? 'mt-6' : isP4 ? 'mt-4' : isFull ? 'mt-4' : 'mt-1')}>
+                    <div className={cn('text-center leading-snug w-full px-1', isP1 ? 'mt-8' : isP2 ? 'mt-6' : isP4 ? 'mt-4' : isFull ? 'mt-4' : isCompact ? 'mt-1.5' : 'mt-1')}>
                         <p className={cn(
                             'font-bold tracking-wider uppercase text-white',
-                            isP1 ? 'text-2xl' : isP2 ? 'text-xl' : isP4 ? 'text-base' : isFull ? 'text-xs' : isS1 ? 'text-[9px]' : 'text-[6.5px]'
+                            isP1 ? 'text-2xl' : isP2 ? 'text-xl' : isP4 ? 'text-base' : isFull ? 'text-xs' : isCompact ? 'text-[7.5px]' : isS1 ? 'text-[9px]' : 'text-[6.5px]'
                         )}>
                             {config.ctaText || 'Scan to View Menu • የምግብ ዝርዝር ለማየት በስልክዎ ስካን ያድርጉ'}
                         </p>
@@ -368,6 +383,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 className={cn(
                     'w-full rounded-2xl shadow-sm border transition-all duration-200 flex flex-col overflow-hidden text-neutral-900 bg-white',
                     isFull && 'max-w-[340px] rounded-3xl shadow-2xl border',
+                    isCompact && 'w-full max-w-[230px] sm:max-w-[270px] rounded-2xl shadow-md border',
                     isP1 && 'w-full max-w-[880px] rounded-[40px] shadow-none border-4',
                     isP2 && 'w-full max-w-[680px] rounded-[32px] shadow-none border-3',
                     isP4 && 'w-full max-w-[500px] rounded-[24px] shadow-none border-2',
@@ -384,14 +400,14 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 <div
                     className={cn(
                         'text-center text-white flex flex-col items-center justify-center relative shadow-xs',
-                        isP1 ? 'p-8' : isP2 ? 'p-6' : isP4 ? 'p-4' : isFull ? 'p-4' : isS1 ? 'p-2.5' : 'p-1'
+                        isP1 ? 'p-8' : isP2 ? 'p-6' : isP4 ? 'p-4' : isFull ? 'p-4' : isCompact ? 'p-2' : isS1 ? 'p-2.5' : 'p-1'
                     )}
                     style={{ backgroundColor: config.fgColor }}
                 >
-                    <Utensils className={isP1 ? 'w-8 h-8 mb-1.5 opacity-90' : isP2 ? 'w-6 h-6 mb-1 opacity-90' : isFull ? 'w-4 h-4 mb-0.5 opacity-90' : 'w-2 h-2 opacity-90'} />
+                    <Utensils className={isP1 ? 'w-8 h-8 mb-1.5 opacity-90' : isP2 ? 'w-6 h-6 mb-1 opacity-90' : isFull ? 'w-4 h-4 mb-0.5 opacity-90' : isCompact ? 'w-2.5 h-2.5 mb-0.5 opacity-90' : 'w-2 h-2 opacity-90'} />
                     <h2 className={cn(
                         'font-black tracking-tight break-words max-w-full leading-snug px-1',
-                        isP1 ? 'text-4xl' : isP2 ? 'text-3xl' : isP4 ? 'text-2xl' : isFull ? 'text-base' : isS1 ? 'text-xs' : 'text-[8.5px]'
+                        isP1 ? 'text-4xl' : isP2 ? 'text-3xl' : isP4 ? 'text-2xl' : isFull ? 'text-base' : isCompact ? 'text-[11.5px]' : isS1 ? 'text-xs' : 'text-[8.5px]'
                     )}>
                         {config.restaurantName || 'Restaurant Name'}
                     </h2>
@@ -399,14 +415,15 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
 
                 <div className={cn(
                     'flex flex-col items-center text-center',
-                    isP1 ? 'p-10' : isP2 ? 'p-8' : isP4 ? 'p-6' : isFull ? 'p-5' : isS1 ? 'p-3' : 'p-1.5'
+                    isP1 ? 'p-10' : isP2 ? 'p-8' : isP4 ? 'p-6' : isFull ? 'p-5' : isCompact ? 'p-2.5' : isS1 ? 'p-3' : 'p-1.5'
                 )}>
                     <div className={cn(
                         'rounded-xl bg-neutral-50 border border-neutral-200 shadow-inner flex items-center justify-center',
                         isP1 ? 'p-8 my-4 rounded-3xl' :
                         isP2 ? 'p-6 my-3 rounded-2xl' :
                         isP4 ? 'p-4 my-2.5 rounded-2xl' :
-                        isFull ? 'p-3 my-1.5' : 'p-1 my-0.5'
+                        isFull ? 'p-3 my-1.5' :
+                        isCompact ? 'p-1.5 my-1 rounded-xl' : 'p-1 my-0.5'
                     )}>
                         <QRComponent
                             value={menuUrl}
@@ -418,17 +435,17 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                         />
                     </div>
 
-                    <div className={cn('text-center w-full px-1', isP1 ? 'mt-8 space-y-2' : isP2 ? 'mt-6 space-y-1.5' : isP4 ? 'mt-4 space-y-1' : isFull ? 'mt-3 space-y-1' : 'mt-1')}>
+                    <div className={cn('text-center w-full px-1', isP1 ? 'mt-8 space-y-2' : isP2 ? 'mt-6 space-y-1.5' : isP4 ? 'mt-4 space-y-1' : isFull ? 'mt-3 space-y-1' : isCompact ? 'mt-1.5 space-y-0.5' : 'mt-1')}>
                         <h3 className={cn(
                             'font-black text-neutral-900 leading-snug',
-                            isP1 ? 'text-3xl' : isP2 ? 'text-2xl' : isP4 ? 'text-lg' : isFull ? 'text-xs' : isS1 ? 'text-[9px]' : 'text-[7px]'
+                            isP1 ? 'text-3xl' : isP2 ? 'text-2xl' : isP4 ? 'text-lg' : isFull ? 'text-xs' : isCompact ? 'text-[8px]' : isS1 ? 'text-[9px]' : 'text-[7px]'
                         )}>
                             {config.ctaText || 'Scan to View Menu • የምግብ ዝርዝር ለማየት በስልክዎ ስካን ያድርጉ'}
                         </h3>
                         {config.showSubtitle && config.subText && (
                             <p className={cn(
                                 'font-medium text-neutral-500 break-words max-w-full px-1',
-                                isP1 ? 'text-xl' : isP2 ? 'text-base' : isP4 ? 'text-sm' : isFull ? 'text-xs' : 'text-[6.5px]'
+                                isP1 ? 'text-xl' : isP2 ? 'text-base' : isP4 ? 'text-sm' : isFull ? 'text-xs' : isCompact ? 'text-[7px]' : 'text-[6.5px]'
                             )}>
                                 {config.subText}
                             </p>
@@ -445,6 +462,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
             className={cn(
                 'w-full rounded-2xl shadow-sm border border-neutral-200 bg-white transition-all duration-200 flex flex-col items-center text-center',
                 isFull && 'max-w-[320px] rounded-3xl p-6 sm:p-7 pt-8 sm:pt-9 shadow-2xl',
+                isCompact && 'w-full max-w-[230px] sm:max-w-[270px] rounded-2xl p-3 sm:p-4 pt-3.5 sm:pt-4 shadow-md border',
                 isP1 && 'w-full max-w-[880px] p-12 pt-16 rounded-[40px] shadow-none border-4',
                 isP2 && 'w-full max-w-[680px] p-8 pt-12 rounded-[32px] shadow-none border-3',
                 isP4 && 'w-full max-w-[500px] p-6 pt-9 rounded-[24px] shadow-none border-2',
@@ -462,7 +480,8 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 isP2 ? 'p-6 mb-4 rounded-2xl border-2' :
                 isP4 ? 'p-4 mb-3 rounded-2xl border' :
                 isP6 ? 'p-3 mb-2 rounded-xl border' :
-                isFull ? 'p-3.5 mb-3 rounded-2xl' : 'p-1 mb-1'
+                isFull ? 'p-3.5 mb-3 rounded-2xl' :
+                isCompact ? 'p-1.5 mb-1.5 rounded-xl' : 'p-1 mb-1'
             )}>
                 <QRComponent
                     value={menuUrl}
@@ -481,6 +500,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 isP4 ? 'text-2xl mb-1' :
                 isP6 ? 'text-lg mb-0.5' :
                 isFull ? 'text-base mb-1' :
+                isCompact ? 'text-[12px] mb-0.5 font-extrabold' :
                 isS1 ? 'text-xs' : 'text-[8.5px]'
             )}>
                 {config.restaurantName || 'Restaurant Menu'}
@@ -492,6 +512,7 @@ export const QRCardItem: React.FC<QRCardItemProps> = ({
                 isP4 ? 'text-base' :
                 isP6 ? 'text-xs' :
                 isFull ? 'text-xs' :
+                isCompact ? 'text-[7.5px]' :
                 isS1 ? 'text-[8px]' : 'text-[6.5px]'
             )}>
                 {config.ctaText || 'Scan to View Menu • የምግብ ዝርዝር ለማየት በስልክዎ ስካን ያድርጉ'}
@@ -505,14 +526,15 @@ export const QRDesignerPreview: React.FC<QRDesignerPreviewProps> = ({
     menuUrl,
     logoUrl,
     canvasRef,
+    scale = 'full',
 }) => {
     return (
-        <div ref={canvasRef} className="w-full flex items-center justify-center p-2 sm:p-4">
+        <div ref={canvasRef} className="w-full flex items-center justify-center p-1 sm:p-2">
             <QRCardItem
                 config={config}
                 menuUrl={menuUrl}
                 logoUrl={logoUrl}
-                scale="full"
+                scale={scale}
             />
         </div>
     );

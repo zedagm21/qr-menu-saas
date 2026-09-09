@@ -27,6 +27,7 @@ export const useCreateMenuItem = () => {
         mutationFn: (data: object) => menuItemApi.create(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.created'));
         },
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
@@ -40,6 +41,7 @@ export const useUpdateMenuItem = () => {
         mutationFn: ({ id, data }: { id: string; data: object }) => menuItemApi.update(id, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.saved'));
         },
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
@@ -80,6 +82,7 @@ export const useToggleItemAvailability = () => {
         // Always sync with server state
         onSettled: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
         },
     });
 };
@@ -91,6 +94,7 @@ export const useDeleteMenuItem = () => {
         mutationFn: (id: string) => menuItemApi.remove(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.deleted'));
         },
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
@@ -105,6 +109,7 @@ export const useUploadMenuItemImage = () => {
             menuItemApi.uploadImage(id, file, onProgress),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.uploaded'));
         },
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),
@@ -139,6 +144,7 @@ export const useReorderMenuItems = () => {
         },
         onSettled: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
         },
     });
 };
@@ -151,6 +157,7 @@ export const useBatchUpdateMenuItems = () => {
             menuItemApi.batchUpdate(ids, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['menu-items'] });
+            qc.invalidateQueries({ queryKey: ['public-menu'] });
             toast.success(t('toast.saved', { defaultValue: 'Items updated successfully' }));
         },
         onError: (error: any) => toast.error(error?.response?.data?.error || t('toast.error')),

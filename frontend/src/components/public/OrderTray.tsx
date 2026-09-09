@@ -22,7 +22,7 @@ export const OrderTray: React.FC<OrderTrayProps> = ({
     return (
         <aside
             aria-label={isAm ? 'ትዕዛዞቼ' : 'My Orders'}
-            className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md z-40 animate-fade-in-up"
+            className="fixed bottom-[calc(16px+env(safe-area-inset-bottom,0px))] inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md z-40 animate-fade-in-up"
         >
             <button
                 type="button"
